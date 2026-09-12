@@ -31,13 +31,13 @@ export function getLocalFallbackResponse(input: string, languageCode?: string): 
   } as const;
 
   const short = {
-    en: 'Hello! I am 9JA AI. I can still help with your question while the cloud provider reconnects.',
-    pcm: 'How far! I be 9JA AI. I still fit help you while the cloud network come back.',
-    yo: 'Ẹ káàbọ̀! Mo jẹ́ 9JA AI. Mo lè ṣe iranlọwọ fun ọ nígbà tí ìsopọ̀ ìrànwọ́ cloud bá dé.',
-    ig: 'Nnọọ! Abụ m 9JA AI. M ga-enyere gị aka ka netwọk cloud bọnọgharịa.',
-    ha: 'Sannu! Ni ne 9JA AI. Zan iya taimaka maka yayin da sabis ɗin cloud ya sake haɗawa.',
-    edo: 'Kọyọ! I be 9JA AI. I vbe khian muẹre ne, ma vbe rre ghọ gbera ma.',
-    esan: 'Kọyo! I be 9JA AI. I vbe khian muẹre ne, ma vbe rre ghọ gbera ma.',
+    en: 'Hello! I am BLACK AI. I can still help with your question while the cloud provider reconnects.',
+    pcm: 'How far! I be BLACK AI. I still fit help you while the cloud network come back.',
+    yo: 'Ẹ káàbọ̀! Mo jẹ́ BLACK AI. Mo lè ṣe iranlọwọ fun ọ nígbà tí ìsopọ̀ ìrànwọ́ cloud bá dé.',
+    ig: 'Nnọọ! Abụ m BLACK AI. M ga-enyere gị aka ka netwọk cloud bọnọgharịa.',
+    ha: 'Sannu! Ni ne BLACK AI. Zan iya taimaka maka yayin da sabis ɗin cloud ya sake haɗawa.',
+    edo: 'Kọyọ! I be BLACK AI. I vbe khian muẹre ne, ma vbe rre ghọ gbera ma.',
+    esan: 'Kọyo! I be BLACK AI. I vbe khian muẹre ne, ma vbe rre ghọ gbera ma.',
   } as const;
 
   if (!normalized) {
