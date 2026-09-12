@@ -1,0 +1,16 @@
+node_modules
+.git
+.env*
+!.env.example
+*.log
+.DS_Store
+coverage
+test-*
+*.test.ts
+*.test.js
+functions/
+firebase.json
+.firebaserc
+.firebase/
+firestore.rules
+storage.rules

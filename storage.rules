@@ -1,0 +1,28 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Vocab and training audio — open read, open write (admin-controlled content)
+    match /vocab-audio/{allPaths=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+    match /training-audio/{allPaths=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+    // Allow authenticated owner read of generated images stored under generated/{genId}/...
+    match /generated/{genId}/{allPaths=**} {
+      allow read: if request.auth != null && (
+        // Check Firestore generation ownership
+        get(/databases/$(database)/documents/image_generations/$(genId)).data.userId == request.auth.uid
+      ) || request.auth.token.admin == true;
+      // Writes are server-side via admin SDK only
+      allow write: if false;
+    }
+
+    // Deny everything else
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

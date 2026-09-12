@@ -1,0 +1,123 @@
+/**
+ * Shared types for the 9jai AI proxy layer
+ */
+
+// ── Provider identifiers ───────────────────────────────────────────────────
+
+export type ProviderId =
+  | 'native-gpu'
+  | 'openrouter'
+  | 'grok'
+  | 'groq'
+  | 'together'
+  | 'huggingface'
+  | 'mistral'
+  | 'tavily'
+  | 'ollama'
+  | 'pollinations'
+  | 'pollinations-fallback'
+  | 'gemini'
+  | 'tesseract'
+  | 'google-tts'
+  | 'ollama-vision'
+  | 'deepseek'
+  | 'video-worker'
+  | 'local-audio-mock';
+
+export type TaskType =
+  | 'chat'
+  | 'stream'
+  | 'embed'
+  | 'image'
+  | 'transcribe'
+  | 'search'
+  | 'video';
+
+// ── Request / Response shapes ──────────────────────────────────────────────
+
+export interface ChatMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+export interface AIRequest {
+  task: TaskType;
+  messages?: ChatMessage[];
+  prompt?: string;
+  model?: string;
+  temperature?: number;
+  maxTokens?: number;
+  stream?: boolean;
+  preferredProviders?: ProviderId[];
+  allowFallback?: boolean;
+  sessionId?: string;
+  userId?: string;
+  // Developer debugging flag (emulator/dev only)
+  debug?: boolean;
+}
+
+export interface AIResponse {
+  text: string;
+  provider: ProviderId;
+  model: string;
+  latencyMs: number;
+  cached: boolean;
+  tokensUsed?: number;
+  error?: string;
+  // Optional debug object provided in dev/emulator mode
+  debug?: any;
+}
+
+// ── Provider health ────────────────────────────────────────────────────────
+
+export type ProviderStatus = 'healthy' | 'degraded' | 'down';
+
+export interface ProviderHealth {
+  providerId: ProviderId;
+  status: ProviderStatus;
+  lastChecked: number;
+  avgLatencyMs: number;
+  successRate: number;   // 0–1
+  consecutiveFailures: number;
+  lastError?: string;
+}
+
+// ── Routing decision ───────────────────────────────────────────────────────
+
+export interface RoutingDecision {
+  selectedProvider: ProviderId;
+  selectedModel: string;
+  reason: string;
+  fallbackChain: ProviderId[];
+  estimatedLatencyMs: number;
+}
+
+// ── Logging ────────────────────────────────────────────────────────────────
+
+export interface RequestLog {
+  requestId: string;
+  userId?: string;
+  sessionId?: string;
+  task: TaskType;
+  provider: ProviderId;
+  model: string;
+  latencyMs: number;
+  tokensUsed?: number;
+  cached: boolean;
+  success: boolean;
+  error?: string;
+  timestamp: number;
+  region?: string;
+}
+
+// ── Cache entry ────────────────────────────────────────────────────────────
+
+export interface CacheEntry {
+  key: string;
+  value: string;
+  provider: ProviderId;
+  model: string;
+  createdAt: number;
+  ttlMs: number;
+  hitCount: number;
+}

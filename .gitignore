@@ -1,0 +1,21 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+functions/lib/
+functions/coverage/
+functions/node_modules/
+
+# Deployment scripts and docs (may contain secrets)
+DEPLOYMENT_STEPS.md
+DEPLOY_TO_VERCEL.md
+VERCEL_DEPLOYMENT.md
+deploy.ps1
+push*.bat
+push*.txt
+push*.log
+PUSH_TO_GITHUB.bat
