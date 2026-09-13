@@ -1416,16 +1416,17 @@ Extract COMPLETE and DETAILED information from any text, labels, or packaging vi
       {showVision && <VisionEngine mode={visionMode} onClose={() => setShowVision(false)} onResult={(text) => { setShowVision(false); setMessages(prev => [...prev, { role: 'model', content: text, timestamp: Date.now(), isNew: true }]); }} />}
 
       {/* ── Messages ──────────────────────────────────────────────────── */}
-      <div ref={scrollRef} className="relative z-10 flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-4 space-y-4 pb-6 flex flex-col">
+      <div ref={scrollRef} className="relative z-10 flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-4">
         {messages.length === 0 && !isStreaming ? (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center justify-center flex-1 text-center px-4 pb-32">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center justify-center h-full text-center px-4 pb-32">
             <div className="mb-8"><NineJALogo state={logoState} size={200} /></div>
             <h2 className="text-3xl font-normal text-white mb-2">
               {getLocalizedGreeting(user?.displayName || '', selectedLanguage || 'pcm')}
             </h2>
           </motion.div>
         ) : (
-          <AnimatePresence initial={false}>
+          <div className="space-y-4 pb-6">
+            <AnimatePresence initial={false}>
             {messages.map((msg, idx) => {
               // Hide the last model message while streaming — it's the same content as the streaming bubble
               const isLastModelMsg = msg.role === 'model' && idx === messages.length - 1;
@@ -1520,6 +1521,7 @@ Extract COMPLETE and DETAILED information from any text, labels, or packaging vi
               </motion.div>
             )}
           </AnimatePresence>
+          </div>
         )}
       </div>
 
