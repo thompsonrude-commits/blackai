@@ -63,9 +63,9 @@ export default function NineJALogo({ state = 'idle', size = 200, className = '' 
         </div>
         
         {/* BLACKAI text as one word with letter animation */}
-        <div className="relative z-10">
+        <div className="relative z-10 whitespace-nowrap">
           <motion.div 
-            className="font-black text-[1.8em] leading-none tracking-tight"
+            className="font-black text-[1.6em] leading-none tracking-tighter"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
@@ -170,9 +170,9 @@ export function NineJALogoSmall({ size = 40, className = '' }: { size?: number; 
     <div className={`relative ${className}`} style={{ width: size, height: size }}>
       <div className="absolute inset-0 rounded-full border-2 border-[#00ff88]/40" />
       <div className="absolute inset-[10%] rounded-full bg-gradient-to-br from-[#1a1a1a] to-[#000000] flex items-center justify-center">
-        <div className="relative z-10">
-          <span className="text-white font-black text-[0.65em]">BLACK</span>
-          <span className="text-[#00ff88] font-black text-[0.65em]">AI</span>
+        <div className="relative z-10 whitespace-nowrap">
+          <span className="text-white font-black text-[0.6em]">BLACK</span>
+          <span className="text-[#00ff88] font-black text-[0.6em]">AI</span>
         </div>
       </div>
     </div>
