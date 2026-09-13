@@ -31,6 +31,8 @@ import InteractiveMap from './InteractiveMap';
 import NineJALogo from './NineJALogo';
 import NetworkBackground from './NetworkBackground';
 import VoiceAssistantDropdown from './VoiceAssistantDropdown';
+import CodeExecutor from './CodeExecutor';
+import ProjectViewer from './ProjectViewer';
 import {
   detectCorrectionIntent,
   storeCorrection,
@@ -1499,6 +1501,42 @@ Extract COMPLETE and DETAILED information from any text, labels, or packaging vi
                 }
               }
 
+              // Detect and parse code blocks
+              let codeBlocks: { language: string; code: string; fileName?: string }[] = [];
+              let projectData: { projectName: string; structure: any[] } | null = null;
+
+              if (msg.role === 'model' && !spreadsheetData && !documentData) {
+                // Check for project format first
+                const projectRegex = /```project\s*\n?([\s\S]*?)\n?```/i;
+                const projectMatch = msg.content.match(projectRegex);
+                
+                if (projectMatch) {
+                  try {
+                    projectData = JSON.parse(projectMatch[1].trim());
+                    textContent = textContent.replace(projectRegex, '').trim();
+                  } catch (err) {
+                    console.error('Project parse error:', err);
+                  }
+                }
+
+                // If not a project, check for code blocks
+                if (!projectData) {
+                  const codeRegex = /```(\w+)\s*\n([\s\S]*?)\n?```/g;
+                  let match;
+                  while ((match = codeRegex.exec(msg.content)) !== null) {
+                    const language = match[1].toLowerCase();
+                    const code = match[2].trim();
+                    
+                    // Skip spreadsheet and document blocks (already handled)
+                    if (language !== 'spreadsheet' && language !== 'document' && language !== 'project') {
+                      codeBlocks.push({ language, code, fileName: `code_${codeBlocks.length + 1}` });
+                      // Remove code block from text content
+                      textContent = textContent.replace(match[0], '').trim();
+                    }
+                  }
+                }
+              }
+
               return (
                 <React.Fragment key={idx}>
                   <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className={`flex flex-col gap-2 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
@@ -1511,6 +1549,15 @@ Extract COMPLETE and DETAILED information from any text, labels, or packaging vi
                         {textContent && (msg.role === 'model' ? <TypewriterBubble content={textContent} isNew={!!msg.isNew} /> : <div className="max-w-[85%] bg-[#00ff88]/15 border border-[#00ff88]/25 px-4 py-3 rounded-2xl rounded-tr-sm text-white text-base leading-relaxed whitespace-pre-wrap">{msg.content}</div>)}
                         {spreadsheetData && <SpreadsheetViewer data={spreadsheetData} title={spreadsheetData.title} />}
                         {documentData && <DocumentViewer title={documentData.title} content={documentData.content} format={documentData.format as any} />}
+                        {projectData && <ProjectViewer projectName={projectData.projectName} structure={projectData.structure} />}
+                        {codeBlocks.map((block, blockIdx) => (
+                          <CodeExecutor 
+                            key={blockIdx} 
+                            code={block.code} 
+                            language={block.language} 
+                            fileName={block.fileName} 
+                          />
+                        ))}
                       </>
                     )}
                   </motion.div>
