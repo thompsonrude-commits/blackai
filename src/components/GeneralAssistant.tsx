@@ -1365,7 +1365,7 @@ Extract COMPLETE and DETAILED information from any text, labels, or packaging vi
   };
 
   return (
-    <div ref={containerRef} className="relative flex flex-col h-screen bg-gradient-to-br from-[#000000] to-[#0d0d0d] text-white overflow-hidden">
+    <div ref={containerRef} className="relative flex flex-col h-screen max-h-screen bg-gradient-to-br from-[#000000] to-[#0d0d0d] text-white overflow-hidden">
       
       {/* Speaker Cube — fullscreen animated visualizer when speaker is ON */}
       <SpeakerCube
@@ -1416,7 +1416,7 @@ Extract COMPLETE and DETAILED information from any text, labels, or packaging vi
       {showVision && <VisionEngine mode={visionMode} onClose={() => setShowVision(false)} onResult={(text) => { setShowVision(false); setMessages(prev => [...prev, { role: 'model', content: text, timestamp: Date.now(), isNew: true }]); }} />}
 
       {/* ── Messages ──────────────────────────────────────────────────── */}
-      <div ref={scrollRef} className="relative z-10 flex-1 overflow-y-auto overscroll-contain px-4 py-4 space-y-4 pb-6">
+      <div ref={scrollRef} className="relative z-10 flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-4 space-y-4 pb-6">
         {messages.length === 0 && !isStreaming ? (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center justify-center min-h-full text-center px-4 pb-32">
             <div className="mb-8"><NineJALogo state={logoState} size={200} /></div>
