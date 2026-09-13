@@ -850,7 +850,16 @@ export default function GeneralAssistant({ user, isAdmin, currentSessionId, onOp
     return () => { mounted = false; };
   }, [rebuildSystemPrompt]);
 
-  const scrollToBottom = useCallback(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, []);
+  const scrollToBottom = useCallback(() => { 
+    if (scrollRef.current) {
+      // Use requestAnimationFrame to ensure DOM has updated
+      requestAnimationFrame(() => {
+        if (scrollRef.current) {
+          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+      });
+    }
+  }, []);
   const updateMessageImage = useCallback((index: number, src: string) => {
     if (!src) return;
     // Accept data: or http(s) images and normalize to __IMAGE__ sentinel so messages render consistently
@@ -858,7 +867,12 @@ export default function GeneralAssistant({ user, isAdmin, currentSessionId, onOp
     setMessages(prev => prev.map((m, i) => i !== index ? m : { ...m, content: normalized, timestamp: m.timestamp || Date.now() } as any));
   }, []);
 
-  useEffect(() => { scrollToBottom(); }, [messages, streamingContent, scrollToBottom]);
+  useEffect(() => { 
+    // Scroll immediately and again after a delay to handle layout shifts
+    scrollToBottom();
+    const timer = setTimeout(scrollToBottom, 50);
+    return () => clearTimeout(timer);
+  }, [messages, streamingContent, scrollToBottom]);
 
   useEffect(() => {
     const vv = window.visualViewport;
@@ -1302,6 +1316,9 @@ Extract COMPLETE and DETAILED information from any text, labels, or packaging vi
           // The streaming bubble disappears when isStreaming=false, so just add once
           return [...prev, { role: 'model', content: finalTextNormalized, timestamp: Date.now(), isNew: false, phonetics: phon } as any];
         });
+        // Scroll immediately after adding message
+        setTimeout(scrollToBottom, 0);
+        setTimeout(scrollToBottom, 100);
         saveToFirestore(userMessage, cleanFullText);
         if (user?.uid) {
           saveChatSession(user.uid, {
