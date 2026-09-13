@@ -379,7 +379,7 @@ function buildImageResult(rawPrompt: string): { type: 'map'|'flag'|'ai'|'video';
 }
 
 // ── Typewriter hook ───────────────────────────────────────────────────────
-function useTypewriter(text: string, speed = 36) {  // Changed from 18 to 36 (50% slower)
+function useTypewriter(text: string, speed = 10) {  // Fast typing speed - 10ms per character
   const [displayed, setDisplayed] = useState('');
   const prevText = useRef('');
   useEffect(() => {
@@ -438,10 +438,10 @@ function sanitizeDisplayText(value: string): string {
 
 function TypewriterBubble({ content, isNew }: { content: string; isNew: boolean }) {
   const safeContent = sanitizeDisplayText(content);
-  const displayed = useTypewriter(isNew ? safeContent : '', 42);  // Changed from 21 to 42 (50% slower)
+  const displayed = useTypewriter(isNew ? safeContent : '', 10);  // Fast typing - 10ms per character
   const text = isNew ? displayed : safeContent;
   return (
-    <div className="max-w-[85%] bg-[#1a1a1a] border border-[#00ff88]/30 px-4 py-3 rounded-2xl rounded-tl-sm text-gray-100 text-base leading-[1.6] whitespace-pre-wrap shadow-[0_0_20px_rgba(0,255,136,0.1)] break-words">
+    <div className="max-w-[85%] bg-[#1a1a1a] border border-[#00ff88]/30 px-4 py-3 rounded-2xl rounded-tl-sm text-gray-100 text-base leading-[1.6] whitespace-pre-wrap shadow-[0_0_20px_rgba(0,255,136,0.1)] break-words overflow-hidden">
       {text}
       {isNew && displayed.length < safeContent.length && <span className="inline-block w-2 h-4 bg-[#00ff88] ml-0.5 animate-pulse rounded-sm align-middle" />}
     </div>
@@ -1416,7 +1416,7 @@ Extract COMPLETE and DETAILED information from any text, labels, or packaging vi
       {showVision && <VisionEngine mode={visionMode} onClose={() => setShowVision(false)} onResult={(text) => { setShowVision(false); setMessages(prev => [...prev, { role: 'model', content: text, timestamp: Date.now(), isNew: true }]); }} />}
 
       {/* ── Messages ──────────────────────────────────────────────────── */}
-      <div ref={scrollRef} className="relative z-10 flex-1 overflow-y-auto overscroll-contain px-4 py-4 space-y-4">
+      <div ref={scrollRef} className="relative z-10 flex-1 overflow-y-auto overscroll-contain px-4 py-4 space-y-4 pb-6">
         {messages.length === 0 && !isStreaming ? (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center justify-center min-h-full text-center px-4 pb-32">
             <div className="mb-8"><NineJALogo state={logoState} size={200} /></div>
@@ -1514,7 +1514,7 @@ Extract COMPLETE and DETAILED information from any text, labels, or packaging vi
 
             {isStreaming && (
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex justify-start">
-                <div className="max-w-[85%] bg-[#1a1a1a] border border-[#00ff88]/30 px-4 py-3 rounded-2xl rounded-tl-sm text-gray-100 text-base leading-[1.6] whitespace-pre-wrap shadow-[0_0_20px_rgba(0,255,136,0.1)] break-words">
+                <div className="max-w-[85%] bg-[#1a1a1a] border border-[#00ff88]/30 px-4 py-3 rounded-2xl rounded-tl-sm text-gray-100 text-base leading-[1.6] whitespace-pre-wrap shadow-[0_0_20px_rgba(0,255,136,0.1)] break-words overflow-hidden">
                   {sanitizeDisplayText(streamingContent)}<span className="inline-block w-2 h-4 bg-[#00ff88] ml-0.5 animate-pulse rounded-sm align-middle" />
                 </div>
               </motion.div>
@@ -1542,7 +1542,7 @@ Extract COMPLETE and DETAILED information from any text, labels, or packaging vi
       </AnimatePresence>
 
       {/* ── Input bar ────────────────────────────────────────────────────── */}
-      <div className="shrink-0 px-4 pb-5 pt-2 bg-[#050e05]">
+      <div className="shrink-0 px-4 pb-5 pt-2 bg-[#050e05] relative z-20">
         <AnimatePresence>
           {pendingFiles.length > 0 && (
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="flex flex-wrap gap-1.5 mb-2">
