@@ -32,6 +32,16 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
     try {
       // Check master admin credentials first
       if (email.trim().toLowerCase() === ADMIN_CREDENTIALS.email.toLowerCase() && password === ADMIN_CREDENTIALS.password) {
+        const adminResponse = await fetch('/api/admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ operation: 'login', email: email.trim().toLowerCase(), password }),
+        });
+        if (!adminResponse.ok) {
+          const details = await adminResponse.json().catch(() => ({}));
+          throw new Error(details.error || 'Admin API is not configured for this deployment.');
+        }
         const adminUser = {
           username: 'admin',
           email: ADMIN_CREDENTIALS.email,
