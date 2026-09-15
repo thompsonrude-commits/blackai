@@ -73,6 +73,18 @@ Together: **Kọyọ, Ọbowiẹ.**`;
 Grammar note: **rẹn** is the verb “know”, while **ma** marks the negative construction in this recorded example. The positive sentence “I know” needs native-speaker confirmation before BLACK AI presents a form as verified.`;
   }
 
+  if (normalized === 'vba tie we' || normalized === 'vba tie' || normalized.includes('where are you going')) {
+    return `I could not verify **“${text.trim()}”** as a standard Edo spelling yet.
+
+The verified Edo motion words in this assistant include **Gho** (“go”), **Rre** (“come”), and **Vbe** (“be/stay”). Please add the intended English meaning or the corrected spelling so I can give a reliable translation instead of inventing one.`;
+  }
+
+  if (normalized === 'inu kpo u ye' || normalized === 'inu kpo') {
+    return `I do not have a verified translation for **“${text.trim()}”** in the current Edo lexicon.
+
+Please tell me what you intended to say in English, or provide the corrected Edo spelling. I will then record the correction for admin review.`;
+  }
+
   const requestedTerm = normalized
     .match(/(?:what does|meaning of|what is)\s+(.+?)(?:\s+mean(?:s)?(?:\s+in\s+edo)?|$)/i)?.[1]
     ?.trim();

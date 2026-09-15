@@ -129,6 +129,16 @@ export function getLocalFallbackResponse(input: string, languageCode?: string): 
     esan: 'I be BLACK AI. Aza kevbe no gha rre nẹ, ma vbe khian muẹre ne, ma vbe rre ghọ gbera ma.',
   } as const;
 
+  if (code === 'edo') {
+    if (/\b(koyo|kọyọ|kọọ|hello|good morning|greeting)\b/i.test(lower)) {
+      return 'In verified Edo (Bini): **Kọyọ** or **Kọọ** means hello, and **Ọbowiẹ** means good morning.';
+    }
+    if (lower.includes('vba tie we') || lower.includes('inu kpo u ye')) {
+      return 'I do not have a verified translation for that Edo spelling yet. Please provide the intended English meaning or corrected spelling so BLACK AI does not guess.';
+    }
+    return 'I received your Edo message, but I do not have a verified answer for that exact phrase yet. I can help with the Edo glossary, pronunciation, greetings, and recorded grammar examples.';
+  }
+
   const finalText = genericLockedResponse[code as keyof typeof genericLockedResponse] || genericLockedResponse.en;
 
   if (code === 'pcm' && isLikelyPidgin(finalText)) {
