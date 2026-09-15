@@ -3,7 +3,7 @@ import { Mail, Lock, Loader, AlertCircle, Eye, EyeOff, ArrowLeft } from 'lucide-
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db, signInWithEmail } from '../lib/firebase';
+import { db } from '../lib/firebase';
 import RotatingLogo, { RotatingLogoMedium } from './RotatingLogo';
 
 interface AdminLoginProps {
@@ -32,18 +32,6 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
     try {
       // Check master admin credentials first
       if (email.trim().toLowerCase() === ADMIN_CREDENTIALS.email.toLowerCase() && password === ADMIN_CREDENTIALS.password) {
-        // Establish a real Firebase session so Firestore rules allow shared
-        // lexicon and training writes from the admin workspace.
-        try {
-          await signInWithEmail(email.trim(), password);
-        } catch (authError: any) {
-          if (!['auth/user-not-found', 'auth/invalid-credential', 'auth/wrong-password'].includes(authError?.code)) {
-            throw authError;
-          }
-          // Keep the existing local admin route available when this Firebase
-          // project has not provisioned the admin account yet.
-          console.warn('[AdminLogin] Firebase admin account is not provisioned; local admin mode is active.', authError?.code);
-        }
         const adminUser = {
           username: 'admin',
           email: ADMIN_CREDENTIALS.email,
@@ -98,9 +86,7 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
       setError('Invalid email or password. Please check your credentials.');
       setIsLoading(false);
     } catch (err: any) {
-      setError(err?.code === 'auth/api-key-not-valid'
-        ? 'Firebase is not configured for this deployment. Add a valid VITE_FIREBASE_API_KEY in Vercel, redeploy, and try again.'
-        : err.message || 'Login failed. Please try again.');
+      setError(err.message || 'Login failed. Please try again.');
       setIsLoading(false);
     }
   };
