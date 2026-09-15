@@ -254,13 +254,13 @@ function mergeTrainingEntries(liveEntries: TrainingEntry[]): TrainingEntry[] {
   ];
 }
 
-export default function AdminTraining() {
+export default function AdminTraining({ selectedLanguage }: { selectedLanguage?: string } = {}) {
   const navigate = useNavigate();
   const [entries, setEntries] = useState<TrainingEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [filter, setFilter] = useState<TrainingType | "all">("all");
-  const [languageFilter, setLanguageFilter] = useState<string>("all");
+  const [languageFilter, setLanguageFilter] = useState<string>(selectedLanguage || "all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {

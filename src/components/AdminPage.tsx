@@ -5,19 +5,28 @@
 
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { GraduationCap, Users, Database, BarChart3, Settings, ArrowLeft } from 'lucide-react';
+import { GraduationCap, Users, Database, BarChart3, Settings, ArrowLeft, Globe } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdminTraining from './AdminTraining';
 import TeamManagement from './TeamManagement';
 import AdminRepository from './AdminRepository';
 import { AdminDashboard } from './AdminDashboard';
+import { NIGERIAN_LANGUAGES } from '../lib/nigerianLanguages';
 
 type AdminTab = 'training' | 'team' | 'repository' | 'dashboard';
+
+const TRAINING_LANGUAGES = Array.from(new Map(
+  NIGERIAN_LANGUAGES.flatMap(region => region.languages.map(language => [
+    language.id,
+    { id: language.id, name: language.name, region: region.name },
+  ] as const))
+).values()).sort((a, b) => a.name.localeCompare(b.name));
 
 export default function AdminPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<AdminTab>('training');
   const [showDashboard, setShowDashboard] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState<{ id: string; name: string; region: string } | null>(null);
 
   const tabs = [
     { id: 'training' as AdminTab, label: 'AI Training', icon: GraduationCap, description: 'Train and improve the AI model' },
@@ -27,6 +36,33 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen futuristic-shell flex flex-col">
+      {!selectedLanguage ? (
+        <div className="flex-1 flex items-center justify-center px-6 py-16">
+          <div className="w-full max-w-2xl rounded-3xl border border-[#00ff88]/20 bg-black/40 p-8 sm:p-12 text-center">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-[#00ff88]/10">
+              <Globe className="h-8 w-8 text-[#00ff88]" />
+            </div>
+            <h2 className="text-3xl font-black text-white">Choose a language to work on</h2>
+            <p className="mt-3 text-sm leading-relaxed text-white/50">
+              Select the language your team will edit and use for AI training. No language is opened automatically.
+            </p>
+            <div className="mt-8 text-left">
+              <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-white/60">Training language</label>
+              <select
+                defaultValue=""
+                onChange={(event) => setSelectedLanguage(TRAINING_LANGUAGES.find(language => language.id === event.target.value) || null)}
+                className="w-full rounded-xl border border-white/15 bg-[#0F0F0F] px-4 py-3 text-white focus:border-[#00ff88] focus:outline-none focus:ring-2 focus:ring-[#00ff88]"
+              >
+                <option value="" disabled>Select a language</option>
+                {TRAINING_LANGUAGES.map(language => (
+                  <option key={language.id} value={language.id}>{language.name} — {language.region}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
       {/* Header */}
       <div className="border-b border-[#00ff88]/20 bg-black/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -97,7 +133,7 @@ export default function AdminPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            {activeTab === 'training' && <AdminTraining />}
+            {activeTab === 'training' && <AdminTraining selectedLanguage={selectedLanguage.id} />}
             {activeTab === 'team' && <TeamManagement />}
             {activeTab === 'repository' && (
               <AdminRepository
@@ -115,6 +151,8 @@ export default function AdminPage() {
       {/* Platform Dashboard Modal */}
       {showDashboard && (
         <AdminDashboard onClose={() => setShowDashboard(false)} />
+      )}
+        </>
       )}
     </div>
   );

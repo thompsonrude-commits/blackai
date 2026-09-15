@@ -21,6 +21,7 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberLogin, setRememberLogin] = useState(false);
   const navigate = useNavigate();
 
   const handleAdminLogin = async (e: React.FormEvent) => {
@@ -50,7 +51,11 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
           isMasterAdmin: true,
           loginTime: Date.now()
         };
-        localStorage.setItem('lexicon_dev_user', JSON.stringify(adminUser));
+        const storage = rememberLogin ? localStorage : sessionStorage;
+        localStorage.removeItem('lexicon_dev_user');
+        sessionStorage.removeItem('lexicon_dev_user');
+        storage.setItem('lexicon_dev_user', JSON.stringify(adminUser));
+        localStorage.setItem('lexicon_dev_user_remembered', String(rememberLogin));
         // Reload to pick up the new state
         window.location.href = '/admin';
         return;
@@ -78,7 +83,11 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
             permissions: agentData.permissions || ['train'],
             loginTime: Date.now()
           };
-          localStorage.setItem('lexicon_dev_user', JSON.stringify(agentUser));
+          const storage = rememberLogin ? localStorage : sessionStorage;
+          localStorage.removeItem('lexicon_dev_user');
+          sessionStorage.removeItem('lexicon_dev_user');
+          storage.setItem('lexicon_dev_user', JSON.stringify(agentUser));
+          localStorage.setItem('lexicon_dev_user_remembered', String(rememberLogin));
           // Reload to pick up the new state
           window.location.href = '/admin';
           return;
@@ -111,6 +120,16 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
               <p className="text-gray-500 text-sm">Admin Access</p>
             </div>
           </div>
+
+          <label className="flex items-center gap-2 text-sm text-white/60 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={rememberLogin}
+              onChange={(e) => setRememberLogin(e.target.checked)}
+              className="accent-[#00ff88]"
+            />
+            Remember this admin login on this browser
+          </label>
 
           {/* Form */}
           <div className="px-6 py-10">

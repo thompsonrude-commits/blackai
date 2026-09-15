@@ -30,7 +30,10 @@ const ADMIN_EMAIL = 'obosathompsons@gmail.com';
 
 function getSavedDeveloperUser(): any {
   try {
-    const saved = localStorage.getItem('lexicon_dev_user');
+    const saved = sessionStorage.getItem('lexicon_dev_user')
+      || (localStorage.getItem('lexicon_dev_user_remembered') === 'true'
+        ? localStorage.getItem('lexicon_dev_user')
+        : null);
     return saved ? JSON.parse(saved) : null;
   } catch {
     return null;
@@ -109,13 +112,13 @@ export default function App() {
   const isAdmin = isMasterAdmin || isDeveloper;
 
   useEffect(() => {
-    setDeveloperUser(getSavedDeveloperUser());
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       // Only clear developer user if a REAL Firebase user logs in
       // Don't clear for anonymous users
       if (u && !u.isAnonymous && u.email) {
         setDeveloperUser(null);
         localStorage.removeItem('lexicon_dev_user');
+        sessionStorage.removeItem('lexicon_dev_user');
       }
       setUser(u);
       setLoading(false);
