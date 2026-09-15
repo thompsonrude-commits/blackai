@@ -71,6 +71,10 @@ export function useLexicon() {
       snap.docs.forEach(d => {
         const data = d.data();
         const staticId = d.id;
+        if (data.deleted === true) {
+          baseMap.delete(staticId);
+          return;
+        }
         const existing = baseMap.get(staticId);
         const edoWord = data.translation || existing?.edoWord || staticId;
         const audioUrl = data.audioUrl || existing?.audioUrl;

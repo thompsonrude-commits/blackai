@@ -58,7 +58,10 @@ function LexiconManager() {
   const [category, setCategory] = useState("all");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
-  const [draft, setDraft] = useState({ edoWord: "", english: "", phonetic: "", category: "General", context: "" });
+  const [draft, setDraft] = useState({
+    edoWord: "", english: "", phonetic: "", category: "General", context: "",
+    audioBlob: null as Blob | null, audioUrl: null as string | null,
+  });
   const [saving, setSaving] = useState(false);
 
   const filtered = allEntries.filter(entry => {
@@ -77,6 +80,8 @@ function LexiconManager() {
       phonetic: entry.phonetic,
       category: entry.category || "General",
       context: entry.context || "",
+      audioBlob: null,
+      audioUrl: entry.audioUrl || null,
     });
   };
 
@@ -85,17 +90,27 @@ function LexiconManager() {
     setSaving(true);
     try {
       const id = (editingId || draft.edoWord).trim();
-      await setDoc(doc(db, "coreVocabAudio", id), {
+      const updateData: Record<string, unknown> = {
         translation: draft.edoWord.trim(),
         word: draft.english.trim(),
         phonetic: draft.phonetic.trim(),
         category: draft.category.trim() || "General",
         context: draft.context.trim() || null,
+        deleted: false,
         updatedAt: serverTimestamp(),
-      }, { merge: true });
+      };
+      if (draft.audioBlob && draft.audioBlob.size > 0) {
+        updateData.audioUrl = await uploadAudio(
+          `vocab-audio/core-${Date.now()}-${draft.edoWord.trim().slice(0, 40)}.webm`,
+          draft.audioBlob
+        );
+      } else if (draft.audioUrl === null) {
+        updateData.audioUrl = null;
+      }
+      await setDoc(doc(db, "coreVocabAudio", id), updateData, { merge: true });
       setEditingId(null);
       setIsAdding(false);
-      setDraft({ edoWord: "", english: "", phonetic: "", category: "General", context: "" });
+      setDraft({ edoWord: "", english: "", phonetic: "", category: "General", context: "", audioBlob: null, audioUrl: null });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (/permission|insufficient permissions|unauthenticated/i.test(message)) {
@@ -108,6 +123,31 @@ function LexiconManager() {
     }
   };
 
+  const deleteEntry = async (entry: LexiconEntry) => {
+    if (!confirm(`Delete "${entry.edoWord}" from the language lexicon?`)) return;
+    setSaving(true);
+    try {
+      // A tombstone is required for built-in repository words; deleting only
+      // the override would cause the static word to return on the next load.
+      await setDoc(doc(db, "coreVocabAudio", entry.id), {
+        deleted: true,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+      if (editingId === entry.id) setEditingId(null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      alert("Failed to delete lexicon entry: " + message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const resetEditor = () => {
+    setEditingId(null);
+    setIsAdding(false);
+    setDraft({ edoWord: "", english: "", phonetic: "", category: "General", context: "", audioBlob: null, audioUrl: null });
+  };
+
   const editor = (
     <div className="grid md:grid-cols-2 gap-3 p-4 bg-[#0F0F0F] border border-[#00ff88]/20 rounded-2xl">
       <input className={INPUT_CLASS} value={draft.edoWord} onChange={e => setDraft({ ...draft, edoWord: e.target.value })} placeholder="Edo word or sentence *" />
@@ -115,8 +155,21 @@ function LexiconManager() {
       <input className={INPUT_CLASS} value={draft.phonetic} onChange={e => setDraft({ ...draft, phonetic: e.target.value })} placeholder="Phonetics / pronunciation" />
       <input className={INPUT_CLASS} value={draft.category} onChange={e => setDraft({ ...draft, category: e.target.value })} placeholder="Category, e.g. Greetings & Courtesy" />
       <input className={INPUT_CLASS + " md:col-span-2"} value={draft.context} onChange={e => setDraft({ ...draft, context: e.target.value })} placeholder="Usage, grammar, source, or correction note" />
+      <div className="md:col-span-2 rounded-xl border border-white/10 bg-black/20 p-3">
+        <label className="text-[9px] uppercase tracking-widest text-white/60 font-bold block mb-2">
+          Audio pronunciation
+        </label>
+        <AudioRecorder
+          existingUrl={draft.audioUrl}
+          onRecorded={(blob, url) => setDraft(current => ({
+            ...current,
+            audioBlob: blob.size > 0 ? blob : null,
+            audioUrl: url || null,
+          }))}
+        />
+      </div>
       <div className="md:col-span-2 flex justify-end gap-2">
-        <button type="button" onClick={() => { setEditingId(null); setIsAdding(false); }} className="px-4 py-2 rounded-xl bg-[#2A2A2A] text-white/60 text-xs font-bold">Cancel</button>
+        <button type="button" onClick={resetEditor} className="px-4 py-2 rounded-xl bg-[#2A2A2A] text-white/60 text-xs font-bold">Cancel</button>
         <button type="button" disabled={saving} onClick={saveEntry} className="px-4 py-2 rounded-xl bg-[#00ff88] text-black text-xs font-bold flex items-center gap-2">
           <Save size={13} /> {saving ? "Saving..." : "Save lexicon entry"}
         </button>
@@ -131,7 +184,7 @@ function LexiconManager() {
           <h2 className="text-xl font-black flex items-center gap-2"><Globe size={19} className="text-[#00ff88]" /> Language Lexicon</h2>
           <p className="text-xs text-white/50 mt-1">Browse and correct every word currently available to the assistant.</p>
         </div>
-        <button type="button" onClick={() => { setIsAdding(true); setEditingId(null); }} className="px-4 py-2 rounded-xl bg-[#00ff88] text-black text-xs font-bold flex items-center gap-2">
+        <button type="button" onClick={() => { resetEditor(); setIsAdding(true); }} className="px-4 py-2 rounded-xl bg-[#00ff88] text-black text-xs font-bold flex items-center gap-2">
           <Plus size={14} /> Add word or sentence
         </button>
       </div>
@@ -158,10 +211,28 @@ function LexiconManager() {
                     <p className="text-sm text-white/70 mt-1">{entry.english}</p>
                     <p className="text-xs text-[#8A8A60] mt-1">/{entry.phonetic || "phonetics not added"}/</p>
                     {entry.context && <p className="text-xs text-white/40 mt-2">{entry.context}</p>}
+                    <div className="mt-3">
+                      {entry.audioUrl ? (
+                        <button
+                          type="button"
+                          onClick={() => new Audio(entry.audioUrl).play()}
+                          className="px-3 py-1.5 rounded-lg bg-blue-500/15 text-blue-400 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5"
+                        >
+                          <Play size={11} fill="currentColor" /> Play pronunciation
+                        </button>
+                      ) : (
+                        <span className="text-[10px] text-white/30 uppercase tracking-wider">No audio uploaded</span>
+                      )}
+                    </div>
                   </div>
-                  <button type="button" onClick={() => beginEdit(entry)} className="px-3 py-2 rounded-lg bg-white/5 text-white/60 hover:text-[#00ff88] text-xs font-bold flex items-center gap-1.5">
-                    <Edit2 size={13} /> Correct
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => beginEdit(entry)} className="px-3 py-2 rounded-lg bg-white/5 text-white/60 hover:text-[#00ff88] text-xs font-bold flex items-center gap-1.5">
+                      <Edit2 size={13} /> Correct
+                    </button>
+                    <button type="button" disabled={saving} onClick={() => deleteEntry(entry)} className="px-3 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-bold flex items-center gap-1.5 disabled:opacity-50">
+                      <Trash2 size={13} /> Delete
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
