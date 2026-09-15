@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  collection, addDoc, onSnapshot, deleteDoc, doc,
+  collection, addDoc, onSnapshot, deleteDoc, doc, setDoc,
   serverTimestamp, orderBy, query, updateDoc, where
 } from "firebase/firestore";
 import { db, uploadAudio } from "../lib/firebase";
@@ -12,6 +12,7 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import { recordAudioBlob } from "../lib/voice";
 import { NIGERIAN_LANGUAGES } from "../lib/nigerianLanguages";
+import { useLexicon, LexiconEntry } from "../lib/useLexicon";
 
 type TrainingType = "conversation" | "correction" | "vocabulary" | "grammar" | "culture" | "spelling" | "phonetics" | "terminology";
 
@@ -50,6 +51,122 @@ const ALL_LANGUAGES = Array.from(
 ).sort((a, b) => a.name.localeCompare(b.name));
 
 const INPUT_CLASS = "w-full bg-[#0F0F0F] border border-[#3A3A3A] rounded-xl px-3 py-2.5 text-sm text-white placeholder-[#4A4A4A] focus:outline-none focus:ring-2 focus:ring-[#5A5A40] focus:border-[#5A5A40] transition-colors";
+
+function LexiconManager() {
+  const { allEntries, categories, loading } = useLexicon();
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("all");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
+  const [draft, setDraft] = useState({ edoWord: "", english: "", phonetic: "", category: "General", context: "" });
+  const [saving, setSaving] = useState(false);
+
+  const filtered = allEntries.filter(entry => {
+    const needle = search.trim().toLowerCase();
+    const matchesSearch = !needle || [entry.edoWord, entry.english, entry.phonetic, entry.context]
+      .some(value => String(value || "").toLowerCase().includes(needle));
+    return matchesSearch && (category === "all" || entry.category === category);
+  });
+
+  const beginEdit = (entry: LexiconEntry) => {
+    setEditingId(entry.id);
+    setIsAdding(false);
+    setDraft({
+      edoWord: entry.edoWord,
+      english: entry.english,
+      phonetic: entry.phonetic,
+      category: entry.category || "General",
+      context: entry.context || "",
+    });
+  };
+
+  const saveEntry = async () => {
+    if (!draft.edoWord.trim() || !draft.english.trim()) return;
+    setSaving(true);
+    try {
+      const id = (editingId || draft.edoWord).trim();
+      await setDoc(doc(db, "coreVocabAudio", id), {
+        translation: draft.edoWord.trim(),
+        word: draft.english.trim(),
+        phonetic: draft.phonetic.trim(),
+        category: draft.category.trim() || "General",
+        context: draft.context.trim() || null,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+      setEditingId(null);
+      setIsAdding(false);
+      setDraft({ edoWord: "", english: "", phonetic: "", category: "General", context: "" });
+    } catch (error) {
+      alert("Failed to save lexicon entry: " + (error instanceof Error ? error.message : String(error)));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const editor = (
+    <div className="grid md:grid-cols-2 gap-3 p-4 bg-[#0F0F0F] border border-[#00ff88]/20 rounded-2xl">
+      <input className={INPUT_CLASS} value={draft.edoWord} onChange={e => setDraft({ ...draft, edoWord: e.target.value })} placeholder="Edo word or sentence *" />
+      <input className={INPUT_CLASS} value={draft.english} onChange={e => setDraft({ ...draft, english: e.target.value })} placeholder="English meaning *" />
+      <input className={INPUT_CLASS} value={draft.phonetic} onChange={e => setDraft({ ...draft, phonetic: e.target.value })} placeholder="Phonetics / pronunciation" />
+      <input className={INPUT_CLASS} value={draft.category} onChange={e => setDraft({ ...draft, category: e.target.value })} placeholder="Category, e.g. Greetings & Courtesy" />
+      <input className={INPUT_CLASS + " md:col-span-2"} value={draft.context} onChange={e => setDraft({ ...draft, context: e.target.value })} placeholder="Usage, grammar, source, or correction note" />
+      <div className="md:col-span-2 flex justify-end gap-2">
+        <button type="button" onClick={() => { setEditingId(null); setIsAdding(false); }} className="px-4 py-2 rounded-xl bg-[#2A2A2A] text-white/60 text-xs font-bold">Cancel</button>
+        <button type="button" disabled={saving} onClick={saveEntry} className="px-4 py-2 rounded-xl bg-[#00ff88] text-black text-xs font-bold flex items-center gap-2">
+          <Save size={13} /> {saving ? "Saving..." : "Save lexicon entry"}
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <section className="mb-10 p-6 rounded-3xl border border-[#00ff88]/20 bg-[#141414]">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
+        <div>
+          <h2 className="text-xl font-black flex items-center gap-2"><Globe size={19} className="text-[#00ff88]" /> Language Lexicon</h2>
+          <p className="text-xs text-white/50 mt-1">Browse and correct every word currently available to the assistant.</p>
+        </div>
+        <button type="button" onClick={() => { setIsAdding(true); setEditingId(null); }} className="px-4 py-2 rounded-xl bg-[#00ff88] text-black text-xs font-bold flex items-center gap-2">
+          <Plus size={14} /> Add word or sentence
+        </button>
+      </div>
+      <div className="grid md:grid-cols-[1fr_220px] gap-3 mb-5">
+        <input className={INPUT_CLASS} value={search} onChange={e => setSearch(e.target.value)} placeholder="Search words, meanings, phonetics, or notes..." />
+        <select className={INPUT_CLASS} value={category} onChange={e => setCategory(e.target.value)}>
+          <option value="all">All categories ({allEntries.length})</option>
+          {categories.map(item => <option key={item.category} value={item.category}>{item.category} ({item.entries.length})</option>)}
+        </select>
+      </div>
+      {isAdding && <div className="mb-5">{editor}</div>}
+      {loading ? <p className="text-sm text-white/40 py-6">Loading language lexicon...</p> : (
+        <div className="space-y-2 max-h-[620px] overflow-y-auto pr-1">
+          {filtered.map(entry => (
+            <div key={entry.id} className="p-4 rounded-2xl border border-white/10 bg-white/[0.03]">
+              {editingId === entry.id ? editor : (
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-bold text-white">{entry.edoWord}</span>
+                      <span className="text-[9px] uppercase tracking-widest px-2 py-1 rounded-full bg-[#00ff88]/10 text-[#00ff88]">{entry.category}</span>
+                      {entry.isSeeded && <span className="text-[9px] uppercase tracking-widest text-white/30">Built-in</span>}
+                    </div>
+                    <p className="text-sm text-white/70 mt-1">{entry.english}</p>
+                    <p className="text-xs text-[#8A8A60] mt-1">/{entry.phonetic || "phonetics not added"}/</p>
+                    {entry.context && <p className="text-xs text-white/40 mt-2">{entry.context}</p>}
+                  </div>
+                  <button type="button" onClick={() => beginEdit(entry)} className="px-3 py-2 rounded-lg bg-white/5 text-white/60 hover:text-[#00ff88] text-xs font-bold flex items-center gap-1.5">
+                    <Edit2 size={13} /> Correct
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+          {filtered.length === 0 && <p className="text-sm text-white/40 py-8 text-center">No lexicon entries match this search.</p>}
+        </div>
+      )}
+    </section>
+  );
+}
 
 const STARTER_ENTRIES: TrainingEntry[] = [
   {
@@ -217,6 +334,8 @@ export default function AdminTraining() {
           Train the AI in any Nigerian/African language. Add vocabulary, correct spellings, teach phonetics, fix grammar mistakes, and provide audio pronunciations.
         </div>
       </div>
+
+      <LexiconManager />
 
       {/* Language Filter */}
       <div className="mb-6 p-4 bg-black/30 border border-white/10 rounded-2xl">
