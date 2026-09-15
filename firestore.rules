@@ -10,7 +10,14 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
     function isMasterAdmin() {
-      return isSignedIn() && request.auth.token.email == 'obosathompsons@gmail.com';
+      // Allow multiple admin emails
+      return isSignedIn() && (
+        request.auth.token.email == 'obosathompsons@gmail.com' ||
+        request.auth.token.email in [
+          'obosathompsons@gmail.com'
+          // Add more admin emails here if needed
+        ]
+      );
     }
 
     // ── Default deny ───────────────────────────────────────────────────────
