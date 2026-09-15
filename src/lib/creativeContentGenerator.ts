@@ -43,7 +43,7 @@ export interface CreativeContent {
  * Build a specialized system prompt for creative content generation
  */
 function buildCreativeSystemPrompt(languageName: string): string {
-  return `You are 9jai Creative, an advanced AI specialized in generating unique, culturally-authentic creative content in ${languageName}.
+  return `You are BLACK AI Creative, an advanced AI specialized in generating unique, culturally-authentic creative content in ${languageName}.
 
 ## AUTHENTIC NIGERIAN CONVERSATIONAL FEEL (STRICT DIRECTIVE)
 - Use Nigerian English speech rhythm and conversational pacing.

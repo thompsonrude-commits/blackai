@@ -48,6 +48,24 @@ export const LINGUISTIC_REPOSITORY: RepositoryEntry[] = [
     ]
   },
   {
+    category: "Edo Heritage & Cultural Terms",
+    items: [
+      { term: "Ada", translation: "Scimitar carried before the Oba", phonetic: "Ah-dah", context: "Historical/cultural term from Edo Nation glossary." },
+      { term: "Agba", translation: "Rectangular stool", phonetic: "Ah-gbah", context: "Cultural object; not a general everyday translation." },
+      { term: "Agbado", translation: "Important market in Benin City", phonetic: "Ah-gbah-doh", context: "Place name from Edo Nation glossary." },
+      { term: "Aho", translation: "Fourth day of the Edo week", phonetic: "Ah-hoh", context: "Traditional calendar term." },
+      { term: "Eben", translation: "Sword of authority carried before the Oba", phonetic: "Eh-ben", context: "Historical/cultural object." },
+      { term: "Ebo", translation: "Guild of diviners; also a symbolic object representing a deity", phonetic: "Eh-boh", context: "The source records two meanings and pronunciation distinctions; request context before translating." },
+      { term: "Edaiken", translation: "Heir apparent to the Benin throne", phonetic: "Eh-die-ken", context: "Royal title." },
+      { term: "Edion", translation: "Elders; Odion is singular elder", phonetic: "Eh-dee-on", context: "People/heritage term." },
+      { term: "Edion Edo", translation: "Ancestors of the Edo people", phonetic: "Eh-dee-on Eh-doh", context: "Heritage term." },
+      { term: "Eghae vbo", translation: "Counsellor", phonetic: "Eh-ghah-eh vboh", context: "Title from the Edo Nation glossary." },
+      { term: "Eghae vbo n’ore", translation: "Town or state counsellor", phonetic: "Eh-ghah-eh vboh n-or-eh", context: "Administrative title from the Edo Nation glossary." },
+      { term: "Eguae", translation: "Palace", phonetic: "Eh-gwah-eh", context: "Place term." },
+      { term: "Egue", translation: "Hoe", phonetic: "Eh-gweh", context: "Tool term." },
+    ]
+  },
+  {
     category: "Questions & Pronouns",
     items: [
       { term: "Mẹ", translation: "I / Me", phonetic: "Meh" },
@@ -191,6 +209,20 @@ export const LINGUISTIC_REPOSITORY: RepositoryEntry[] = [
       { term: "Miẹ", translation: "Find / Get / Receive", phonetic: "Myeh" },
       { term: "Tiẹ", translation: "Call / Read", phonetic: "Tyeh" },
       { term: "Khọ", translation: "Wash", phonetic: "Khor" }
+    ]
+  },
+  {
+    category: "Verb Learning & Usage",
+    items: [
+      { term: "Rrie", translation: "Go", phonetic: "Ree-eh", context: "Basic motion verb; confirm aspect from context." },
+      { term: "Rre", translation: "Come", phonetic: "Ray", context: "Basic motion verb; distinguish from Rrie." },
+      { term: "Re", translation: "Eat", phonetic: "Ray", context: "Verb; vowel length and tone should be preserved." },
+      { term: "Gha", translation: "Do / Make", phonetic: "Gha", context: "General action verb." },
+      { term: "Guan", translation: "Speak / Talk", phonetic: "Gwan", context: "Communication verb." },
+      { term: "Rẹn", translation: "Know", phonetic: "Ren", context: "Knowledge verb; do not assume English tense maps one-to-one." },
+      { term: "Miẹ", translation: "Find / Get / Receive", phonetic: "Myeh", context: "Meaning depends on the surrounding construction." },
+      { term: "I ma rẹn", translation: "I do not know", phonetic: "Ee ma ren", context: "Verified negative example in the local repository." },
+      { term: "Ma rrie", translation: "Let us go", phonetic: "Ma ree-eh", context: "First-person plural example." },
     ]
   },
   {

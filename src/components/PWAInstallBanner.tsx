@@ -64,7 +64,7 @@ export default function PWAInstallBanner() {
           exit={{ y: 100, opacity: 0 }}
           className="fixed bottom-20 left-4 right-4 sm:left-auto sm:right-6 sm:w-96 z-50"
         >
-          <div className="bg-gradient-to-br from-[#008751] to-[#00a862] rounded-2xl shadow-2xl p-4 text-white">
+          <div className="bg-gradient-to-br from-[#111111] to-black border border-[#00ff88]/30 rounded-2xl shadow-2xl p-4 text-white">
             <button
               onClick={handleDismiss}
               className="absolute top-2 right-2 p-1 rounded-full hover:bg-white/20 transition-colors"
@@ -86,7 +86,7 @@ export default function PWAInstallBanner() {
 
                 <button
                   onClick={handleInstall}
-                  className="w-full bg-white text-[#008751] font-bold text-sm py-2.5 px-4 rounded-xl hover:bg-white/95 transition-all active:scale-95 flex items-center justify-center gap-2"
+                  className="w-full bg-[#00ff88] text-black font-bold text-sm py-2.5 px-4 rounded-xl hover:bg-[#61ffb1] transition-all active:scale-95 flex items-center justify-center gap-2"
                 >
                   <Download size={16} />
                   Install App

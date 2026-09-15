@@ -2,7 +2,7 @@
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, signOut } from './lib/firebase';
-import { Globe, BookOpen, Brain, Languages, LogOut, Database, GraduationCap, Users, Library } from 'lucide-react';
+import { Globe, BookOpen, Brain, Languages, LogOut, Database, GraduationCap, Users, Library, Home, Settings } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import SearchLanguage from './components/SearchLanguage';
 import LanguageExplorer from './components/LanguageExplorer';
@@ -28,6 +28,15 @@ import { trackUserLogin } from './lib/analyticsService';
 
 const ADMIN_EMAIL = 'obosathompsons@gmail.com';
 
+function getSavedDeveloperUser(): any {
+  try {
+    const saved = localStorage.getItem('lexicon_dev_user');
+    return saved ? JSON.parse(saved) : null;
+  } catch {
+    return null;
+  }
+}
+
 // Build a flat map of languageId -> languageName from nigerianLanguages
 const LANGUAGE_ID_TO_NAME: Record<string, string> = {};
 NIGERIAN_LANGUAGES.forEach(region => {
@@ -47,8 +56,8 @@ function LanguagePage({ user, isAdmin }: { user: User | null; isAdmin: boolean }
     return (
       <div className="flex-1 flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <p className="text-2xl font-serif text-[#008751] mb-2">Language not found</p>
-          <p className="text-sm text-[#008751]/60">The language "{langId}" is not in our database yet.</p>
+          <p className="text-2xl font-serif text-[#00ff88] mb-2">Language not found</p>
+          <p className="text-sm text-white/60">The language "{langId}" is not in our database yet.</p>
         </div>
       </div>
     );
@@ -66,7 +75,7 @@ function LanguagePage({ user, isAdmin }: { user: User | null; isAdmin: boolean }
 // ΓöÇΓöÇ Main App ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
-  const [developerUser, setDeveloperUser] = useState<any>(null);
+  const [developerUser, setDeveloperUser] = useState<any>(() => getSavedDeveloperUser());
   const [loading, setLoading] = useState(true);
   const [showLibrary, setShowLibrary] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | undefined>(undefined);
@@ -78,10 +87,7 @@ export default function App() {
   const isAdmin = isMasterAdmin || isDeveloper;
 
   useEffect(() => {
-    const savedDev = localStorage.getItem('lexicon_dev_user');
-    if (savedDev) {
-      try { setDeveloperUser(JSON.parse(savedDev)); } catch (_) {}
-    }
+    setDeveloperUser(getSavedDeveloperUser());
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       // Only clear developer user if a REAL Firebase user logs in
       // Don't clear for anonymous users
@@ -148,7 +154,7 @@ export default function App() {
   // Unauthenticated layout — no sidebar (login required for chat history)
   if (!user && !developerUser) {
     return (
-      <div className="h-full flex flex-col bg-gradient-to-br from-[#0a2818] to-[#051f16] overflow-hidden">
+      <div className="h-full flex flex-col bg-gradient-to-br from-black via-[#080808] to-[#111111] overflow-hidden">
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
           <Routes>
             {sharedRoutes}
@@ -158,7 +164,7 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
-        <PlatformStatus />
+        <PlatformStatus showVisual={false} />
         <Footer />
         <AnimatePresence>
           {showLibrary && <UserLibrary user={user} onClose={() => setShowLibrary(false)} />}
@@ -172,7 +178,7 @@ export default function App() {
   const showSidebar = isHome || isChat;
 
   return (
-    <div className="h-full bg-gradient-to-br from-[#0a2818] to-[#051f16] font-sans flex overflow-hidden">
+    <div className="h-full bg-gradient-to-br from-black via-[#080808] to-[#111111] font-sans flex overflow-hidden">
       {/* Minimal Sidebar - shows on home/chat */}
       {showSidebar && (
         <MinimalSidebar
@@ -185,17 +191,17 @@ export default function App() {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <main className="flex-1 min-h-0 flex flex-col overflow-hidden bg-gradient-to-br from-[#0a2818] to-[#051f16] relative">
+        <main className="flex-1 min-h-0 flex flex-col overflow-hidden bg-gradient-to-br from-black via-[#080808] to-[#111111] relative">
         <Routes>
           {sharedRoutes}
           {isAdmin ? (
             <>
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/discover" element={<div className="flex-1 overflow-y-auto"><SearchLanguage onLanguageFound={(langName) => { let id = langName.toLowerCase().replace(/\s+/g, '-'); for (const [k, v] of Object.entries(LANGUAGE_ID_TO_NAME)) { if (v.toLowerCase() === langName.toLowerCase()) { id = k; break; } } navigate(`/language/${id}`); }} /></div>} />
-              <Route path="/admin/repository" element={<div className="flex-1 overflow-y-auto"><AdminRepository onSelectLanguage={(langName) => { let id = langName.toLowerCase().replace(/\s+/g, '-'); for (const [k, v] of Object.entries(LANGUAGE_ID_TO_NAME)) { if (v.toLowerCase() === langName.toLowerCase()) { id = k; break; } } navigate(`/language/${id}`); }} /></div>} />
-              <Route path="/admin/training" element={<div className="flex-1 overflow-y-auto"><AdminTraining /></div>} />
-              <Route path="/admin/agents" element={<div className="flex-1 overflow-y-auto"><AgentManagement /></div>} />
-              <Route path="/admin/team" element={<div className="flex-1 overflow-y-auto"><TeamManagement /></div>} />
+              <Route path="/admin/repository" element={<AdminSubpage><AdminRepository onSelectLanguage={(langName) => { let id = langName.toLowerCase().replace(/\s+/g, '-'); for (const [k, v] of Object.entries(LANGUAGE_ID_TO_NAME)) { if (v.toLowerCase() === langName.toLowerCase()) { id = k; break; } } navigate(`/language/${id}`); }} /></AdminSubpage>} />
+              <Route path="/admin/training" element={<AdminSubpage><AdminTraining /></AdminSubpage>} />
+              <Route path="/admin/agents" element={<AdminSubpage><AgentManagement /></AdminSubpage>} />
+              <Route path="/admin/team" element={<AdminSubpage><TeamManagement /></AdminSubpage>} />
             </>
           ) : (
             <>
@@ -207,13 +213,42 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         </main>
-        <PlatformStatus />
+        <PlatformStatus showVisual={false} />
         <Footer />
 
         <AnimatePresence>
           {showLibrary && <UserLibrary user={user} onClose={() => setShowLibrary(false)} />}
         </AnimatePresence>
       </div>
+    </div>
+  );
+}
+
+function AdminSubpage({ children }: { children: React.ReactNode }) {
+  const navigate = useNavigate();
+
+  return (
+    <div className="flex-1 min-h-0 overflow-y-auto bg-gradient-to-br from-black via-[#080808] to-[#111111]">
+      <header className="sticky top-0 z-10 border-b border-[#00ff88]/20 bg-black/90 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+          <button
+            onClick={() => navigate('/')}
+            className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+            aria-label="Return to BLACK AI home"
+          >
+            <Home className="h-4 w-4 text-[#00ff88]" />
+            Home
+          </button>
+          <button
+            onClick={() => navigate('/admin')}
+            className="inline-flex items-center gap-2 rounded-lg border border-[#00ff88]/30 bg-[#00ff88]/10 px-3 py-2 text-sm font-medium text-[#00ff88] transition-colors hover:bg-[#00ff88]/20"
+          >
+            <Settings className="h-4 w-4" />
+            Admin Panel
+          </button>
+        </div>
+      </header>
+      {children}
     </div>
   );
 }
@@ -229,6 +264,12 @@ function Footer() {
           <span className="text-[#00ff88] font-black">BLACK AI</span> created by <span className="font-semibold">Obosa Thompson Emuze</span>
         </p>
       </div>
+      <a
+        href="/admin/login"
+        className="mt-2 inline-block text-xs text-white/40 hover:text-[#00ff88] transition-colors"
+      >
+        Admin training
+      </a>
     </footer>
   );
 }
@@ -256,7 +297,7 @@ function NavItem({
         )}
         <span className="relative z-10">{icon}</span>
       </button>
-      <span className="absolute left-full ml-2 sm:ml-3 top-1/2 -translate-y-1/2 py-1 px-2 bg-[#008751] border border-white/20 text-white text-[9px] sm:text-[10px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-widest whitespace-nowrap z-[100] pointer-events-none shadow-xl">
+      <span className="absolute left-full ml-2 sm:ml-3 top-1/2 -translate-y-1/2 py-1 px-2 bg-[#00ff88] border border-white/20 text-black text-[9px] sm:text-[10px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-widest whitespace-nowrap z-[100] pointer-events-none shadow-xl">
         {label}
       </span>
     </div>

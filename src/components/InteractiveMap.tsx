@@ -29,7 +29,7 @@ async function geocode(query: string): Promise<{ lat: number; lon: number; displ
   try {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&addressdetails=1`,
-      { headers: { 'Accept-Language': 'en', 'User-Agent': '9jai-app' } }
+      { headers: { 'Accept-Language': 'en', 'User-Agent': 'black-ai-app' } }
     );
     const data = await res.json();
     if (data.length === 0) return null;
@@ -41,7 +41,7 @@ async function reverseGeocode(lat: number, lon: number): Promise<string> {
   try {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
-      { headers: { 'Accept-Language': 'en', 'User-Agent': '9jai-app' } }
+      { headers: { 'Accept-Language': 'en', 'User-Agent': 'black-ai-app' } }
     );
     const data = await res.json();
     return data.display_name || `${lat.toFixed(4)}, ${lon.toFixed(4)}`;

@@ -9,7 +9,7 @@ import React from 'react';
 const LOGO_SRC = '/logo.svg';
 
 // ── Shared 3D spin keyframes injected once ─────────────────────────────────
-const STYLE_ID = '9jai-logo-spin';
+const STYLE_ID = 'black-ai-logo-spin';
 if (typeof document !== 'undefined' && !document.getElementById(STYLE_ID)) {
   const style = document.createElement('style');
   style.id = STYLE_ID;

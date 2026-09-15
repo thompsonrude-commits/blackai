@@ -5,14 +5,15 @@ export function detectFallbackLanguageCode(input: string): string {
   if (!text) return 'pcm';
 
   const normalized = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const raw = text.toLowerCase();
 
-  if (/(\bhow you dey\b|\bhow far\b|\bwetin\b|\babeg\b|\bno wahala\b|\boya\b|\bnaija\b|\bdey\b)/i.test(normalized)) return 'pcm';
-  if (/(\bbawo\b|\bẹ kaaro\b|\be se\b|\bbẹẹni\b|\bkinni\b|\byoruba\b)/i.test(normalized)) return 'yo';
-  if (/(\bkedu\b|\bdaalu\b|\bị dị mma\b|\bo dị mma\b|\bbiko\b|\bgini\b|\bigbo\b|\bnno\b)/i.test(normalized)) return 'ig';
-  if (/(\bsannu\b|\byaya\b|\blafiya\b|\bna gode\b|\bdon allah\b|\bhausa\b)/i.test(normalized)) return 'ha';
-  if (/(vbee\s+oye\s+he|vbee|oyese|uru\s+ese|ob[oa]?wie|obavan|obota|laho|esan)/i.test(normalized)) return 'esan';
-  if (/(\bkoyo\b|\bobi\w*\b|\bbebi\b|\bedo\b|\bbini\b|\bẹdo\b)/i.test(normalized)) return 'edo';
-  if (/(\bhello\b|\bhi\b|\bhey\b|\bwhat\b|\bhow\b|\bplease\b|\bthank\b)/i.test(normalized)) return 'en';
+  if (/((\bhow you dey\b|\bhow far\b|\bwetin\b|\babeg\b|\bno wahala\b|\boya\b|\bnaija\b|\bdey\b))/i.test(normalized)) return 'pcm';
+  if (/((\bbawo\b|\bẹ kaaro\b|\be se\b|\bbẹẹni\b|\bkinni\b|\byoruba\b))/i.test(normalized)) return 'yo';
+  if (/((\bkedu\b|\bdaalu\b|\bị dị mma\b|\bo dị mma\b|\bbiko\b|\bgini\b|\bigbo\b|\bnno\b))/i.test(normalized)) return 'ig';
+  if (/((\bsannu\b|\byaya\b|\blafiya\b|\bna gode\b|\bdon allah\b|\bhausa\b))/i.test(normalized)) return 'ha';
+  if (/(vbèè\s+óye\s+hé|vbèè\s+oye\s+he|vbèè\s+oye\s+hẹ|vbe\s+oye\s+he|vbee\s+oye\s+he|vbe\s+oye\s+hẹ|vbee\s+oye\s+hẹ|\bkoyo\b|\bkọyọ\b|\bdọmọ\b|\bdomo\b|\bvbo\s+yeh[eẹ]\b|\bvb[oẹeèè]\s*yeh[eẹ]\b|\b(?:mio|ọbowiẹ|ọbavan|ọbota|obiluu|obo\s*kia|khian|vbe|rre|gho|rie|lahọ|ọvbi|ẹvbi|erha|iye|ẹrhiẹ|iyan|ọka|ẹvbo|ẹsẹ)\b|\bma\s+vbe\s+khian(?:\s+mue)?\b|\b(?:gho|rre)\s+hia\b|\bobi\w*\b|\bbebi\b|\bedo\b|\bbini\b|\bẹdo\b)/i.test(raw) || /(?:\bkoyo\b|\bkọyọ\b|\bdọmọ\b|\bdomo\b|\bvbo\s+yeh[eẹ]\b|\bvb[oẹeèè]\s*yeh[eẹ]\b|\b(?:mio|ọbowiẹ|ọbavan|ọbota|obiluu|obo\s*kia|khian|vbe|rre|gho|rie|lahọ|ọvbi|ẹvbi|erha|iye|ẹrhiẹ|iyan|ọka|ẹvbo|ẹsẹ)\b|\bma\s+vbe\s+khian(?:\s+mue)?\b|\b(?:gho|rre)\s+hia\b|\bobi\w*\b|\bbebi\b|\bedo\b|\bbini\b|\bẹdo\b)/i.test(normalized)) return 'edo';
+  if (/(vbẹe\s+oye\s+hẹ|vbee\s+oye\s+hẹ|oyese|uru\s+ese|ob[oa]?wie|obavan|obota|laho|esan)/i.test(raw) || /(vbẹe\s+oye\s+hẹ|vbee\s+oye\s+hẹ|oyese|uru\s+ese|ob[oa]?wie|obavan|obota|laho|esan)/i.test(normalized)) return 'esan';
+  if (/((\bhello\b|\bhi\b|\bhey\b|\bwhat\b|\bhow\b|\bplease\b|\bthank\b))/i.test(normalized)) return 'en';
   return 'pcm';
 }
 
@@ -119,13 +120,13 @@ export function getLocalFallbackResponse(input: string, languageCode?: string): 
   }
 
   const genericLockedResponse = {
-    en: 'I am 9JA AI. The live provider is temporarily unavailable, but I can still help you with your question as soon as the connection is restored.',
-    pcm: 'I be 9JA AI. The live provider no dey available for now, but I still fit help you as soon as the connection come back.',
-    yo: 'Mo jẹ́ 9JA AI. Olùsèso alààyè ko sí lójúko ni bayi, ṣùgbọ́n mo lè ràn ọ́ lọ́wọ́ lẹ́ẹ̀kan náà nígbà tí ìsopọ̀ bá dé.',
-    ig: 'Abụ m 9JA AI. Ngwá ọrụ dị n’ịntanet adịghị a, mana m ga-enyere gị aka ka njikọ dị n’ọnụ.',
-    ha: 'Ni ne 9JA AI. Mai bada sabis na ainihin bai samu ba a yanzu, amma zan iya taimaka maka da zarar haɗin ya dawo.',
-    edo: 'I be 9JA AI. Aza kevbe no gha rre nẹ, ma vbe khian muẹre ne, ma vbe rre ghọ gbera ma.',
-    esan: 'I be 9JA AI. Aza kevbe no gha rre nẹ, ma vbe khian muẹre ne, ma vbe rre ghọ gbera ma.',
+    en: 'I am BLACK AI. The live provider is temporarily unavailable, but I can still help you with your question as soon as the connection is restored.',
+    pcm: 'I be BLACK AI. The live provider no dey available for now, but I still fit help you as soon as the connection come back.',
+    yo: 'Mo jẹ́ BLACK AI. Olùsèso alààyè ko sí lójúko ni bayi, ṣùgbọ́n mo lè ràn ọ́ lọ́wọ́ lẹ́ẹ̀kan náà nígbà tí ìsopọ̀ bá dé.',
+    ig: 'Abụ m BLACK AI. Ngwá ọrụ dị n’ịntanet adịghị a, mana m ga-enyere gị aka ka njikọ dị n’ọnụ.',
+    ha: 'Ni ne BLACK AI. Mai bada sabis na ainihin bai samu ba a yanzu, amma zan iya taimaka maka da zarar haɗin ya dawo.',
+    edo: 'I be BLACK AI. Aza kevbe no gha rre nẹ, ma vbe khian muẹre ne, ma vbe rre ghọ gbera ma.',
+    esan: 'I be BLACK AI. Aza kevbe no gha rre nẹ, ma vbe khian muẹre ne, ma vbe rre ghọ gbera ma.',
   } as const;
 
   const finalText = genericLockedResponse[code as keyof typeof genericLockedResponse] || genericLockedResponse.en;

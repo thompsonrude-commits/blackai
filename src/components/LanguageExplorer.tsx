@@ -13,7 +13,7 @@ import { transcribeEdoAudio } from '../lib/ai';
 import { storage } from '../lib/firebase';
 import { NIGERIAN_LANGUAGES } from '../lib/nigerianLanguages';
 import AFRICAN_LANGUAGES from '../lib/africanLanguages';
-import { getLanguageVocabulary, LanguageVocabulary } from '../lib/languageVocabularies';
+import { createLanguageProfileVocabulary, getLanguageVocabulary, LanguageVocabulary } from '../lib/languageVocabularies';
 import LanguageAssistant from './LanguageAssistant';
 import AppHeader from './AppHeader';
 
@@ -97,7 +97,9 @@ export default function LanguageExplorer({
   const isEdo = languageName.toLowerCase() === 'edo' || languageName.toLowerCase() === 'bini' || languageName.toLowerCase() === 'edo (bini)';
   const { categories: lexiconCategories, loading: lexiconLoading } = useLexicon();
   // For non-Edo languages, use the static vocabulary from languageVocabularies.ts
-  const staticVocab: LanguageVocabulary | null = isEdo ? null : getLanguageVocabulary(languageName);
+  const staticVocab: LanguageVocabulary | null = isEdo
+    ? null
+    : getLanguageVocabulary(languageName) || createLanguageProfileVocabulary(languageName);
 
   // Firestore Sync for Personal Vocab
   useEffect(() => {
@@ -155,7 +157,8 @@ export default function LanguageExplorer({
       }));
       setCommunityVocab(items);
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, path);
+      console.warn('[LanguageExplorer] Community vocabulary unavailable; using local vocabulary:', error);
+      setCommunityVocab([]);
     });
 
     return unsubscribe;
@@ -373,7 +376,7 @@ export default function LanguageExplorer({
       <div className="h-[100dvh] flex flex-col overflow-hidden">
         <AppHeader />
         {isEdo ? (
-          // Edo uses its original dedicated assistant (Ọmwan / 9jai)
+          // Edo uses its original dedicated assistant (Ọmwan / BLACK AI)
           <EdoAssistant user={currentUser} isAdmin={!!isAdmin} />
         ) : (
           <LanguageAssistant
@@ -390,7 +393,7 @@ export default function LanguageExplorer({
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-12 py-12">
+    <div className="black-ai-surface max-w-6xl mx-auto px-6 sm:px-12 py-10 sm:py-12 rounded-3xl">
       <div className="flex items-end justify-between mb-12">
         <header>
           <div className="flex items-center gap-3 mb-4">
@@ -1423,4 +1426,3 @@ function AddWordForm({ onAdd, onCancel, isAdmin }: { onAdd: (w: string, t: strin
     </form>
   );
 }
-

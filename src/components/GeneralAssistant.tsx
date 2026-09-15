@@ -6,7 +6,7 @@ import { User as FirebaseUser } from 'firebase/auth';
 import { unifiedChatStream } from '../lib/ai';
 import { speakText, stopSpeaking, VOICE_PERSONALITIES } from '../lib/voiceEngine';
 import { speakNigerian, stopNigerianSpeech } from '../lib/nigerianVoice';
-import { detectLanguage, setConversationLanguage, getConversationLanguage, mapCodeToName } from '../lib/language';
+import { mapCodeToName } from '../lib/language';
 import { generatePhonetics } from '../lib/phonetics';
 import { getSystemPromptFor } from '../lib/systemPrompts';
 import PWAInstallBanner from './PWAInstallBanner';
@@ -15,7 +15,7 @@ import {
   shouldAutoSwitch,
   getConversationLanguageContext,
   setConversationLanguageContext,
-  normalizeLanguageCode,
+  getAllLanguageRoutes,
 } from '../lib/homepageLanguageRouter';
 import { initLocationContext, getCachedLocationContext, getDeviceTimeText } from '../lib/locationService';
 import { enhanceImagePrompt, buildEnhancedImageRequest } from '../lib/imagePromptBuilder';
@@ -77,14 +77,33 @@ const HOMEPAGE_PLACEHOLDERS = [
   'ask me anything...',
 ];
 
-const LANGUAGE_OPTIONS = [
-  { code: 'en', label: 'English' },
-  { code: 'edo', label: 'Edo' },
-  { code: 'yo', label: 'Yoruba' },
-  { code: 'ig', label: 'Igbo' },
-  { code: 'ha', label: 'Hausa' },
-  { code: 'pcm', label: 'Nigerian Pidgin' },
-];
+const TRANSLATION_TARGETS: Record<string, string> = Object.fromEntries(
+  getAllLanguageRoutes().flatMap((route) => [
+    [route.name.toLowerCase(), route.code],
+    [route.code.toLowerCase(), route.code],
+  ]).concat([
+    ['english', 'en'],
+    ['pidgin', 'pcm'],
+    ['nigerian pidgin', 'pcm'],
+  ])
+);
+
+const TRANSLATION_LANGUAGE_PATTERN = Object.keys(TRANSLATION_TARGETS)
+  .sort((a, b) => b.length - a.length)
+  .map((language) => language.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  .join('|');
+
+function getTranslationTarget(text: string): { code: string; label: string } | null {
+  const match = text.match(
+    new RegExp(`\\b(?:translate|interpret|explain)\\b[\\s\\S]{0,100}?\\b(?:to|into|in)\\s+(${TRANSLATION_LANGUAGE_PATTERN})\\b`, 'i')
+  ) || text.match(
+    new RegExp(`\\b(?:what does|meaning of)\\b[\\s\\S]{0,100}?\\b(?:in|to)\\s+(${TRANSLATION_LANGUAGE_PATTERN})\\b`, 'i')
+  );
+  if (!match) return null;
+  const label = match[1].toLowerCase();
+  const code = TRANSLATION_TARGETS[label];
+  return code ? { code, label } : null;
+}
 
 function getLocalizedGreeting(displayName: string, languageCode: string): string {
   // If no name, just use empty string — never say "Oga Oga"
@@ -116,7 +135,7 @@ const SIDEBAR_ITEMS = [
   { id: 'languages',  icon: '🗣️', label: 'Languages' },
   { id: 'utilities',  icon: '🛠️', label: 'Utilities' },
   { id: 'settings',   icon: '⚙️', label: 'Settings' },
-  { id: 'about',      icon: 'ℹ️', label: 'About 9ja AI' },
+  { id: 'about',      icon: 'ℹ️', label: 'About BLACK AI' },
 ];
 
 // ── System prompt builder ─────────────────────────────────────────────────
@@ -686,7 +705,7 @@ function ImageBubble({ url, originalContent, prompt, imgType, label, onImageRead
     if (!src) return;
     if (src.startsWith('data:')) { const link = document.createElement('a'); link.download = `blackai-${prompt.slice(0,20).replace(/\s+/g,'-')}.${format}`; link.href = src; link.click(); return; }
     const canvas = document.createElement('canvas'); const img = new Image(); img.crossOrigin = 'anonymous';
-    img.onload = () => { canvas.width = img.naturalWidth; canvas.height = img.naturalHeight; const ctx = canvas.getContext('2d')!; if (format === 'jpg') { ctx.fillStyle = '#fff'; ctx.fillRect(0,0,canvas.width,canvas.height); } ctx.drawImage(img,0,0); const link = document.createElement('a'); link.download = `9jai-${prompt.slice(0,20).replace(/\s+/g,'-')}.${format}`; link.href = canvas.toDataURL(format==='jpg'?'image/jpeg':'image/png',0.95); link.click(); };
+    img.onload = () => { canvas.width = img.naturalWidth; canvas.height = img.naturalHeight; const ctx = canvas.getContext('2d')!; if (format === 'jpg') { ctx.fillStyle = '#fff'; ctx.fillRect(0,0,canvas.width,canvas.height); } ctx.drawImage(img,0,0); const link = document.createElement('a'); link.download = `black-ai-${prompt.slice(0,20).replace(/\s+/g,'-')}.${format}`; link.href = canvas.toDataURL(format==='jpg'?'image/jpeg':'image/png',0.95); link.click(); };
     img.src = src;
   }, [finalSrc, imgSrc, prompt]);
 
@@ -737,7 +756,10 @@ export default function GeneralAssistant({ user, isAdmin, currentSessionId, onOp
   const [activeSection, setActiveSection] = useState('chat');
   const [showVision, setShowVision] = useState(false);
   const [visionMode, setVisionMode] = useState<'vision' | 'ocr'>('vision');
-  const [selectedLanguage, setSelectedLanguage] = useState(() => getConversationLanguageContext() || 'pcm');
+  // Nigerian Pidgin is the default for every new chat. The language router
+  // switches this behind the scenes when the user's message is confidently
+  // detected as another supported language.
+  const [selectedLanguage, setSelectedLanguage] = useState('pcm');
   const [logoState, setLogoState] = useState<'idle'|'processing'|'listening'|'speaking'|'success'|'error'|'startup'|'vision'|'ocr'|'translation'|'image'|'video'|'document'>('idle');
   const sessionIdRef = useRef<string>(`session_${Date.now()}`);
   // Live refs for speaker state — avoids stale closures in streaming loop
@@ -811,6 +833,8 @@ export default function GeneralAssistant({ user, isAdmin, currentSessionId, onOp
 
   // Initialize providers and system prompt on mount
   useEffect(() => {
+    setConversationLanguageContext('pcm');
+    setSelectedLanguage('pcm');
     initializeDefaultProviders();
     rebuildSystemPrompt();
   }, [rebuildSystemPrompt]);
@@ -971,13 +995,18 @@ export default function GeneralAssistant({ user, isAdmin, currentSessionId, onOp
       }
     }
 
-    if (classifiedIntent.capability === 'language' && classifiedIntent.targetLanguage) {
+    const translationTarget = getTranslationTarget(userMessage);
+    if (translationTarget) {
+      setSelectedLanguage(translationTarget.code);
+      setConversationLanguageContext(translationTarget.code);
+      await rebuildSystemPrompt();
+    } else if (classifiedIntent.capability === 'language' && classifiedIntent.targetLanguage) {
       const target = classifiedIntent.targetLanguage.toLowerCase();
       const codeMap: Record<string, string> = { english: 'en', edo: 'edo', yoruba: 'yo', igbo: 'ig', hausa: 'ha', pidgin: 'pcm', 'nigerian pidgin': 'pcm' };
       const normalized = codeMap[target] || target;
       setSelectedLanguage(normalized);
       setConversationLanguageContext(normalized);
-      rebuildSystemPrompt();
+      await rebuildSystemPrompt();
     }
 
     if (classifiedIntent.capability === 'search') {
@@ -1047,16 +1076,18 @@ export default function GeneralAssistant({ user, isAdmin, currentSessionId, onOp
     }
     
     try {
-      const currentLang = getConversationLanguageContext() || selectedLanguage || 'pcm';
-      const explicitLanguageSwitch = /\b(speak|talk|switch to|use)\s+(english|pidgin|yoruba|igbo|hausa|edo)\b/i.test(userMessage || '');
-
-      if (!explicitLanguageSwitch && currentLang && ['en', 'yo', 'ig', 'ha', 'edo'].includes(currentLang)) {
-        // Preserve the user's explicit language selection during the conversation.
-        // Automatic detection should only be used before a language has been chosen.
-      } else {
+      if (!translationTarget) {
+        const currentLang = getConversationLanguageContext() || 'pcm';
         const detected = await detectLanguageFromInput(userMessage || '');
-        if (detected.code !== currentLang && detected.confidence >= 0.55) { setConversationLanguageContext(detected.code); setSelectedLanguage(detected.code); rebuildSystemPrompt(); }
-        else if (shouldAutoSwitch(detected.confidence)) { setConversationLanguageContext(detected.code); setSelectedLanguage(detected.code); rebuildSystemPrompt(); }
+        if (detected.code !== currentLang && detected.confidence >= 0.55) {
+          setConversationLanguageContext(detected.code);
+          setSelectedLanguage(detected.code);
+          await rebuildSystemPrompt();
+        } else if (shouldAutoSwitch(detected.confidence) && detected.code !== currentLang) {
+          setConversationLanguageContext(detected.code);
+          setSelectedLanguage(detected.code);
+          await rebuildSystemPrompt();
+        }
       }
     } catch (e) {}
     let fileContext = '';
@@ -1264,6 +1295,23 @@ Extract COMPLETE and DETAILED information from any text, labels, or packaging vi
 
     // Inject strong format instructions for spreadsheet/document requests
     let messageToSend = (userMessage + fileContext) || displayMessage;
+    if (translationTarget) {
+      messageToSend = `${userMessage}
+
+MANDATORY TRANSLATION TASK: Detect the source language, then translate the user's text accurately into ${translationTarget.label}. Return only the translation, with no explanation unless the user explicitly asks for one. Preserve names, meaning, tone, and important cultural context.
+
+Verified Edo glossary for common phrases:
+- "Kọyọ" means "Hello".
+- "vbèè oye hẹ?" means "How are you?"
+- "Ọyese" means "I am fine".
+- "Obiluu" means "Thank you".
+- "Lahọ" means "Please".
+- "Ob'ọwie" means "Good morning".
+- "Ob'avan" means "Good afternoon".
+- "Ob'ota" means "Good evening".
+- "Obokhian" means "Welcome".
+Use these meanings when the source contains these Edo phrases.`;
+    }
     if (userMessage && isSpreadsheetRequest(userMessage)) {
       messageToSend = `${userMessage}\n\nMANDATORY: Respond ONLY with a spreadsheet block. Choose column headers that are SPECIFIC and MEANINGFUL for this exact data (NOT generic "No/Name/Value/Score"). Example for herbs: ["No","Herb Name","Scientific Name","Traditional Use"]. Example for FIFA: ["Year","Host Country","Winner","Runner-Up","Goals Scored"]. Example for budget: ["Category","Item","Amount (₦)","Notes"]\n\`\`\`spreadsheet\n{"title":"[specific title]","headers":["relevant","headers","here"],"rows":[[1,"data","data","data"]]}\n\`\`\`\nInclude ALL data, minimum 10 rows.`;
     } else if (userMessage && isDocumentRequest(userMessage)) {
@@ -1403,33 +1451,6 @@ Extract COMPLETE and DETAILED information from any text, labels, or packaging vi
 
       {/* Network background effects */}
       <NetworkBackground />
-
-      <div className="absolute right-4 top-4 z-20 flex items-center gap-2">
-        <label htmlFor="language-selector" className="sr-only">Response language</label>
-        <div className="rounded-full border border-[#00ff88]/30 bg-[#0a0a0a]/90 px-2 py-1.5 backdrop-blur-sm shadow-[0_0_15px_rgba(0,255,136,0.12)]">
-          <select
-            id="language-selector"
-            value={selectedLanguage}
-            onChange={(event) => {
-              const code = normalizeLanguageCode(event.target.value);
-              setSelectedLanguage(code);
-              setConversationLanguageContext(code);
-              rebuildSystemPrompt();
-              if (code === 'edo') {
-                setInput((current) => current.trim() ? current : 'Translate this message into Edo language');
-              }
-            }}
-            className="min-w-[120px] appearance-none rounded-full border border-[#00ff88]/20 bg-transparent px-3 py-1.5 pr-8 text-xs font-medium text-[#e0e0e0] outline-none"
-            aria-label="Choose response language"
-          >
-            {LANGUAGE_OPTIONS.map((option) => (
-              <option key={option.code} value={option.code} className="bg-[#071a10] text-[#dfffee]">
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
 
       {/* Vision Engine modal */}
       {showVision && <VisionEngine mode={visionMode} onClose={() => setShowVision(false)} onResult={(text) => { setShowVision(false); setMessages(prev => [...prev, { role: 'model', content: text, timestamp: Date.now(), isNew: true }]); }} />}

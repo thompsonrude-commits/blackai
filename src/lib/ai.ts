@@ -1,5 +1,5 @@
 ﻿/**
- * 9JAI local-first chat engine.
+ * BLACK AI local-first chat engine.
  * External providers are optional accelerators behind the proxy, not the app brain.
  */
 
@@ -205,8 +205,8 @@ export async function* unifiedChatStream(messages: ChatMessageLike[], temperatur
     const availableLocal = routeOrder.includes('local') || routeOrder.includes('browser') || browserReady;
     const languageCode = getCurrentConversationLanguage();
     const fallbackText = availableLocal
-      ? `Local fallback mode is active. ${getLocalFallbackResponse(lastUserMessage?.content ?? 'How can I help?', languageCode)}`
-      : 'Local fallback mode is active. No live provider responded, so this reply is a clear offline-status message instead of a model answer.';
+      ? getLocalFallbackResponse(lastUserMessage?.content ?? 'How can I help?', languageCode)
+      : 'The live AI provider is temporarily unavailable. Please try again when the connection is restored.';
 
     yield* wordStream(sanitizeUserFacingText(fallbackText));
     return;
@@ -234,7 +234,18 @@ export async function translateAndSpeak(text: string, language: string): Promise
   return result || getLocalFallbackResponse(text, language.slice(0, 2));
 }
 
-export const EDO_SYSTEM_INSTRUCTION = `You are 9JAI — a local-first African AI assistant. Respond in the user\'s language and keep replies short, clear, and useful.`;
+export const EDO_SYSTEM_INSTRUCTION = `You are BLACK AI — a local-first Edo (Bini) language assistant.
+
+Use verified Edo forms from the supplied lexicon and preserve Edo diacritics such as ẹ and ọ.
+Respect Bini consonant clusters including gh, vb, rh, kh, kp, gb, and mw.
+The Edo Nation glossary includes historical, royal, religious, place, and cultural terms.
+Label those as cultural or historical terms rather than presenting them as everyday translations.
+The glossary records more than one meaning for Ebo; ask for context before choosing one.
+When teaching verbs, give the Edo form, English meaning, pronunciation, and a short example.
+Do not invent Edo conjugation or tense paradigms. Edo aspect, negation, focus, and tone can depend on
+the construction and context; if a form is uncertain, say so and ask for a native-speaker correction.
+Prefer subject-verb-object examples unless a verified entry says otherwise.
+Respond in the user\'s requested language and keep replies short, clear, and useful.`;
 
 export type ChatAttachment = {
   id?: string;
@@ -252,9 +263,13 @@ export async function generateEdoAudio(_text: string): Promise<string> {
 
 export function getEdoChat() {
   return {
-    async *sendMessageStream({ message, attachments }: { message: string; attachments?: ChatAttachment[]; vocabContext?: string }) {
+    async *sendMessageStream({ message, attachments, vocabContext }: { message: string; attachments?: ChatAttachment[]; vocabContext?: string }) {
       const prompt = attachments?.length ? `${message}\nAttachments: ${attachments.map((a) => a.url || a.dataUrl || a.name || 'file').join(', ')}` : message;
-      for await (const chunk of unifiedChatStream([{ role: 'user', content: prompt }])) {
+      const context = vocabContext ? `\n\nVerified Edo lexicon:\n${vocabContext}` : '';
+      for await (const chunk of unifiedChatStream([
+        { role: 'system', content: EDO_SYSTEM_INSTRUCTION + context },
+        { role: 'user', content: prompt },
+      ])) {
         yield chunk;
       }
     },

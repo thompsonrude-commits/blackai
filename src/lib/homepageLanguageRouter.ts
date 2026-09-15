@@ -53,9 +53,9 @@ const LANGUAGE_ROUTES: Record<string, LanguageRoute> = {
     code: 'edo',
     name: 'Edo',
     folder: 'edo',
-    keywords: ['kọyọ', 'kọọ', 'vbèè', 'obiluu', 'ọbowiẹ', 'ọbavan', 'ọbota', 'obo kia', 'òkhíen', 'ẹdó'],
-    greetings: ['kọyọ', 'kọọ', 'ọbowiẹ', 'ọbavan', 'ọbota', 'obo kia', 'òkhíen òwie', 'vbèè óye hé'],
-    slang: ['obiluu', 'uzébu', 'iyoba', 'oba', 'omwan', 'i horen', 'ẹ̀dó', 'bini'],
+    keywords: ['kọyọ', 'kọọ', 'dọmọ', 'domo', 'vbọ yehẹ', 'vbe yehẹ', 'vbèè', 'vbẹe oye hẹ', 'mio', 'obiluu', 'ọbowiẹ', 'ọbavan', 'ọbota', 'obo kia', 'lahọ', 'khian', 'vbe', 'rre', 'gho', 'rie', 'ma vbe khian', 'ma vbe khian mue', 'òkhíen', 'ẹdó', 'ọvbi', 'ẹvbi', 'erha', 'iye', 'ẹrhiẹ', 'iyan', 'ọka', 'ẹvbo', 'ẹsẹ', 'rre hia', 'gho hia'],
+    greetings: ['kọyọ', 'kọọ', 'dọmọ', 'domo', 'mio', 'ọbowiẹ', 'ọbavan', 'ọbota', 'obo kia', 'lahọ', 'khian', 'vbe', 'òkhíen òwie', 'vbèè óye hé', 'vbọ yehẹ', 'vbe yehẹ', 'vbẹe oye hẹ', 'ọvbi', 'ẹvbi', 'erha', 'iye'],
+    slang: ['obiluu', 'uzébu', 'iyoba', 'oba', 'omwan', 'i horen', 'ẹ̀dó', 'bini', 'ẹrhiẹ', 'iyan', 'ọka', 'ẹvbo', 'ẹsẹ'],
   },
   esan: {
     code: 'esan',
@@ -156,7 +156,7 @@ export async function detectLanguageFromInput(text: string): Promise<{
     { code: 'yo',  name: 'Yoruba',         markers: ['bawo ni', 'ẹ kaaro', 'ẹ káàárọ̀', 'ẹ kaale', 'e se pupo', 'bẹẹni', 'bẹ́ẹ̀ni', 'o dabo', 'o dàbọ̀', 'kinni', 'ẹ pẹlẹ', 'e ṣeun', 'yoruba', 'jọ̀ọ́', 'bawo'] },
     { code: 'ig',  name: 'Igbo',           markers: ['kedu', 'kedụ', 'daalụ', 'ọ dị mma', 'igbo kwenu', 'gịnị', 'chukwu okike', 'igbo', 'biko', 'ututu ọma', 'nno', 'nnọọ', 'ehihie ọma'] },
     { code: 'ha',  name: 'Hausa',          markers: ['sannu da zuwa', 'ina kwana', 'lafiya lau', 'yaya dai', 'barka da safe', 'barka da rana', 'don allah', 'hausa', 'na gode', 'sannu'] },
-    { code: 'edo', name: 'Edo',            markers: ['koyọ', 'kọyọ', 'koyo', 'vbọ yehẹ', 'ọ yẹse', 'uruẹse', 'i dee', 'i rri', 'i rrowa', 'u dee', 'u gha', 'u ta ẹre', 'u tama', 'a nakhin', 'a nikhin', 'a miẹrẹn', 'a kue', 'a rro owa', 'dọmọ', 'ovbi mwẹn', 'omẹ', 'iyee', 'evbare', 'esuku', 'obiluu', 'ob\'ọwie', 'ob\'avan', 'ob\'ota', 'obokhian', 'osanobua', 'uzébu', 'bini', 'benin city', 'mwẹn', 'lahọ', 'ẹdo']},
+    { code: 'edo', name: 'Edo',            markers: ['koyọ', 'kọyọ', 'koyo', 'vbọ yehẹ', 'vbe yehẹ', 'vbèè óye hé', 'vbẹe oye hẹ', 'mio', 'ọbowiẹ', 'ọbavan', 'ọbota', 'obiluu', 'obo kia', 'khian', 'vbe', 'rre', 'gho', 'rie', 'ma vbe khian', 'ọ yẹse', 'uruẹse', 'i dee', 'i rri', 'i rrowa', 'u dee', 'u gha', 'u ta ẹre', 'u tama', 'a nakhin', 'a nikhin', 'a miẹrẹn', 'a kue', 'a rro owa', 'dọmọ', 'ovbi mwẹn', 'omẹ', 'iyee', 'evbare', 'esuku', 'ob\'ọwie', 'ob\'avan', 'ob\'ota', 'obokhian', 'osanobua', 'uzébu', 'bini', 'benin city', 'mwẹn', 'lahọ', 'ẹdo']},
     { code: 'esan', name: 'Esan', markers: ['vbẹe oye hẹ', 'ọyese', 'uru ese', 'obọwie', 'obavan', 'obota', 'lahọ', 'esan'] },
     { code: 'sw',  name: 'Swahili',        markers: ['habari gani', 'asante sana', 'karibu sana', 'hakuna matata', 'swahili', 'habari', 'jambo', 'asante', 'karibu', 'tafadhali', 'kwaheri'] },
     { code: 'efk', name: 'Efik',           markers: ['abasi yaimo', 'obong', 'ekpe efik', 'efik', 'emesiere', 'mokom', 'mbok'] },
@@ -236,8 +236,8 @@ export function getHomepageSystemPrompt(languageCode: string): string {
     Greet: "Sannu! Ni ne BLACK AI. Me zan iya taimaka maka?"`,
 
     edo: `You are BLACK AI. You ONLY speak Edo (Bini) language from Edo State, Nigeria. NEVER mix Pidgin, Yoruba, Igbo or Hausa.
-    Use: Kọyọ (hello), Ob'ọwie (good morning), Ob'avan (afternoon), Ob'ota (evening), Obiluu (thank you), Lahọ (please), Obokhian (welcome), Osanobua (God), Ọba (king), Uzébu (excellent).
-    Greet: "Kọyọ! I be BLACK AI. Vbèè I ghi zẹ iran nẹ?"`,
+    Use: Kọyọ (hello), Dọmọ (respectful greeting or welcome), Vbọ yehẹ? (how are you), Ob'ọwie (good morning), Ob'avan (afternoon), Ob'ota (evening), Obiluu (thank you), Lahọ (please), Obokhian (welcome), Osanobua (God), Ọba (king), Uzébu (excellent).
+    Greet: "Kọyọ! Dọmọ! Vbọ yehẹ? I be BLACK AI."`,
 
     esan: `You are BLACK AI. You ONLY speak Esan. NEVER mix Edo, Yoruba, Igbo, Hausa or Pidgin.
     Use: Kọyo (hello), Vbẹe oye hẹ? (how are you), Ọyese (I am fine), Uru ese (thank you), Lahọ (please), Obọwie (good morning), Obavan (afternoon), Obota (evening).

@@ -18,7 +18,7 @@ export default function LanguagesMenu() {
   };
 
   return (
-    <div className="bg-white p-2 sm:p-4 md:p-8 flex flex-col overflow-y-auto">
+    <div className="black-ai-surface min-h-full p-2 sm:p-4 md:p-8 flex flex-col overflow-y-auto">
       <AppHeader />
       <div className="flex-1 max-w-6xl mx-auto w-full">
         {/* Header */}
@@ -34,11 +34,11 @@ export default function LanguagesMenu() {
         {/* Regions */}
         <div className="space-y-1.5 sm:space-y-2 md:space-y-3">
           {NIGERIAN_LANGUAGES.map((region) => (
-            <div key={region.id} className="border-2 border-[#008751]/20 rounded-lg sm:rounded-xl md:rounded-2xl overflow-hidden bg-white shadow-sm">
+            <div key={region.id} className="border border-[#00ff88]/20 rounded-lg sm:rounded-xl md:rounded-2xl overflow-hidden bg-white/5 shadow-lg shadow-black/20">
               {/* Region Header */}
               <button
                 onClick={() => toggleRegion(region.id)}
-                className="w-full px-2 sm:px-3 md:px-4 lg:px-6 py-2 sm:py-2.5 md:py-3 flex items-center justify-between hover:bg-[#008751]/5 transition-colors"
+                className="w-full px-2 sm:px-3 md:px-4 lg:px-6 py-2 sm:py-2.5 md:py-3 flex items-center justify-between hover:bg-[#00ff88]/10 transition-colors"
               >
                 <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 min-w-0">
                   {expandedRegions.includes(region.id) ? (
@@ -68,7 +68,7 @@ export default function LanguagesMenu() {
                         <button
                           key={language.id}
                           onClick={() => navigate(`/language/${language.id}`)}
-                          className="w-full p-2 sm:p-2.5 md:p-3 lg:p-4 bg-[#008751]/5 hover:bg-[#008751]/10 border border-[#008751]/20 hover:border-[#008751]/40 rounded-lg sm:rounded-xl transition-all text-left group"
+                          className="w-full p-2 sm:p-2.5 md:p-3 lg:p-4 bg-white/5 hover:bg-[#00ff88]/10 border border-white/10 hover:border-[#00ff88]/40 rounded-lg sm:rounded-xl transition-all text-left group"
                         >
                           <div className="flex items-start justify-between gap-1.5 sm:gap-2 md:gap-3 lg:gap-4">
                             <div className="flex-1 min-w-0">

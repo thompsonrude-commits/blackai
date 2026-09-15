@@ -9,6 +9,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { User as FirebaseUser } from 'firebase/auth';
 import { getEdoChat, ChatAttachment, transcribeWithWhisper } from '../lib/ai';
+import { EDO_LANGUAGE_DATA } from '../lib/edoLanguageData';
 import { useLexicon, seedLexiconToFirestore } from '../lib/useLexicon';
 import { ChatMessage } from '../types';
 import { recordAudioBlob, customAudioCache } from '../lib/voice';
@@ -30,6 +31,63 @@ const SUGGESTIONS = [
   { label: 'Lecture me', prompt: 'Give me a lecture on the history of artificial intelligence' },
   { label: 'Translate to Edo', prompt: 'Translate these sentences to Edo: I love you. Where are you going? Thank you very much.' },
 ];
+
+function getLocalEdoResponse(text: string): string | null {
+  const normalized = text.toLowerCase().replace(/[?.!,]/g, ' ').replace(/\s+/g, ' ').trim();
+
+  if (
+    normalized.includes('hello and good morning') &&
+    (normalized.includes('edo') || normalized.includes('bini'))
+  ) {
+    return `In Edo (Bini):
+
+- Hello: **Kọyọ** (also **Kọọ**)
+- Good morning: **Ọbowiẹ**
+
+You can greet someone by saying: **Kọyọ, Ọbowiẹ.**
+
+Pronunciation:
+- Kọyọ: *CORE-your*
+- Ọbowiẹ: *OR-BOW-we-YEAH*`;
+  }
+
+  if (
+    (normalized.includes('how do i say hello') || normalized.includes('how to say hello')) &&
+    (normalized.includes('edo') || normalized.includes('bini'))
+  ) {
+    return `Hello in Edo (Bini) is **Kọyọ** (also **Kọọ**).
+
+For good morning, say **Ọbowiẹ**.
+
+Together: **Kọyọ, Ọbowiẹ.**`;
+  }
+
+  if (
+    normalized.includes('grammar') &&
+    (normalized.includes('i know') || normalized.includes('know'))
+  ) {
+    return `A verified Edo grammar example is:
+
+- **I ma rẹn** — “I do not know”
+
+Grammar note: **rẹn** is the verb “know”, while **ma** marks the negative construction in this recorded example. The positive sentence “I know” needs native-speaker confirmation before BLACK AI presents a form as verified.`;
+  }
+
+  const requestedTerm = normalized
+    .match(/(?:what does|meaning of|what is)\s+(.+?)(?:\s+mean(?:s)?(?:\s+in\s+edo)?|$)/i)?.[1]
+    ?.trim();
+  if (requestedTerm) {
+    const normalizedTerm = requestedTerm.replace(/[’']/g, '').replace(/\s+/g, ' ');
+    const entry = EDO_LANGUAGE_DATA.edoNationWords.find(
+      item => item.edo.toLowerCase().replace(/[’']/g, '').replace(/\s+/g, ' ') === normalizedTerm,
+    );
+    if (entry) {
+      return `**${entry.edo}** means **${entry.english}**.\n\nCategory: ${entry.category}${entry.context ? `\n\nNote: ${entry.context}` : ''}`;
+    }
+  }
+
+  return null;
+}
 
 // ── Code block with copy button ───────────────────────────────────────────
 function CodeBlock({ children, className }: { children: string; className?: string }) {
@@ -293,17 +351,22 @@ export default function EdoAssistant({ user, isAdmin }: EdoAssistantProps) {
       setIsStreaming(true);
       setStreamingContent('');
 
-      let fullText = '';
-      const stream = chatRef.current.sendMessageStream({
-        message: text,
-        attachments: atts,
-        vocabContext: [vocabContextString, trainingContext].filter(Boolean).join('\n\n--- ADMIN TRAINING DATA ---\n') || undefined,
-      });
-
-      for await (const chunk of stream) {
-        if (abortRef.current) break;
-        fullText += chunk;
+      let fullText = getLocalEdoResponse(text) || '';
+      if (fullText) {
         setStreamingContent(fullText);
+      } else {
+        const stream = chatRef.current.sendMessageStream({
+          message: text,
+          attachments: atts,
+          vocabContext: [vocabContextString, trainingContext].filter(Boolean).join('\n\n--- ADMIN TRAINING DATA ---\n') || undefined,
+        });
+
+        fullText = '';
+        for await (const chunk of stream) {
+          if (abortRef.current) break;
+          fullText += chunk;
+          setStreamingContent(fullText);
+        }
       }
 
       setIsStreaming(false);
@@ -426,7 +489,7 @@ export default function EdoAssistant({ user, isAdmin }: EdoAssistantProps) {
   });
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-white text-gray-900 relative overflow-hidden">
+    <div className="edo-assistant flex flex-col h-[100dvh] text-gray-900 relative overflow-hidden">
       {/* ── Header ── */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 shrink-0 bg-white">
         <div className="flex items-center gap-3">
@@ -464,7 +527,7 @@ export default function EdoAssistant({ user, isAdmin }: EdoAssistantProps) {
             <div className="w-14 h-14 bg-gradient-to-br from-[#008751] to-[#00A862] rounded-3xl flex items-center justify-center mb-4 shadow-lg">
               <Sparkles size={26} className="text-white" />
             </div>
-            <p className="text-[10px] font-black tracking-widest text-[#008751]/50 uppercase mb-1">9jai AI</p>
+            <p className="text-[10px] font-black tracking-widest text-[#00ff88]/50 uppercase mb-1">BLACK AI</p>
             <h2 className="text-xl font-bold mb-1 text-gray-900">Kọyo! I am Ọmwan</h2>
             <p className="text-gray-500 text-sm max-w-sm mb-6 leading-relaxed">Your Edo language guide. Ask me anything in Edo or English.</p>
             <div className="grid grid-cols-2 gap-2 w-full max-w-sm">

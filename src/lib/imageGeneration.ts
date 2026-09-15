@@ -220,7 +220,7 @@ function generateHighQualityPlaceholder(prompt: string, width: number, height: n
         font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" 
         font-size="18" font-weight="500" 
         fill="white" opacity="0.7" text-anchor="middle">
-        Powered by 9JAI · Nigerian AI Excellence
+        Powered by BLACK AI · Nigerian AI Excellence
       </text>
     </svg>
   `;
@@ -334,7 +334,7 @@ function generateFallbackSVG(prompt: string, width = 1024, height = 1024): strin
         ${safePrompt}
       </text>
       <text x="${width/2}" y="${height/2 + 50}" font-family="Arial, sans-serif" font-size="18" fill="rgba(255,255,255,0.8)" text-anchor="middle">
-        9JAI Image Generation
+        BLACK AI Image Generation
       </text>
     </svg>
   `;

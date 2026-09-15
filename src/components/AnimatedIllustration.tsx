@@ -192,7 +192,7 @@ export default function AnimatedIllustration({ prompt }: AnimatedIllustrationPro
     const blob = new Blob([svgContent], { type: 'image/svg+xml' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `9jai-animation.svg`;
+    a.download = `black-ai-animation.svg`;
     a.click();
   }, [svgContent]);
 
@@ -206,7 +206,7 @@ export default function AnimatedIllustration({ prompt }: AnimatedIllustrationPro
     img.onload = () => {
       ctx.drawImage(img, 0, 0, 800, 560);
       const a = document.createElement('a');
-      a.download = '9jai-illustration.png';
+      a.download = 'black-ai-illustration.png';
       a.href = canvas.toDataURL('image/png');
       a.click();
       URL.revokeObjectURL(img.src);

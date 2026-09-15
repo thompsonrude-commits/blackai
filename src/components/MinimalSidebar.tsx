@@ -160,7 +160,7 @@ export default function MinimalSidebar({
         onClick={() => setIsOpen(!isOpen)}
         className={`fixed ${
           isOpen ? 'left-[260px]' : 'left-4'
-        } top-4 z-50 p-2 rounded-lg bg-white border border-[#008751]/20 text-[#008751] hover:bg-[#008751]/5 transition-all shadow-sm md:left-4 md:${isOpen ? 'md:left-[260px]' : ''}`}
+        } top-4 z-50 p-2 rounded-lg bg-[#111111] border border-[#00ff88]/20 text-[#00ff88] hover:bg-[#00ff88]/10 transition-all shadow-lg shadow-black/30 md:left-4 md:${isOpen ? 'md:left-[260px]' : ''}`}
         aria-label={isOpen ? 'Close sidebar' : 'Open sidebar'}
       >
         {isOpen ? <ChevronLeft size={20} /> : <Menu size={20} />}
@@ -174,13 +174,13 @@ export default function MinimalSidebar({
             animate={{ x: 0 }}
             exit={{ x: -280 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className={`fixed left-0 top-0 h-full w-[260px] bg-white border-r border-[#008751]/20 flex flex-col z-40 ${className}`}
+            className={`fixed left-0 top-0 h-full w-[260px] bg-[#0b0b0b] border-r border-[#00ff88]/20 flex flex-col z-40 ${className}`}
           >
             {/* Header */}
-            <div className="p-4 border-b border-[#008751]/10">
+            <div className="p-4 border-b border-[#00ff88]/10">
               <button
                 onClick={handleNewChat}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#008751] text-white rounded-lg hover:bg-[#007041] transition-colors font-medium text-sm"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#00ff88] text-black rounded-lg hover:bg-[#61ffb1] transition-colors font-bold text-sm"
               >
                 <Plus size={18} />
                 New Chat
@@ -191,13 +191,13 @@ export default function MinimalSidebar({
             <div className="flex-1 overflow-y-auto p-2">
               {loading ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="w-6 h-6 border-2 border-[#008751] border-t-transparent rounded-full animate-spin" />
+                  <div className="w-6 h-6 border-2 border-[#00ff88] border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : sessions.length === 0 ? (
                 <div className="text-center py-8 px-4">
-                  <MessageSquare size={40} className="mx-auto text-[#008751]/30 mb-3" />
-                  <p className="text-sm text-[#008751]/60">No chat history yet</p>
-                  <p className="text-xs text-[#008751]/40 mt-1">Start a conversation!</p>
+                  <MessageSquare size={40} className="mx-auto text-[#00ff88]/30 mb-3" />
+                  <p className="text-sm text-white/60">No chat history yet</p>
+                  <p className="text-xs text-white/40 mt-1">Start a conversation!</p>
                 </div>
               ) : (
                 <div className="space-y-1">
@@ -208,8 +208,8 @@ export default function MinimalSidebar({
                       animate={{ opacity: 1, y: 0 }}
                       className={`w-full text-left px-3 py-2.5 rounded-lg transition-all group relative ${
                         currentSessionId === session.id
-                          ? 'bg-[#008751]/10 text-[#008751]'
-                          : 'hover:bg-[#008751]/5 text-[#008751]/70'
+                          ? 'bg-[#00ff88]/15 text-[#00ff88]'
+                          : 'hover:bg-white/5 text-white/70'
                       }`}
                       onClick={() => handleSelectSession(session.id)}
                     >
@@ -245,24 +245,24 @@ export default function MinimalSidebar({
 
             {/* Footer */}
             {user && (
-              <div className="p-4 border-t border-[#008751]/10">
+              <div className="p-4 border-t border-[#00ff88]/10">
                 <button onClick={() => setShowAccount(value => !value)} className="w-full flex items-center gap-3 text-left">
-                  <div className="w-8 h-8 rounded-full bg-[#008751]/10 flex items-center justify-center text-[#008751] font-semibold text-sm">
+                  <div className="w-8 h-8 rounded-full bg-[#00ff88]/10 flex items-center justify-center text-[#00ff88] font-semibold text-sm">
                     {user.email?.[0].toUpperCase() || 'U'}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-[#008751] truncate">
+                    <p className="text-xs font-medium text-white truncate">
                       {user.email || 'User'}
                     </p>
-                    <p className="text-[10px] text-[#008751]/60">
+                    <p className="text-[10px] text-white/50">
                       {sessions.length} conversations
                     </p>
                   </div>
                 </button>
                   {showAccount && (
-                    <div className="mt-3 space-y-1 rounded-lg border border-[#008751]/15 bg-[#008751]/5 p-2">
-                      <button onClick={() => navigate('/profile')} className="w-full rounded px-2 py-1.5 text-left text-xs text-[#008751] hover:bg-[#008751]/10">Account</button>
-                      <button onClick={() => navigate('/utilities')} className="w-full rounded px-2 py-1.5 text-left text-xs text-[#008751] hover:bg-[#008751]/10">Settings</button>
+                    <div className="mt-3 space-y-1 rounded-lg border border-[#00ff88]/15 bg-white/5 p-2">
+                      <button onClick={() => navigate('/profile')} className="w-full rounded px-2 py-1.5 text-left text-xs text-white/80 hover:bg-[#00ff88]/10">Account</button>
+                      <button onClick={() => navigate('/utilities')} className="w-full rounded px-2 py-1.5 text-left text-xs text-white/80 hover:bg-[#00ff88]/10">Settings</button>
                       <button onClick={() => signOut()} className="w-full rounded px-2 py-1.5 text-left text-xs text-red-600 hover:bg-red-50">Log out</button>
                     </div>
                   )}

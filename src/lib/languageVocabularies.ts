@@ -24,6 +24,33 @@ export interface LanguageVocabulary {
   audioArchive?: string;
 }
 
+export function createLanguageProfileVocabulary(languageName: string): LanguageVocabulary {
+  return {
+    languageId: languageName.toLowerCase().replace(/\s+/g, '-'),
+    grammarNotes: `## ${languageName} learning profile\n\nThis language is supported by BLACK AI. Native vocabulary, grammar, and pronunciation entries can be added and verified from the Admin Training Studio.`,
+    culturalNote: `${languageName} is included in BLACK AI's Nigerian and African language programme. This starter profile is available while community and admin-verified entries are being collected.`,
+    categories: [
+      {
+        category: 'Starter Profile',
+        items: [
+          {
+            term: `${languageName} language profile`,
+            translation: `A starter reference for learning ${languageName}`,
+            phonetic: 'Native pronunciation pending verification',
+            context: 'Starter entry awaiting native-speaker verification',
+          },
+          {
+            term: 'Native vocabulary',
+            translation: `Words and phrases in ${languageName}`,
+            phonetic: 'To be supplied by a native speaker',
+            context: 'Use Admin Training Studio to add verified vocabulary',
+          },
+        ],
+      },
+    ],
+  };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // NIGERIAN PIDGIN ENGLISH (Naija)
 // ─────────────────────────────────────────────────────────────────────────────

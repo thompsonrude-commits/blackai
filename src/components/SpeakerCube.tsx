@@ -233,7 +233,7 @@ export default function SpeakerCube({ isActive, isSpeaking, isBusy, onEnd }: Spe
         {/* Left: branding */}
         <div className="flex items-center gap-3">
           <div className="w-2 h-2 rounded-full bg-[#008751] animate-pulse"/>
-          <span className="text-[#008751] text-xs font-medium tracking-[0.3em] uppercase">9ja AI</span>
+          <span className="text-[#00ff88] text-xs font-medium tracking-[0.3em] uppercase">BLACK AI</span>
         </div>
 
         {/* Center: status */}

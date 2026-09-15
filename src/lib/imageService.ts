@@ -25,7 +25,7 @@ export type GenerationStage =
 
 export function buildFinalImagePrompt(rawPrompt: string, opts?: { location?: string }): string {
   const trimmed = (rawPrompt || '').trim();
-  if (!trimmed) return '9JAI local concept illustration';
+  if (!trimmed) return 'BLACK AI local concept illustration';
   return `${trimmed}${opts?.location ? ` in ${opts.location}` : ''}, polished educational illustration, vibrant African colors, clean composition`;
 }
 
@@ -61,7 +61,7 @@ export function buildPollinationsImageUrl(prompt: string, width = 1024, height =
 }
 
 function toSvgDataUrl(label: string): string {
-  const safe = (label || '9JAI visual concept').replace(/[<>&"']/g, '');
+  const safe = (label || 'BLACK AI visual concept').replace(/[<>&"']/g, '');
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
       <defs>
@@ -75,7 +75,7 @@ function toSvgDataUrl(label: string): string {
       <rect x="190" y="470" width="644" height="260" rx="36" fill="#0f2f27" stroke="#57d19f" stroke-width="10"/>
       <path d="M260 620h520" stroke="#8ef0c6" stroke-width="18" stroke-linecap="round"/>
       <path d="M260 700h410" stroke="#8ef0c6" stroke-width="18" stroke-linecap="round"/>
-      <text x="512" y="118" font-size="42" fill="#e6fff7" font-family="Arial, sans-serif" text-anchor="middle">9JAI local image engine</text>
+      <text x="512" y="118" font-size="42" fill="#e6fff7" font-family="Arial, sans-serif" text-anchor="middle">BLACK AI local image engine</text>
       <text x="512" y="860" font-size="34" fill="#dffbf0" font-family="Arial, sans-serif" text-anchor="middle">${safe.slice(0, 110)}</text>
     </svg>
   `;

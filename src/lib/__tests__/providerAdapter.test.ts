@@ -24,7 +24,7 @@ describe('providerAdapter', () => {
   it('returns a local fallback for chat and weather capability requests', () => {
     const chatReply = getInHouseReply('chat', 'How you dey?');
     const weatherReply = getInHouseReply('weather', 'What is the weather here?');
-    expect(chatReply.text).toContain('9JA AI');
+    expect(chatReply.text).toContain('BLACK AI');
     expect(weatherReply.text).toContain('live weather');
     expect(buildLocalCapabilityMessage('weather', 'What is the weather here?')).toContain('live weather');
   });

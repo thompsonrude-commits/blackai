@@ -41,11 +41,96 @@ const TYPE_LABELS: Record<TrainingType, { label: string; color: string; desc: st
 };
 
 // Build flat list of all languages
-const ALL_LANGUAGES = NIGERIAN_LANGUAGES.flatMap(region => 
-  region.languages.map(lang => ({ id: lang.id, name: lang.name }))
+const ALL_LANGUAGES = Array.from(
+  new Map(
+    NIGERIAN_LANGUAGES.flatMap(region =>
+      region.languages.map(lang => [lang.id, { id: lang.id, name: lang.name }] as const)
+    )
+  ).values()
 ).sort((a, b) => a.name.localeCompare(b.name));
 
 const INPUT_CLASS = "w-full bg-[#0F0F0F] border border-[#3A3A3A] rounded-xl px-3 py-2.5 text-sm text-white placeholder-[#4A4A4A] focus:outline-none focus:ring-2 focus:ring-[#5A5A40] focus:border-[#5A5A40] transition-colors";
+
+const STARTER_ENTRIES: TrainingEntry[] = [
+  {
+    id: 'starter-edo-greeting',
+    type: 'conversation',
+    language: 'edo',
+    languageName: 'Edo (Bini)',
+    nativeText: 'Kọyọ, vbèè oye hẹ?',
+    englishText: 'Hello, how are you?',
+    phonetics: 'ko-yo, veh-eh oh-yeh heh',
+    context: 'Common greeting',
+    createdAt: null,
+  },
+  {
+    id: 'starter-pidgin-greeting',
+    type: 'conversation',
+    language: 'pidgin',
+    languageName: 'Nigerian Pidgin English',
+    nativeText: 'How you dey?',
+    englishText: 'How are you?',
+    phonetics: 'how you day',
+    context: 'Informal everyday greeting',
+    createdAt: null,
+  },
+  {
+    id: 'starter-yoruba-greeting',
+    type: 'vocabulary',
+    language: 'yoruba',
+    languageName: 'Yoruba',
+    nativeText: 'Báwo ni?',
+    englishText: 'How are you?',
+    phonetics: 'bah-woh nee',
+    context: 'Everyday greeting',
+    createdAt: null,
+  },
+  {
+    id: 'starter-igbo-thanks',
+    type: 'vocabulary',
+    language: 'igbo',
+    languageName: 'Igbo',
+    nativeText: 'Daalụ',
+    englishText: 'Thank you',
+    phonetics: 'dah-loo',
+    context: 'Expression of thanks',
+    createdAt: null,
+  },
+  {
+    id: 'starter-hausa-greeting',
+    type: 'vocabulary',
+    language: 'hausa',
+    languageName: 'Hausa',
+    nativeText: 'Sannu',
+    englishText: 'Hello / Welcome',
+    phonetics: 'san-noo',
+    context: 'Greeting or welcome',
+    createdAt: null,
+  },
+];
+
+const LANGUAGE_PROFILE_ENTRIES: TrainingEntry[] = NIGERIAN_LANGUAGES.flatMap(region =>
+  region.languages.map(language => ({
+    id: `profile-${language.id}`,
+    type: 'culture' as const,
+    language: language.id,
+    languageName: language.name,
+    nativeText: `${language.name} language profile`,
+    englishText: `${language.description} Speakers: ${language.speakers}. Region: ${region.name}.`,
+    phonetics: 'Native pronunciation pending verification',
+    context: 'Starter profile awaiting native-speaker verification',
+    createdAt: null,
+  }))
+);
+
+function mergeTrainingEntries(liveEntries: TrainingEntry[]): TrainingEntry[] {
+  const liveLanguages = new Set(liveEntries.map(entry => entry.language));
+  return [
+    ...liveEntries,
+    ...LANGUAGE_PROFILE_ENTRIES.filter(entry => !liveLanguages.has(entry.language)),
+    ...STARTER_ENTRIES.filter(entry => !liveLanguages.has(entry.language)),
+  ];
+}
 
 export default function AdminTraining() {
   const navigate = useNavigate();
@@ -57,9 +142,13 @@ export default function AdminTraining() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
+    const fallbackTimer = window.setTimeout(() => {
+      setEntries(current => current.length > 0 ? current : mergeTrainingEntries([]));
+      setLoading(false);
+    }, 1500);
     const q = query(collection(db, "aiTraining"), orderBy("createdAt", "desc"));
     const unsub = onSnapshot(q, (snap) => {
-      setEntries(snap.docs.map(d => {
+      const liveEntries = snap.docs.map(d => {
         const data = d.data();
         // Migrate old entries that only have edoText
         if (data.edoText && !data.nativeText) {
@@ -72,10 +161,20 @@ export default function AdminTraining() {
           } as TrainingEntry;
         }
         return { id: d.id, ...data } as TrainingEntry;
-      }));
+      });
+      setEntries(mergeTrainingEntries(liveEntries));
       setLoading(false);
+      window.clearTimeout(fallbackTimer);
+    }, (error) => {
+      console.warn('[AdminTraining] Using starter training entries:', error);
+      setEntries(mergeTrainingEntries([]));
+      setLoading(false);
+      window.clearTimeout(fallbackTimer);
     });
-    return unsub;
+    return () => {
+      window.clearTimeout(fallbackTimer);
+      unsub();
+    };
   }, []);
 
   const deleteEntry = async (id: string) => {

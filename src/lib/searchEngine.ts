@@ -17,7 +17,7 @@ export interface SearchResponse {
 const LOCAL_KNOWLEDGE: Array<{ keywords: string[]; title: string; snippet: string; url: string }> = [
   { keywords: ['weather', 'rain', 'sun', 'storm', 'temperature'], title: 'Weather basics', snippet: 'Local weather guidance requires a live source or user location. Use browser geolocation when permission is granted.', url: '#local-weather' },
   { keywords: ['time', 'clock', 'timezone', 'date'], title: 'Time and timezone', snippet: 'Current time should come from the device/browser clock and Intl.DateTimeFormat().resolvedOptions().timeZone.', url: '#local-time' },
-  { keywords: ['language', 'yoruba', 'igbo', 'hausa', 'edo', 'esan', 'pidgin'], title: 'African languages', snippet: '9JAI supports Nigerian Pidgin, Yoruba, Igbo, Hausa, Edo, and Esan as conversation languages.', url: '#local-languages' },
+  { keywords: ['language', 'yoruba', 'igbo', 'hausa', 'edo', 'esan', 'pidgin'], title: 'African languages', snippet: 'BLACK AI supports Nigerian Pidgin, Yoruba, Igbo, Hausa, Edo, and Esan as conversation languages.', url: '#local-languages' },
   { keywords: ['vision', 'image', 'camera', 'ocr', 'photo'], title: 'Vision and OCR', snippet: 'Local vision and OCR use browser capabilities first, then optional configured local integrations.', url: '#local-vision' },
   { keywords: ['education', 'science', 'math', 'health', 'history'], title: 'General knowledge', snippet: 'Use verified local knowledge and clearly label anything that comes from a live external source.', url: '#local-knowledge' },
 ];

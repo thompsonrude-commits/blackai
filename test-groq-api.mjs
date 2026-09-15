@@ -2,7 +2,11 @@
 import fetch from 'node-fetch';
 
 async function testGroqAPI() {
-  const apiKey = process.env.GROQ_KEY || 'gsk_YRVIlb63QtBXRaz9KGgYWGdyb3FYlsF107BxObHKdI6Z5XGUyDhz5OjH';
+  const apiKey = process.env.GROQ_KEY;
+  if (!apiKey) {
+    console.error('Set GROQ_KEY in the environment before running this test.');
+    process.exit(1);
+  }
   
   console.log('Testing Groq API...');
   console.log('API Key:', apiKey.substring(0, 15) + '...');

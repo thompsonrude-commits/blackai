@@ -1,13 +1,13 @@
 ﻿/**
- * Client-side proxy helpers for 9JAI.
- * All network calls remain optional and the app prefers the local engine.
+ * Client-side proxy helpers for BLACK AI.
+ * Production AI requests go through the Vercel serverless API. The local
+ * engine remains available when the deployed provider is unavailable.
  */
 
 import { auth } from './firebase';
 import { getLocalFallbackResponse } from './fallbackResponses';
 import { buildPollinationsImageUrl } from './imageService';
 import { detectTextInImage } from './ocr';
-import { groqChatDirect, groqChatStreamDirect } from './groqDirect';
 
 export interface ProxyChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -58,14 +58,21 @@ function buildLocalChatResult(messages: ProxyChatMessage[], fallbackText?: strin
     }
   })();
   const baseFallback = fallbackText ?? getLocalFallbackResponse((last?.content ?? 'How can I help?'), languageCode);
-  const text = `Local fallback mode is active. No live provider responded for this request. ${baseFallback}`;
-  return { text, provider: 'local', model: '9jai-local', latencyMs: 0, cached: false, fromFallback: true, error: 'No live provider responded; fallback mode is active.' };
+  // The UI should show the useful local answer, not an operational status banner
+  // as if it were the assistant's response.
+  return { text: baseFallback, provider: 'local', model: 'blackai-local', latencyMs: 0, cached: false, fromFallback: true, error: 'No Vercel AI provider responded; local fallback mode is active.' };
+}
+
+function isFallbackResult(result: ProxyChatResult): boolean {
+  return result.fromFallback === true
+    || result.model === 'fallback'
+    || /^Local fallback mode is active:/i.test(result.text || '');
 }
 
 export async function proxyChat(options: ProxyChatOptions): Promise<ProxyChatResult> {
   const headers = await getHeaders(options.sessionId);
   
-  // Try Firebase Functions first
+  // The deployed application runs its provider proxy as a Vercel function.
   try {
     const response = await fetch('/api/v1/chat', {
       method: 'POST',
@@ -96,28 +103,11 @@ export async function proxyChat(options: ProxyChatOptions): Promise<ProxyChatRes
       fullData: data
     });
     if (!data.text) throw new Error('Empty response from proxy');
+    if (isFallbackResult(data)) return buildLocalChatResult(options.messages);
     return data;
   } catch (err: any) {
-    console.warn('[AIProxy] Firebase Functions failed, trying direct Groq call:', err?.message);
-    
-    // Try direct Groq API as fallback
-    try {
-      const result = await groqChatDirect({
-        messages: options.messages,
-        temperature: options.temperature,
-        maxTokens: options.maxTokens,
-      });
-      
-      if (result.error) {
-        throw new Error(result.error);
-      }
-      
-      console.log('[AIProxy] Direct Groq call successful');
-      return result;
-    } catch (groqErr: any) {
-      console.error('[AIProxy] Direct Groq also failed, using local fallback:', groqErr);
-      return buildLocalChatResult(options.messages);
-    }
+    console.warn('[AIProxy] Vercel AI endpoint failed, using local fallback:', err?.message);
+    return buildLocalChatResult(options.messages);
   }
 }
 
@@ -234,7 +224,7 @@ function buildLocalVisualFallback(prompt?: string, language?: string): any {
       <rect x="200" y="410" width="800" height="250" rx="28" fill="#0e2e29" stroke="#7be5bd" stroke-width="6"/>
       <path d="M290 505 H910" stroke="#8ef0c6" stroke-width="10" stroke-linecap="round"/>
       <path d="M290 625 H760" stroke="#8ef0c6" stroke-width="10" stroke-linecap="round"/>
-      <text x="600" y="120" text-anchor="middle" fill="#eafef7" font-size="42" font-family="Arial, sans-serif" font-weight="700">9JAI visual explanation</text>
+      <text x="600" y="120" text-anchor="middle" fill="#eafef7" font-size="42" font-family="Arial, sans-serif" font-weight="700">BLACK AI visual explanation</text>
       <text x="600" y="350" text-anchor="middle" fill="#d8fff2" font-size="36" font-family="Arial, sans-serif">${shortTopic.replace(/[<>&"']/g, '')}</text>
       <text x="600" y="742" text-anchor="middle" fill="#dffbf0" font-size="32" font-family="Arial, sans-serif">local fallback diagram</text>
       <circle cx="420" cy="495" r="54" fill="#1ec38b"/>

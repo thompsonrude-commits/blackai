@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  detectLanguageFromInput,
   getConversationLanguageContext,
   normalizeLanguageCode,
   resetLanguageContext,
@@ -48,5 +49,17 @@ describe('homepageLanguageRouter', () => {
     expect(normalizeLanguageCode('English')).toBe('en');
     expect(normalizeLanguageCode('Edo Language')).toBe('edo');
     expect(normalizeLanguageCode('totally-unknown')).toBe('pcm');
+  });
+
+  it('recognizes Edo greeting phrases in the router', async () => {
+    const result = await detectLanguageFromInput('Dọmọ! Vbọ yehẹ?');
+    const altResult = await detectLanguageFromInput('Vbèè óye hé?');
+    const phraseResult = await detectLanguageFromInput('Ma vbe khian mue.');
+    expect(result.code).toBe('edo');
+    expect(altResult.code).toBe('edo');
+    expect(phraseResult.code).toBe('edo');
+    expect(result.confidence).toBeGreaterThanOrEqual(0.9);
+    expect(altResult.confidence).toBeGreaterThanOrEqual(0.9);
+    expect(phraseResult.confidence).toBeGreaterThanOrEqual(0.9);
   });
 });

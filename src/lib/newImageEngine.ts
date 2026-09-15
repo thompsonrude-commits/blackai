@@ -377,7 +377,7 @@ function createFallbackImage(request: ImageGenerationRequest): string {
   <!-- Footer -->
   <text x="${width/2}" y="${height - 40}" font-size="18" fill="white" opacity="0.7" 
     text-anchor="middle" font-family="Arial, sans-serif">
-    Powered by 9JAI
+    Powered by BLACK AI
   </text>
 </svg>`;
   

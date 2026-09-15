@@ -89,6 +89,89 @@ body {
     0 30px 80px rgba(0, 0, 0, 0.75);
 }
 
+/* Shared BLACK AI surface for secondary pages and admin tools. */
+.black-ai-surface {
+  background:
+    radial-gradient(circle at top left, rgba(0, 255, 136, 0.08), transparent 26%),
+    linear-gradient(180deg, #000000 0%, #0a0a0a 100%);
+  color: #ffffff;
+}
+
+/* Keep the dedicated Edo chat visually consistent with the home experience. */
+.edo-assistant {
+  background:
+    radial-gradient(circle at 50% -10%, rgba(0, 255, 136, 0.12), transparent 34%),
+    linear-gradient(rgba(0, 255, 136, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 136, 0.045) 1px, transparent 1px),
+    linear-gradient(180deg, #000000 0%, #0a0a0a 100%);
+  background-size: auto, 26px 26px, 26px 26px, auto;
+  color: #ffffff;
+}
+
+.edo-assistant .bg-white {
+  background-color: rgba(10, 10, 10, 0.86) !important;
+}
+
+.edo-assistant .bg-gray-100 {
+  background-color: rgba(26, 26, 26, 0.92) !important;
+  color: #e5e5e5 !important;
+}
+
+.edo-assistant .border-gray-200 {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.edo-assistant .text-gray-900 {
+  color: #ffffff !important;
+}
+
+.edo-assistant .text-gray-500,
+.edo-assistant .text-gray-400 {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.edo-assistant .placeholder-gray-400::placeholder {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.black-ai-surface .bg-white {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.black-ai-surface .bg-\[\#F5F5F0\] {
+  background-color: rgba(0, 255, 136, 0.08) !important;
+}
+
+.black-ai-surface .border-\[\#E5E5E5\],
+.black-ai-surface .border-\[\#D5D5C5\] {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.black-ai-surface .text-\[\#1A1A1A\] {
+  color: #ffffff !important;
+}
+
+.black-ai-surface .text-\[\#5A5A40\] {
+  color: #00ff88 !important;
+}
+
+.black-ai-surface .text-\[\#A1A1A1\] {
+  color: rgba(255, 255, 255, 0.45) !important;
+}
+
+.black-ai-surface input,
+.black-ai-surface textarea,
+.black-ai-surface select {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  color: #ffffff !important;
+}
+
+.black-ai-surface input::placeholder,
+.black-ai-surface textarea::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
 .grid-lines {
   background-image:
     linear-gradient(rgba(0,255,136,0.08) 1px, transparent 1px),

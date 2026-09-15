@@ -42,7 +42,7 @@ export default function MinimalVoiceUI({ onVoiceInput, onSpeakerToggle }: Minima
 
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert('Voice input requires Chrome or Edge browser. Please open 9jai.web.app in Chrome.');
+      alert('Voice input requires Chrome or Edge browser. Please open the BLACK AI app in Chrome.');
       return;
     }
 

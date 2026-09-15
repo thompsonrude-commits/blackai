@@ -149,7 +149,7 @@ export function suggestCreativeTypes(message: string): CreativePrompt['type'][] 
  * Build system prompt for creative mode
  */
 export function buildCreativeSystemPrompt(languageName: string): string {
-  return `You are 9jai Creative, an advanced AI specialized in generating unique, culturally-authentic creative content in ${languageName}.
+  return `You are BLACK AI Creative, an advanced AI specialized in generating unique, culturally-authentic creative content in ${languageName}.
 
 ## CONVERSATIONAL ACCENT SIMULATION
 - Simulate authentic Nigerian English conversational rhythm.

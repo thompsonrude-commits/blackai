@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "clean": "rimraf dist server.js",
     "lint": "tsc --noEmit",
-    "deploy": "npm run build && firebase deploy",
+    "deploy": "npm run build && vercel --prod",
     "test": "node scripts/run-tests.mjs",
     "test:connectors": "node --import tsx/esm --test core/integrations/connectorPlatform.test.ts",
     "test:security": "node --import tsx/esm --test core/security/securityPlatform.test.ts",

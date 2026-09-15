@@ -4,7 +4,7 @@ module.exports = async (req, res) => {
   
   return res.status(200).json({
     ok: true,
-    service: '9jai-vercel-backend',
+    service: 'blackai-vercel-backend',
     timestamp: Date.now(),
     version: '1.0.0',
     status: 'operational'

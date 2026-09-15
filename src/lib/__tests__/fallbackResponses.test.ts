@@ -20,6 +20,10 @@ describe('fallbackResponses', () => {
 
   it('detects Edo input', () => {
     expect(detectFallbackLanguageCode('Kọyọ')).toBe('edo');
+    expect(detectFallbackLanguageCode('Dọmọ! Vbọ yehẹ?')).toBe('edo');
+    expect(detectFallbackLanguageCode('Vbèè óye hé?')).toBe('edo');
+    expect(detectFallbackLanguageCode('Mio.')).toBe('edo');
+    expect(detectFallbackLanguageCode('Ma vbe khian mue.')).toBe('edo');
   });
 
   it('detects Esan input', () => {
@@ -27,11 +31,11 @@ describe('fallbackResponses', () => {
   });
 
   it('returns language-aware fallback text', () => {
-    expect(getLocalFallbackResponse('How you dey?', 'pcm')).toContain('9JA AI');
-    expect(getLocalFallbackResponse('Bawo ni?', 'yo')).toContain('9JA AI');
-    expect(getLocalFallbackResponse('Kedu?', 'ig')).toContain('9JA AI');
-    expect(getLocalFallbackResponse('Sannu', 'ha')).toContain('9JA AI');
-    expect(getLocalFallbackResponse('Kọyọ', 'edo')).toContain('9JA AI');
-    expect(getLocalFallbackResponse('Vbẹe oye hẹ?', 'esan')).toContain('9JA AI');
+    expect(getLocalFallbackResponse('How you dey?', 'pcm')).toContain('BLACK AI');
+    expect(getLocalFallbackResponse('Bawo ni?', 'yo')).toContain('BLACK AI');
+    expect(getLocalFallbackResponse('Kedu?', 'ig')).toContain('BLACK AI');
+    expect(getLocalFallbackResponse('Sannu', 'ha')).toContain('BLACK AI');
+    expect(getLocalFallbackResponse('Kọyọ', 'edo')).toContain('BLACK AI');
+    expect(getLocalFallbackResponse('Vbẹe oye hẹ?', 'esan')).toContain('BLACK AI');
   });
 });

@@ -6,7 +6,7 @@ const PSEUDO_KEYWORDS: Record<string, string[]> = {
   ig: ['kedu', 'onye', 'nno', 'dalu', 'biko'],
   ha: ['sannu', 'yaya', 'lafiya', 'na gode', 'kasuwa'],
   swa: ['habari', 'asante', 'siku', 'jambo'],
-  edo: ['kọyo', 'koyo', 'obokhian', 'obokhe', 'ob\'awie', 'uru ese', 'ma rrie', 'ob\'avan'],
+  edo: ['kọyo', 'koyo', 'dọmọ', 'domo', 'vbọ yehẹ', 'vbe yehẹ', 'vbèè óye hé', 'vbèè oye he', 'vbẹe oye hẹ', 'mio', 'ọbowiẹ', 'ọbavan', 'ọbota', 'obiluu', 'obo kia', 'lahọ', 'khian', 'vbe', 'rre', 'gho', 'rie', 'ma vbe khian', 'ma vbe khian mue', 'obokhian', 'obokhe', 'ob\'awie', 'uru ese', 'ma rrie', 'ob\'avan', 'ọvbi', 'ẹvbi', 'erha', 'iye', 'ẹrhiẹ', 'iyan', 'ọka', 'ẹvbo', 'ẹsẹ', 'gho hia', 'rre hia'],
   esan: ['vbẹe oye hẹ', 'ọyese', 'uru ese', 'hẹ', 'obokhian', 'ob\'ọwie', 'ob\'avan', 'ob\'ota', 'lahọ'],
 };
 

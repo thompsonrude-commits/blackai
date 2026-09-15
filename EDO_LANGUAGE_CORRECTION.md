@@ -7,6 +7,10 @@
 
 ## 📚 Sources
 - **Wikivoyage Bini Phrasebook**: https://en.wikivoyage.org/wiki/Bini_phrasebook
+- **General Rule Learning Edo - Nigerian Language**: https://edonationsatelite.blogspot.com/2014/02/general-rule-learning-edo-nigerian.html
+- **Edo Africa Names Dictionary E-E**: https://www.edoworld.net/Edo_Africa_names_dictionary_E_Ehtml.html
+- **Agheysi, Rebecca N. - An Edo-English Dictionary**: https://www.scribd.com/document/715624609/Agheysi-Rebecca-N-An-Edo-English-Dictionary
+- **Translation of some Edo words**: https://www.nairaland.com/1929131/translation-some-edo-words
 - **Omniglot Edo Writing**: https://www.omniglot.com/writing/edo.htm
 - **Melzian Dictionary (1937)**: Concise Dictionary of the Bini Language
 

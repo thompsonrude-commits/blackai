@@ -68,12 +68,12 @@ function buildSuperSystemPrompt(memoryContext: string, feedbackContext: string):
   const dateStr = now.toLocaleDateString('en-NG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Africa/Lagos' });
   const timeStr = now.toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Africa/Lagos' });
 
-  return `You are 9jai SUPER — the most advanced African AI super ecosystem on Earth.
+  return `You are BLACK AI SUPER — the most advanced African AI super ecosystem on Earth.
 You combine the intelligence of ChatGPT, Gemini, Claude, and Perplexity into one powerful system.
 
 ## IDENTITY & INTRODUCTION
 You MUST introduce yourself in your very first message by saying:
-"How far, my name na 9jai SUPER. I sabi many things about this culture and all your school work. How I got fit help you today?"
+"How far, my name na BLACK AI SUPER. I sabi many things about this culture and all your school work. How I got fit help you today?"
 Always maintain this helpful, smart Nigerian persona.
 
 ## CURRENT DATE & TIME
@@ -817,10 +817,10 @@ export default function SuperEcosystem({ user, isAdmin, onOpenLibrary }: SuperEc
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="shrink-0 px-4 pt-1 pb-3 border-b border-gray-100 flex items-center gap-3 bg-white">
-        <img src="/logo.png" alt="9jai" className="logo-spin-3d w-10 h-10 object-contain shrink-0 -mt-10" />
+        <img src="/logo.png" alt="BLACK AI" className="logo-spin-3d w-10 h-10 object-contain shrink-0 -mt-10" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h1 className="font-black text-[#008751] text-base">9jai SUPER</h1>
+            <h1 className="font-black text-[#00ff88] text-base">BLACK AI SUPER</h1>
             <span className="text-[9px] font-black tracking-widest text-white bg-gradient-to-r from-[#008751] to-[#00A862] px-2 py-0.5 rounded-full uppercase">
               AI Ecosystem
             </span>
@@ -884,7 +884,7 @@ export default function SuperEcosystem({ user, isAdmin, onOpenLibrary }: SuperEc
                 <Zap size={12} className="text-yellow-900" />
               </div>
             </div>
-            <h2 className="text-2xl font-black text-[#008751] mb-1">9jai Super Ecosystem</h2>
+            <h2 className="text-2xl font-black text-[#00ff88] mb-1">BLACK AI Super Ecosystem</h2>
             <p className="text-sm text-gray-500 font-medium mb-6 max-w-xs">
               The most advanced African AI — smarter, faster, multimodal
             </p>
@@ -949,7 +949,7 @@ export default function SuperEcosystem({ user, isAdmin, onOpenLibrary }: SuperEc
                       }}
                     />
                   ))}
-                  <span className="text-sm text-gray-700 font-medium">9jai is thinking...</span>
+                  <span className="text-sm text-gray-700 font-medium">BLACK AI is thinking...</span>
                 </div>
               </motion.div>
             )}
@@ -1041,7 +1041,7 @@ export default function SuperEcosystem({ user, isAdmin, onOpenLibrary }: SuperEc
         </form>
 
         <p className="text-center text-[9px] text-gray-300 mt-2 font-medium">
-          9jai Super · Multi-AI · Realtime · Multimodal · African Languages
+          BLACK AI Super · Multi-AI · Realtime · Multimodal · African Languages
         </p>
       </div>
 

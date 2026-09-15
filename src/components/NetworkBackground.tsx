@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 
 /**
- * Network wave background effect for 9JA AI
+ * Network wave background effect for BLACK AI
  * Adds subtle flowing waves and network patterns
  */
 export default function NetworkBackground() {

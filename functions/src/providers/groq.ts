@@ -13,8 +13,8 @@ export const GROQ_KEY = defineSecret('GROQ_KEY');
 const BASE_URL = 'https://api.groq.com/openai/v1';
 
 export const GROQ_MODELS = [
-  'llama-3.3-70b-versatile',
-  'llama-3.1-8b-instant',
+  'openai/gpt-oss-20b',
+  'openai/gpt-oss-120b',
   'gemma2-9b-it',
 ];
 

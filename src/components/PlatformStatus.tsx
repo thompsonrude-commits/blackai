@@ -8,7 +8,7 @@ import { motion } from 'motion/react';
 import { Activity, Database, RefreshCw, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import { getPlatformDiagnostics, providerRegistry, recoveryService } from '../lib/platform';
 
-export function PlatformStatus() {
+export function PlatformStatus({ showVisual = true }: { showVisual?: boolean }) {
   const [diagnostics, setDiagnostics] = useState(getPlatformDiagnostics());
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -38,7 +38,7 @@ export function PlatformStatus() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="fixed bottom-4 right-4 z-50"
+      className={`${showVisual ? '' : 'hidden'} fixed bottom-4 right-4 z-50`}
     >
       {/* Collapsed view */}
       {!isExpanded && (
