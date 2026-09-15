@@ -10,7 +10,7 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
     function isMasterAdmin() {
-      return isSignedIn() && request.auth.token.email == 'mckpedersen@gmail.com';
+      return isSignedIn() && request.auth.token.email == 'obosathompsons@gmail.com';
     }
 
     // ── Default deny ───────────────────────────────────────────────────────

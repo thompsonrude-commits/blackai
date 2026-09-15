@@ -97,7 +97,12 @@ function LexiconManager() {
       setIsAdding(false);
       setDraft({ edoWord: "", english: "", phonetic: "", category: "General", context: "" });
     } catch (error) {
-      alert("Failed to save lexicon entry: " + (error instanceof Error ? error.message : String(error)));
+      const message = error instanceof Error ? error.message : String(error);
+      if (/permission|insufficient permissions|unauthenticated/i.test(message)) {
+        alert("Lexicon saving requires a Firebase-authenticated admin session. Sign out, sign in with the provisioned admin Firebase account, and try again. If the account is not provisioned yet, add it in Firebase Authentication and redeploy firestore.rules.");
+      } else {
+        alert("Failed to save lexicon entry: " + message);
+      }
     } finally {
       setSaving(false);
     }
