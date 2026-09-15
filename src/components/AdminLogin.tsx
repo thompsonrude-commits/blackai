@@ -98,7 +98,9 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
       setError('Invalid email or password. Please check your credentials.');
       setIsLoading(false);
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please try again.');
+      setError(err?.code === 'auth/api-key-not-valid'
+        ? 'Firebase is not configured for this deployment. Add a valid VITE_FIREBASE_API_KEY in Vercel, redeploy, and try again.'
+        : err.message || 'Login failed. Please try again.');
       setIsLoading(false);
     }
   };

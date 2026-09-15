@@ -4,8 +4,22 @@ import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
 
-const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+const configuredApiKey = import.meta.env.VITE_FIREBASE_API_KEY || firebaseConfig.apiKey;
+const firebaseConfigWithEnvironment = {
+  ...firebaseConfig,
+  apiKey: configuredApiKey,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || firebaseConfig.authDomain,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || firebaseConfig.projectId,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || firebaseConfig.storageBucket,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseConfig.messagingSenderId,
+};
+
+if (configuredApiKey === '<REDACTED>' || configuredApiKey === 'your_firebase_api_key_here' || configuredApiKey.length < 20) {
+  console.error('[Firebase] Invalid web API key. Set VITE_FIREBASE_API_KEY in Vercel environment variables.');
+}
+
+const app = initializeApp(firebaseConfigWithEnvironment);
+export const db = getFirestore(app, firebaseConfigWithEnvironment.firestoreDatabaseId);
 export const auth = getAuth();
 export const storage = getStorage(app);
 
