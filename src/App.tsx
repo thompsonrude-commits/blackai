@@ -2,7 +2,7 @@
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth, signOut } from './lib/firebase';
-import { Globe, BookOpen, Brain, Languages, LogOut, Database, GraduationCap, Users, Library, Home, Settings } from 'lucide-react';
+import { Globe, BookOpen, Brain, Languages, LogOut, Database, GraduationCap, Users, Library, Home, Settings, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import SearchLanguage from './components/SearchLanguage';
 import LanguageExplorer from './components/LanguageExplorer';
@@ -48,6 +48,7 @@ NIGERIAN_LANGUAGES.forEach(region => {
 // ΓöÇΓöÇ Language Page wrapper ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 function LanguagePage({ user, isAdmin }: { user: User | null; isAdmin: boolean }) {
   const location = useLocation();
+  const navigate = useNavigate();
   // Extract language id from path e.g. /language/edo -> edo
   const langId = location.pathname.split('/').pop() || '';
   const langName = LANGUAGE_ID_TO_NAME[langId];
@@ -64,11 +65,32 @@ function LanguagePage({ user, isAdmin }: { user: User | null; isAdmin: boolean }
   }
 
   return (
-    <LanguageExplorer
-      languageName={langName}
-      currentUser={user}
-      isAdmin={isAdmin}
-    />
+    <div className="min-h-full">
+      {isAdmin && (
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-[#00ff88]/20 bg-black/90 px-4 py-3 backdrop-blur-sm">
+          <button
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+            aria-label="Go back to the previous admin page"
+          >
+            <ArrowLeft className="h-4 w-4 text-[#00ff88]" />
+            Back
+          </button>
+          <button
+            onClick={() => navigate('/admin')}
+            className="inline-flex items-center gap-2 rounded-lg border border-[#00ff88]/30 bg-[#00ff88]/10 px-3 py-2 text-sm font-medium text-[#00ff88]"
+          >
+            <Settings className="h-4 w-4" />
+            Admin Panel
+          </button>
+        </div>
+      )}
+      <LanguageExplorer
+        languageName={langName}
+        currentUser={user}
+        isAdmin={isAdmin}
+      />
+    </div>
   );
 }
 
@@ -231,6 +253,14 @@ function AdminSubpage({ children }: { children: React.ReactNode }) {
     <div className="flex-1 min-h-0 overflow-y-auto bg-gradient-to-br from-black via-[#080808] to-[#111111]">
       <header className="sticky top-0 z-10 border-b border-[#00ff88]/20 bg-black/90 backdrop-blur-sm">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+          <button
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+            aria-label="Go back to the previous admin page"
+          >
+            <ArrowLeft className="h-4 w-4 text-[#00ff88]" />
+            Back
+          </button>
           <button
             onClick={() => navigate('/')}
             className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
