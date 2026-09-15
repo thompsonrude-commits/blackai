@@ -3,7 +3,7 @@ import { Mail, Lock, Loader, AlertCircle, Eye, EyeOff, ArrowLeft } from 'lucide-
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, signInWithEmail } from '../lib/firebase';
 import RotatingLogo, { RotatingLogoMedium } from './RotatingLogo';
 
 interface AdminLoginProps {
@@ -32,16 +32,9 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
     try {
       // Check master admin credentials first
       if (email.trim().toLowerCase() === ADMIN_CREDENTIALS.email.toLowerCase() && password === ADMIN_CREDENTIALS.password) {
-        const adminResponse = await fetch('/api/admin', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ operation: 'login', email: email.trim().toLowerCase(), password }),
-        });
-        if (!adminResponse.ok) {
-          const details = await adminResponse.json().catch(() => ({}));
-          throw new Error(details.error || 'Admin API is not configured for this deployment.');
-        }
+        // Establish a real Firebase session so Firestore rules authorize
+        // lexicon, training, and audio changes made by this admin.
+        await signInWithEmail(email.trim(), password);
         const adminUser = {
           username: 'admin',
           email: ADMIN_CREDENTIALS.email,

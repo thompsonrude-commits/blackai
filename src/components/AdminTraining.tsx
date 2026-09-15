@@ -107,16 +107,7 @@ function LexiconManager() {
       } else if (draft.audioUrl === null) {
         updateData.audioUrl = null;
       }
-      const response = await fetch('/api/admin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ operation: 'save', id, data: updateData }),
-      });
-      if (!response.ok) {
-        const details = await response.json().catch(() => ({}));
-        throw new Error(details.error || 'Admin lexicon API rejected the save.');
-      }
+      await setDoc(doc(db, "coreVocabAudio", id), updateData, { merge: true });
       setEditingId(null);
       setIsAdding(false);
       setDraft({ edoWord: "", english: "", phonetic: "", category: "General", context: "", audioBlob: null, audioUrl: null });
@@ -138,16 +129,10 @@ function LexiconManager() {
     try {
       // A tombstone is required for built-in repository words; deleting only
       // the override would cause the static word to return on the next load.
-      const response = await fetch('/api/admin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ operation: 'delete', id: entry.id }),
-      });
-      if (!response.ok) {
-        const details = await response.json().catch(() => ({}));
-        throw new Error(details.error || 'Admin lexicon API rejected the delete.');
-      }
+      await setDoc(doc(db, "coreVocabAudio", entry.id), {
+        deleted: true,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
       if (editingId === entry.id) setEditingId(null);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

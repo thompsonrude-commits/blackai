@@ -20,7 +20,6 @@
     { "src": "/api/ai/health", "dest": "/api/health.js" },
     { "src": "/api/v1/health", "dest": "/api/health.js" },
     { "src": "/api/v1/providers", "dest": "/api/providers.js" },
-    { "src": "/api/admin", "dest": "/api/admin.js" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
   ],
