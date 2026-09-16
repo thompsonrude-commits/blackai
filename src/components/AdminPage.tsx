@@ -252,15 +252,15 @@ export default function AdminPage() {
                   >
                     <div className="flex items-center gap-4 mb-4">
                       <div className="w-16 h-16 rounded-2xl bg-orange-500/20 flex items-center justify-center group-hover:bg-orange-500/30 transition-colors">
-                        <Globe className="w-8 h-8 text-orange-400" />
+                        <FileText className="w-8 h-8 text-orange-400" />
                       </div>
                       <div>
-                        <h3 className="text-xl font-bold text-white">URL Extract</h3>
+                        <h3 className="text-xl font-bold text-white">Content Extract</h3>
                         <p className="text-xs text-orange-400 uppercase tracking-wider">From Websites</p>
                       </div>
                     </div>
                     <p className="text-sm text-white/70 leading-relaxed">
-                      Paste a website URL. AI fetches content and extracts training materials automatically.
+                      Copy and paste content from websites, articles, or documents to extract training data.
                     </p>
                   </button>
 
