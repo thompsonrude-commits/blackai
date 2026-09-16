@@ -1277,26 +1277,27 @@ Be thorough - extract as many useful training items as possible.`
 
       {/* Bulk Text Input - Hidden for URL mode until content is fetched */}
       {inputMode !== 'url' && (
-        <label className="text-[10px] uppercase tracking-widest text-white/60 font-bold mb-2 block">
-          Paste {inputMode === 'smart' ? 'Research Material' : inputMode === 'structured' ? 'Training Data' : 'Text with Vocabulary'} *
-        </label>
-        <textarea
-          value={bulkText}
-          onChange={e => setBulkText(e.target.value)}
-          rows={12}
-          placeholder={
-            inputMode === 'smart' 
-              ? `Paste any article, research notes, or language learning materials about ${selectedLanguage.name}. AI will extract and categorize everything automatically.\n\nExample:\n"The Edo people greet with 'Kọyọ' (ko-yo) which means hello. In formal settings, they say 'Ọghọ' to show respect. Common phrases include 'Vbèè oye hẹ?' meaning 'how are you?'..."`
-              : inputMode === 'structured'
-              ? `Example:\n${selectedLanguage.name} Word | English | Phonetics | Context\nWord 1 | Meaning 1 | Pronunciation 1 | Usage 1\nWord 2 | Meaning 2 | Pronunciation 2 | Usage 2`
-              : `Example:\nỌmọ - Child\nOdabo: Goodbye\n"Báwo ni?" means "How are you?"\n\nIn Yoruba culture, greetings are very important and show respect...`
-          }
-          className={INPUT_CLASS + " resize-none font-mono text-xs"}
-        />
-        <p className="text-xs text-white/40 mt-1">
-          {bulkText.trim().split('\n').filter(l => l.trim()).length} lines • {bulkText.length} characters
-        </p>
-      </div>
+        <div>
+          <label className="text-[10px] uppercase tracking-widest text-white/60 font-bold mb-2 block">
+            Paste {inputMode === 'smart' ? 'Research Material' : inputMode === 'structured' ? 'Training Data' : 'Text with Vocabulary'} *
+          </label>
+          <textarea
+            value={bulkText}
+            onChange={e => setBulkText(e.target.value)}
+            rows={12}
+            placeholder={
+              inputMode === 'smart' 
+                ? `Paste any article, research notes, or language learning materials about ${selectedLanguage.name}. AI will extract and categorize everything automatically.\n\nExample:\n"The Edo people greet with 'Kọyọ' (ko-yo) which means hello. In formal settings, they say 'Ọghọ' to show respect. Common phrases include 'Vbèè oye hẹ?' meaning 'how are you?'..."`
+                : inputMode === 'structured'
+                ? `Example:\n${selectedLanguage.name} Word | English | Phonetics | Context\nWord 1 | Meaning 1 | Pronunciation 1 | Usage 1\nWord 2 | Meaning 2 | Pronunciation 2 | Usage 2`
+                : `Example:\nỌmọ - Child\nOdabo: Goodbye\n"Báwo ni?" means "How are you?"\n\nIn Yoruba culture, greetings are very important and show respect...`
+            }
+            className={INPUT_CLASS + " resize-none font-mono text-xs"}
+          />
+          <p className="text-xs text-white/40 mt-1">
+            {bulkText.trim().split('\n').filter(l => l.trim()).length} lines • {bulkText.length} characters
+          </p>
+        </div>
       )}
 
       {/* Show fetched content for URL mode */}
