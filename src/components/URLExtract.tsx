@@ -35,31 +35,92 @@ export default function URLExtract() {
 
     setFetchingUrl(true);
     try {
-      const response = await fetch('/api/ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [{
-            role: 'system',
-            content: 'You are a web content extractor. Fetch the content from the provided URL and extract only the main text content. Remove navigation, ads, headers, footers. Return ONLY the main text content.'
-          }, {
-            role: 'user',
-            content: `Fetch and extract the main content from: ${urlInput}`
-          }]
-        })
-      });
-
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content || data.content || '';
+      console.log('Fetching URL:', urlInput);
       
-      if (content) {
-        setFetchedContent(content);
-        alert('✅ Content fetched! Click "Analyze with AI" to extract training data.');
-      } else {
-        throw new Error('No content extracted');
+      // Try multiple CORS proxies
+      const proxies = [
+        `https://api.allorigins.win/get?url=${encodeURIComponent(urlInput)}`,
+        `https://corsproxy.io/?${encodeURIComponent(urlInput)}`,
+      ];
+
+      let htmlContent = '';
+      let proxySuccess = false;
+
+      for (const proxyUrl of proxies) {
+        try {
+          console.log('Trying proxy:', proxyUrl);
+          const proxyResponse = await fetch(proxyUrl, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json, text/plain, */*' }
+          });
+          
+          if (!proxyResponse.ok) continue;
+
+          // Handle different proxy response formats
+          const contentType = proxyResponse.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            const proxyData = await proxyResponse.json();
+            htmlContent = proxyData.contents || proxyData.data || '';
+          } else {
+            htmlContent = await proxyResponse.text();
+          }
+
+          if (htmlContent && htmlContent.length > 200) {
+            proxySuccess = true;
+            console.log('✅ Proxy success, content length:', htmlContent.length);
+            break;
+          }
+        } catch (err) {
+          console.log('Proxy failed:', err);
+          continue;
+        }
       }
-    } catch (error) {
-      alert('Failed to fetch URL. Make sure it\'s valid and accessible.');
+
+      if (!proxySuccess || !htmlContent) {
+        throw new Error('All proxies failed. Try manual paste below.');
+      }
+
+      // Parse HTML and extract text
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlContent, 'text/html');
+      
+      // Remove unwanted elements
+      const unwanted = doc.querySelectorAll('script, style, nav, header, footer, aside, iframe, .ad, .advertisement, .sidebar');
+      unwanted.forEach(el => el.remove());
+      
+      // Try multiple content selectors
+      const selectors = ['article', 'main', '[role="main"]', '.content', '.post-content', '.entry-content', 'body'];
+      let textContent = '';
+      
+      for (const selector of selectors) {
+        const element = doc.querySelector(selector);
+        if (element) {
+          const text = element.innerText || element.textContent || '';
+          if (text.length > textContent.length) {
+            textContent = text;
+          }
+        }
+      }
+      
+      if (!textContent || textContent.trim().length < 100) {
+        throw new Error('Could not extract meaningful content. Try manual paste below.');
+      }
+
+      // Clean up whitespace
+      const cleanedContent = textContent
+        .replace(/\n\s*\n\s*\n/g, '\n\n')
+        .replace(/[ \t]+/g, ' ')
+        .trim();
+
+      setFetchedContent(cleanedContent);
+      alert(`✅ Content fetched! (${cleanedContent.length} characters)\nClick "Analyze with AI" to extract training data.`);
+      
+    } catch (error: any) {
+      console.error('URL fetch error:', error);
+      const errorMsg = error.message || 'Unknown error';
+      alert(`❌ Failed to fetch URL.\n\nReason: ${errorMsg}\n\nSolution: Copy the webpage content manually and paste it in the text area below, then click "Analyze with AI".`);
+      // Show the manual paste area even on error
+      setFetchedContent('');
     } finally {
       setFetchingUrl(false);
     }
@@ -205,7 +266,7 @@ export default function URLExtract() {
             <button
               onClick={fetchFromUrl}
               disabled={fetchingUrl || !urlInput.trim()}
-              className="px-6 py-2.5 rounded-xl bg-orange-500/20 text-orange-400 border border-orange-500/30 font-bold hover:bg-orange-500/30 transition-all disabled:opacity-50 flex items-center gap-2"
+              className="px-6 py-2.5 rounded-xl bg-orange-500/20 text-orange-400 border border-orange-500/30 font-bold hover:bg-orange-500/30 transition-all disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
             >
               {fetchingUrl ? (
                 <>
@@ -220,52 +281,57 @@ export default function URLExtract() {
               )}
             </button>
           </div>
+          <p className="text-xs text-white/40 mt-2">
+            Enter URL and click "Fetch Content" to auto-extract
+          </p>
         </div>
 
-        {/* Fetched Content */}
-        {fetchedContent && (
-          <>
-            <div className="bg-black/40 border border-white/10 rounded-2xl p-6 mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <label className="text-xs uppercase tracking-widest text-white/60 font-bold">
-                  Fetched Content
-                </label>
-                <button
-                  onClick={() => { setFetchedContent(''); setUrlInput(''); setPreview([]); }}
-                  className="text-xs text-orange-400 hover:text-orange-300"
-                >
-                  Clear & Try Another URL
-                </button>
-              </div>
-              <textarea
-                value={fetchedContent}
-                onChange={e => setFetchedContent(e.target.value)}
-                rows={10}
-                className={INPUT_CLASS + " resize-none text-xs"}
-              />
-              <p className="text-xs text-white/40 mt-2">
-                {fetchedContent.length} characters • You can edit before analyzing
-              </p>
-            </div>
+        {/* Manual Paste Option (always visible as fallback) */}
+        <div className="bg-black/40 border border-white/10 rounded-2xl p-6 mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <label className="text-xs uppercase tracking-widest text-white/60 font-bold">
+              Or Paste Content Manually
+            </label>
+            {fetchedContent && (
+              <button
+                onClick={() => { setFetchedContent(''); setUrlInput(''); setPreview([]); }}
+                className="text-xs text-orange-400 hover:text-orange-300"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          <textarea
+            value={fetchedContent}
+            onChange={e => setFetchedContent(e.target.value)}
+            rows={10}
+            placeholder={`If auto-fetch fails, manually copy the webpage text and paste here...\n\nExample content:\n"Ọbọ" means "monkey" in Edo language.\n"Vbe ghee" means "good morning".\n...`}
+            className={INPUT_CLASS + " resize-none text-xs"}
+          />
+          <p className="text-xs text-white/40 mt-2">
+            {fetchedContent ? `${fetchedContent.length} characters • You can edit before analyzing` : 'Paste article or webpage content here'}
+          </p>
+        </div>
 
-            <button
-              onClick={analyzeWithAI}
-              disabled={analyzing}
-              className="w-full px-6 py-4 rounded-xl bg-orange-500 text-white text-base font-bold hover:bg-orange-600 transition-all disabled:opacity-50 flex items-center justify-center gap-3 mb-6"
-            >
-              {analyzing ? (
-                <>
-                  <Sparkles size={20} className="animate-spin" />
-                  Analyzing...
-                </>
-              ) : (
-                <>
-                  <Sparkles size={20} />
-                  Analyze with AI
-                </>
-              )}
-            </button>
-          </>
+        {/* Analyze Button */}
+        {fetchedContent && (
+          <button
+            onClick={analyzeWithAI}
+            disabled={analyzing}
+            className="w-full px-6 py-4 rounded-xl bg-orange-500 text-white text-base font-bold hover:bg-orange-600 transition-all disabled:opacity-50 flex items-center justify-center gap-3 mb-6"
+          >
+            {analyzing ? (
+              <>
+                <Sparkles size={20} className="animate-spin" />
+                Analyzing...
+              </>
+            ) : (
+              <>
+                <Sparkles size={20} />
+                Analyze with AI
+              </>
+            )}
+          </button>
         )}
 
         {/* Preview */}
