@@ -20,9 +20,10 @@ module.exports = async (req, res) => {
     }
 
     // Direct Groq API call
-    const GROQ_KEY = process.env.GROQ_API_KEY || process.env.GROQ_KEY;
+    const GROQ_KEY = process.env.GROQ_API_KEY || process.env.GROQ_KEY || process.env.VITE_GROQ_KEY;
     if (!GROQ_KEY) {
       console.error('GROQ API key not found in environment variables');
+      console.error('Checked: GROQ_API_KEY, GROQ_KEY, VITE_GROQ_KEY');
       return res.status(500).json({ 
         error: 'API key not configured',
         text: 'Backend configuration error. Please contact administrator.',
@@ -87,6 +88,12 @@ module.exports = async (req, res) => {
     
     return res.status(200).json({
       text: text,
+      content: text,  // Add this for compatibility
+      choices: [{      // Add OpenAI-compatible format
+        message: {
+          content: text
+        }
+      }],
       provider: 'groq',
       model: 'openai/gpt-oss-20b',
       latencyMs: 0,
