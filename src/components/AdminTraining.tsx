@@ -346,6 +346,7 @@ export default function AdminTraining({ selectedLanguage }: { selectedLanguage?:
   const [entries, setEntries] = useState<TrainingEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
+  const [isBulkAdding, setIsBulkAdding] = useState(false);
   const [filter, setFilter] = useState<TrainingType | "all">("all");
   const [languageFilter, setLanguageFilter] = useState<string>(selectedLanguage || "all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -465,14 +466,26 @@ export default function AdminTraining({ selectedLanguage }: { selectedLanguage?:
           {filtered.length} {filter === "all" ? "total" : TYPE_LABELS[filter as TrainingType].label.toLowerCase()} entries
           {languageFilter !== "all" && ` in ${ALL_LANGUAGES.find(l => l.id === languageFilter)?.name}`}
         </p>
-        <button onClick={() => setIsAdding(v => !v)}
-          className={"flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all " + (isAdding ? "bg-[#2A2A2A] text-white/60" : "bg-[#00ff88] text-black hover:bg-[#00ff88]/90")}>
-          {isAdding ? <X size={16} /> : <Plus size={16} />}
-          {isAdding ? "Cancel" : "Add Training Entry"}
-        </button>
+        <div className="flex items-center gap-3">
+          <button onClick={() => { setIsAdding(false); setIsBulkAdding(v => !v); }}
+            className={"flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all " + (isBulkAdding ? "bg-[#2A2A2A] text-white/60" : "bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500/30")}>
+            {isBulkAdding ? <X size={16} /> : <Upload size={16} />}
+            {isBulkAdding ? "Cancel" : "Bulk Paste"}
+          </button>
+          <button onClick={() => { setIsBulkAdding(false); setIsAdding(v => !v); }}
+            className={"flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all " + (isAdding ? "bg-[#2A2A2A] text-white/60" : "bg-[#00ff88] text-black hover:bg-[#00ff88]/90")}>
+            {isAdding ? <X size={16} /> : <Plus size={16} />}
+            {isAdding ? "Cancel" : "Add Single Entry"}
+          </button>
+        </div>
       </div>
 
       <AnimatePresence>
+        {isBulkAdding && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden mb-8">
+            <BulkAddForm onDone={() => setIsBulkAdding(false)} defaultLanguage={languageFilter !== "all" ? languageFilter : undefined} />
+          </motion.div>
+        )}
         {isAdding && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden mb-8">
             <AddTrainingForm onDone={() => setIsAdding(false)} defaultLanguage={languageFilter !== "all" ? languageFilter : undefined} />
@@ -734,6 +747,216 @@ function TrainingCard({ entry, expanded, onToggle, onDelete }: { entry: Training
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+function BulkAddForm({ onDone, defaultLanguage }: { onDone: () => void; defaultLanguage?: string }) {
+  const [type, setType] = useState<TrainingType>("vocabulary");
+  const [language, setLanguage] = useState(defaultLanguage || "edo");
+  const [bulkText, setBulkText] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [preview, setPreview] = useState<any[]>([]);
+
+  const selectedLanguage = ALL_LANGUAGES.find(l => l.id === language) || ALL_LANGUAGES[0];
+
+  const parseBulkText = (text: string) => {
+    const lines = text.trim().split('\n').filter(line => line.trim());
+    const entries: any[] = [];
+
+    for (const line of lines) {
+      // Support multiple formats:
+      // 1. Tab-separated: word\tmeaning\tphonetics\tcontext
+      // 2. Pipe-separated: word | meaning | phonetics | context
+      // 3. Comma-separated: word, meaning, phonetics, context
+      const parts = line.includes('\t') 
+        ? line.split('\t')
+        : line.includes('|')
+        ? line.split('|').map(p => p.trim())
+        : line.split(',').map(p => p.trim());
+
+      if (parts.length >= 2) {
+        entries.push({
+          nativeText: parts[0]?.trim() || '',
+          englishText: parts[1]?.trim() || '',
+          phonetics: parts[2]?.trim() || '',
+          context: parts[3]?.trim() || ''
+        });
+      }
+    }
+
+    return entries;
+  };
+
+  const handlePreview = () => {
+    const parsed = parseBulkText(bulkText);
+    setPreview(parsed);
+  };
+
+  const handleSaveAll = async () => {
+    const entries = parseBulkText(bulkText);
+    if (entries.length === 0) {
+      alert("No valid entries found. Make sure each line has at least: Native Text | English Meaning");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      let successCount = 0;
+      for (const entry of entries) {
+        if (!entry.nativeText || !entry.englishText) continue;
+
+        const trainingEntry: any = {
+          type,
+          language: selectedLanguage.id,
+          languageName: selectedLanguage.name,
+          nativeText: entry.nativeText,
+          englishText: entry.englishText,
+          phonetics: entry.phonetics || null,
+          context: entry.context || null,
+          createdAt: serverTimestamp()
+        };
+
+        await addDoc(collection(db, "aiTraining"), trainingEntry);
+        successCount++;
+      }
+
+      alert(`✅ Successfully added ${successCount} training entries!`);
+      onDone();
+    } catch (err) {
+      alert("Failed to save: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-[#1A1A1A] border border-purple-500/20 rounded-3xl p-6 space-y-5">
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 bg-purple-500 rounded-xl flex items-center justify-center"><Upload size={16} className="text-white" /></div>
+        <div>
+          <h3 className="font-black text-lg">Bulk Paste Training Data</h3>
+          <p className="text-xs text-white/40">Paste multiple entries at once from research materials</p>
+        </div>
+      </div>
+
+      {/* Language Selection */}
+      <div>
+        <label className="text-[10px] uppercase tracking-widest text-white/60 font-bold mb-2 block flex items-center gap-2">
+          <Globe size={12} className="text-purple-400" />
+          Select Language *
+        </label>
+        <select
+          value={language}
+          onChange={(e) => setLanguage(e.target.value)}
+          className="w-full bg-[#0F0F0F] border border-[#3A3A3A] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+        >
+          {ALL_LANGUAGES.map(lang => (
+            <option key={lang.id} value={lang.id}>{lang.name}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Entry Type */}
+      <div>
+        <label className="text-[10px] uppercase tracking-widest text-white/60 font-bold mb-2 block">Entry Type</label>
+        <div className="flex flex-wrap gap-2">
+          {(Object.keys(TYPE_LABELS) as TrainingType[]).map(t => (
+            <button key={t} type="button" onClick={() => setType(t)}
+              className={"px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all " + (type === t ? TYPE_LABELS[t].color : "bg-transparent border-[#2A2A2A] text-white/40 hover:border-purple-500/30")}>
+              {TYPE_LABELS[t].label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Instructions */}
+      <div className="bg-purple-500/10 border border-purple-500/20 rounded-2xl p-4">
+        <h4 className="text-xs font-bold text-purple-400 mb-2">📋 Format Instructions</h4>
+        <p className="text-xs text-white/60 leading-relaxed mb-2">
+          Paste your research data with each entry on a new line. Separate fields with <strong>|</strong> (pipe), <strong>Tab</strong>, or <strong>,</strong> (comma):
+        </p>
+        <div className="bg-black/40 rounded-lg p-3 font-mono text-xs text-white/80 space-y-1">
+          <div>{selectedLanguage.name} Word | English Meaning | Phonetics | Context</div>
+          <div className="text-purple-300">Ọmọ | Child | oh-moh | Used for any young person</div>
+          <div className="text-purple-300">Odabo | Goodbye | oh-dah-boh | Formal parting phrase</div>
+        </div>
+        <p className="text-xs text-white/40 mt-2">
+          <strong>Minimum:</strong> Native Text and English Meaning. Phonetics and Context are optional.
+        </p>
+      </div>
+
+      {/* Bulk Text Input */}
+      <div>
+        <label className="text-[10px] uppercase tracking-widest text-white/60 font-bold mb-2 block">
+          Paste Training Data *
+        </label>
+        <textarea
+          value={bulkText}
+          onChange={e => setBulkText(e.target.value)}
+          rows={12}
+          placeholder={`Example:\n${selectedLanguage.name} Word | English | Phonetics | Context\nWord 1 | Meaning 1 | Pronunciation 1 | Usage 1\nWord 2 | Meaning 2 | Pronunciation 2 | Usage 2`}
+          className={INPUT_CLASS + " resize-none font-mono text-xs"}
+        />
+        <p className="text-xs text-white/40 mt-1">
+          {bulkText.trim().split('\n').filter(l => l.trim()).length} lines detected
+        </p>
+      </div>
+
+      {/* Preview Button */}
+      <button
+        type="button"
+        onClick={handlePreview}
+        disabled={!bulkText.trim()}
+        className="w-full px-4 py-2.5 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 text-sm font-bold hover:bg-purple-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        Preview Parsed Entries
+      </button>
+
+      {/* Preview */}
+      {preview.length > 0 && (
+        <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+          <h4 className="text-xs font-bold text-white/60 uppercase tracking-widest sticky top-0 bg-[#1A1A1A] py-2">
+            Preview ({preview.length} entries)
+          </h4>
+          {preview.map((entry, idx) => (
+            <div key={idx} className="bg-black/40 border border-white/10 rounded-xl p-3 text-xs space-y-1">
+              <div className="flex items-start gap-2">
+                <span className="text-white/40">#{idx + 1}</span>
+                <div className="flex-1">
+                  <div className="text-white font-bold">{entry.nativeText}</div>
+                  <div className="text-white/70">{entry.englishText}</div>
+                  {entry.phonetics && <div className="text-purple-400">/{entry.phonetics}/</div>}
+                  {entry.context && <div className="text-white/40 italic">{entry.context}</div>}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Action Buttons */}
+      <div className="flex items-center gap-3 pt-2">
+        <button type="button" onClick={onDone}
+          className="flex-1 px-4 py-2.5 rounded-xl bg-[#2A2A2A] text-white/60 text-sm font-bold hover:bg-[#3A3A3A] transition-all">
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={handleSaveAll}
+          disabled={saving || !bulkText.trim()}
+          className="flex-1 px-4 py-2.5 rounded-xl bg-purple-500 text-white text-sm font-bold hover:bg-purple-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          {saving ? (
+            <>Saving...</>
+          ) : (
+            <>
+              <Upload size={16} />
+              Save All Entries
+            </>
+          )}
+        </button>
+      </div>
     </div>
   );
 }
