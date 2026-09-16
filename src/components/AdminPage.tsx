@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { GraduationCap, Users, Database, BarChart3, Settings, ArrowLeft, Globe } from 'lucide-react';
+import { GraduationCap, Users, Database, BarChart3, Settings, ArrowLeft, Globe, Sparkles, Upload, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdminTraining from './AdminTraining';
 import TeamManagement from './TeamManagement';
@@ -64,58 +64,88 @@ export default function AdminPage() {
             </div>
 
             {/* Quick Access Cards */}
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid md:grid-cols-2 gap-4">
               <button
-                onClick={() => navigate('/admin/training')}
-                className="group p-6 rounded-2xl border border-purple-500/20 bg-black/40 hover:bg-purple-500/10 hover:border-purple-500/40 transition-all text-left"
+                onClick={() => navigate('/admin/smart-paste')}
+                className="group p-8 rounded-2xl border border-purple-500/30 bg-black/40 hover:bg-purple-500/10 hover:border-purple-500/50 transition-all text-left"
               >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center group-hover:bg-purple-500/30 transition-colors">
-                    <GraduationCap className="w-6 h-6 text-purple-400" />
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-16 h-16 rounded-2xl bg-purple-500/20 flex items-center justify-center group-hover:bg-purple-500/30 transition-colors">
+                    <Sparkles className="w-8 h-8 text-purple-400" />
                   </div>
-                  <h3 className="text-lg font-bold text-white">AI Training</h3>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">Smart AI Paste</h3>
+                    <p className="text-xs text-purple-400 uppercase tracking-wider">Recommended</p>
+                  </div>
                 </div>
-                <p className="text-sm text-white/60 leading-relaxed">
-                  Train BLACK AI with vocabulary, phrases, and cultural context for any language
+                <p className="text-sm text-white/70 leading-relaxed mb-4">
+                  Paste any research text, articles, or notes. AI automatically extracts vocabulary, phrases, grammar rules, and cultural context. Everything is auto-categorized.
                 </p>
-                <div className="mt-4 text-xs text-purple-400 font-bold uppercase tracking-wider">
-                  Open Training Studio →
+                <div className="text-sm text-purple-400 font-bold uppercase tracking-wider flex items-center gap-2">
+                  Open Smart Paste →
                 </div>
               </button>
 
               <button
-                onClick={() => navigate('/admin/repository')}
-                className="group p-6 rounded-2xl border border-blue-500/20 bg-black/40 hover:bg-blue-500/10 hover:border-blue-500/40 transition-all text-left"
+                onClick={() => navigate('/admin/url-extract')}
+                className="group p-8 rounded-2xl border border-orange-500/30 bg-black/40 hover:bg-orange-500/10 hover:border-orange-500/50 transition-all text-left"
               >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/30 transition-colors">
-                    <Database className="w-6 h-6 text-blue-400" />
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-16 h-16 rounded-2xl bg-orange-500/20 flex items-center justify-center group-hover:bg-orange-500/30 transition-colors">
+                    <Globe className="w-8 h-8 text-orange-400" />
                   </div>
-                  <h3 className="text-lg font-bold text-white">Repository</h3>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">URL Extract</h3>
+                    <p className="text-xs text-orange-400 uppercase tracking-wider">From Websites</p>
+                  </div>
                 </div>
-                <p className="text-sm text-white/60 leading-relaxed">
-                  Browse and manage language databases, lexicons, and learning resources
+                <p className="text-sm text-white/70 leading-relaxed mb-4">
+                  Paste a website URL. AI fetches the content, extracts main article text, and automatically finds all language training materials.
                 </p>
-                <div className="mt-4 text-xs text-blue-400 font-bold uppercase tracking-wider">
-                  Open Repository →
+                <div className="text-sm text-orange-400 font-bold uppercase tracking-wider flex items-center gap-2">
+                  Open URL Extract →
                 </div>
               </button>
 
               <button
-                onClick={() => navigate('/admin/team')}
-                className="group p-6 rounded-2xl border border-green-500/20 bg-black/40 hover:bg-green-500/10 hover:border-green-500/40 transition-all text-left"
+                onClick={() => navigate('/admin/structured-paste')}
+                className="group p-8 rounded-2xl border border-blue-500/30 bg-black/40 hover:bg-blue-500/10 hover:border-blue-500/50 transition-all text-left"
               >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-xl bg-green-500/20 flex items-center justify-center group-hover:bg-green-500/30 transition-colors">
-                    <Users className="w-6 h-6 text-green-400" />
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-16 h-16 rounded-2xl bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/30 transition-colors">
+                    <Upload className="w-8 h-8 text-blue-400" />
                   </div>
-                  <h3 className="text-lg font-bold text-white">Team</h3>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">Structured Paste</h3>
+                    <p className="text-xs text-blue-400 uppercase tracking-wider">Pre-formatted Data</p>
+                  </div>
                 </div>
-                <p className="text-sm text-white/60 leading-relaxed">
-                  Manage team members who help train and improve the AI models
+                <p className="text-sm text-white/70 leading-relaxed mb-4">
+                  Paste formatted data from spreadsheets. Format: Word | Meaning | Phonetics | Context. Each line is one entry.
                 </p>
-                <div className="mt-4 text-xs text-green-400 font-bold uppercase tracking-wider">
-                  Manage Team →
+                <div className="text-sm text-blue-400 font-bold uppercase tracking-wider flex items-center gap-2">
+                  Open Structured Paste →
+                </div>
+              </button>
+
+              <button
+                onClick={() => navigate('/admin/freeform-paste')}
+                className="group p-8 rounded-2xl border border-green-500/30 bg-black/40 hover:bg-green-500/10 hover:border-green-500/50 transition-all text-left"
+              >
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-16 h-16 rounded-2xl bg-green-500/20 flex items-center justify-center group-hover:bg-green-500/30 transition-colors">
+                    <Info className="w-8 h-8 text-green-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">Free-form Paste</h3>
+                    <p className="text-xs text-green-400 uppercase tracking-wider">Unstructured Text</p>
+                  </div>
+                </div>
+                <p className="text-sm text-white/70 leading-relaxed mb-4">
+                  Paste unstructured notes. Detects patterns like "word - meaning", "word: meaning", and extracts cultural notes from longer sentences.
+                </p>
+                <div className="text-sm text-green-400 font-bold uppercase tracking-wider flex items-center gap-2">
+                  Open Free-form Paste →
                 </div>
               </button>
             </div>

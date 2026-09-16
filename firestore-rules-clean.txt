@@ -1,0 +1,81 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    function isMasterAdmin() {
+      return isSignedIn() && request.auth.token.email == 'obosathompsons@gmail.com';
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    match /user_memory/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+    match /chat_sessions/{sessionId} {
+      allow read, write: if isSignedIn() && request.auth.uid == resource.data.userId;
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+    }
+    match /ai_feedback/{feedbackId} {
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+      allow read: if isSignedIn() && request.auth.uid == resource.data.userId;
+    }
+    match /ai_corrections/{correctionId} {
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+      allow read: if isSignedIn() && request.auth.uid == resource.data.userId;
+      allow read, write: if isMasterAdmin();
+    }
+    match /users/{userId}/personalVocab/{vocabId} {
+      allow read, write: if isOwner(userId);
+    }
+    match /languages/{languageId} {
+      allow read: if true;
+      allow write: if isMasterAdmin();
+    }
+    match /lexiconDevelopers/{devId} {
+      allow read: if true;
+      allow write: if isMasterAdmin();
+    }
+    match /coreVocabAudio/{audioId} {
+      allow read: if true;
+      allow write: if isMasterAdmin();
+    }
+    match /communityVocab/{vocabId} {
+      allow read: if true;
+      allow write: if isMasterAdmin();
+    }
+    match /aiTraining/{entryId} {
+      allow read: if true;
+      allow write: if isMasterAdmin();
+    }
+    match /ai_request_logs/{logId} {
+      allow read: if isMasterAdmin();
+      allow write: if false;
+    }
+    match /orchestrator_history/{recordId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+    match /global_knowledge/{entryId} {
+      allow read: if true;
+      allow write: if isMasterAdmin();
+    }
+    match /user_knowledge/{entryId} {
+      allow read, write: if isSignedIn() && request.auth.uid == resource.data.userId;
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+    }
+    match /analytics_events/{eventId} {
+      allow create: if isSignedIn();
+      allow read: if isMasterAdmin();
+    }
+    match /image_generations/{genId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow read: if isMasterAdmin();
+      allow write: if false;
+    }
+  }
+}
