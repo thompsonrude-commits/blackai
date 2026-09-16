@@ -11,14 +11,7 @@ service cloud.firestore {
     }
     function isMasterAdmin() {
       // Allow by UID (works even if email not verified)
-      return isSignedIn() && (
-        request.auth.uid == 'q5pJbYHo6XV5dBcMytiIo20dWgp2' || // obosathompsons@gmail.com
-        request.auth.token.email == 'obosathompsons@gmail.com' ||
-        request.auth.token.email in [
-          'obosathompsons@gmail.com'
-          // Add more admin emails here if needed
-        ]
-      );
+      return isSignedIn() && request.auth.uid == 'q5pJbYHo6XV5dBcMytiIo20dWgp2';
     }
 
     // ── Default deny ───────────────────────────────────────────────────────
