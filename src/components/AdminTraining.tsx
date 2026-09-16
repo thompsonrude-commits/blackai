@@ -752,10 +752,12 @@ function TrainingCard({ entry, expanded, onToggle, onDelete }: { entry: Training
 }
 
 function BulkAddForm({ onDone, defaultLanguage }: { onDone: () => void; defaultLanguage?: string }) {
+  const [inputMode, setInputMode] = useState<'smart' | 'structured' | 'freeform'>('smart');
   const [type, setType] = useState<TrainingType>("vocabulary");
   const [language, setLanguage] = useState(defaultLanguage || "edo");
   const [bulkText, setBulkText] = useState("");
   const [saving, setSaving] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
   const [preview, setPreview] = useState<any[]>([]);
 
   const selectedLanguage = ALL_LANGUAGES.find(l => l.id === language) || ALL_LANGUAGES[0];
@@ -780,7 +782,8 @@ function BulkAddForm({ onDone, defaultLanguage }: { onDone: () => void; defaultL
           nativeText: parts[0]?.trim() || '',
           englishText: parts[1]?.trim() || '',
           phonetics: parts[2]?.trim() || '',
-          context: parts[3]?.trim() || ''
+          context: parts[3]?.trim() || '',
+          type: type // Use manually selected type for structured mode
         });
       }
     }
@@ -788,26 +791,157 @@ function BulkAddForm({ onDone, defaultLanguage }: { onDone: () => void; defaultL
     return entries;
   };
 
-  const handlePreview = () => {
-    const parsed = parseBulkText(bulkText);
+  const analyzeWithAI = async (text: string): Promise<any[]> => {
+    setAnalyzing(true);
+    try {
+      // Call AI to analyze and categorize the content
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [{
+            role: 'system',
+            content: `You are a linguistic expert analyzing ${selectedLanguage.name} language training materials. Extract vocabulary, phrases, grammar rules, cultural notes, and conversation patterns from the provided text. For each item, identify:
+1. The native ${selectedLanguage.name} word/phrase
+2. English meaning/translation
+3. Phonetic pronunciation (if available or can infer)
+4. Context/usage notes
+5. Category: vocabulary, conversation, grammar, culture, spelling, phonetics, terminology, or correction
+
+Return ONLY a JSON array with this structure:
+[
+  {
+    "nativeText": "word in ${selectedLanguage.name}",
+    "englishText": "English meaning",
+    "phonetics": "pronunciation",
+    "context": "usage context",
+    "type": "vocabulary|conversation|grammar|culture|spelling|phonetics|terminology|correction"
+  }
+]
+
+Be thorough - extract as many useful training items as possible.`
+          }, {
+            role: 'user',
+            content: `Analyze this ${selectedLanguage.name} language material and extract training data:\n\n${text}`
+          }]
+        })
+      });
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || data.content || '';
+      
+      // Extract JSON from response
+      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        return Array.isArray(parsed) ? parsed : [];
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('AI analysis failed:', error);
+      alert('AI analysis failed. Try structured paste instead.');
+      return [];
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const extractFromFreeform = (text: string): any[] => {
+    // Simple extraction for free-form text
+    // Look for patterns like "word - meaning" or "word: meaning"
+    const entries: any[] = [];
+    const lines = text.split('\n');
+    
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+
+      // Pattern 1: "word - meaning"
+      let match = trimmed.match(/^(.+?)\s*[-–—]\s*(.+)$/);
+      if (match) {
+        entries.push({
+          nativeText: match[1].trim(),
+          englishText: match[2].trim(),
+          phonetics: '',
+          context: '',
+          type: 'vocabulary'
+        });
+        continue;
+      }
+
+      // Pattern 2: "word: meaning"
+      match = trimmed.match(/^(.+?)\s*:\s*(.+)$/);
+      if (match) {
+        entries.push({
+          nativeText: match[1].trim(),
+          englishText: match[2].trim(),
+          phonetics: '',
+          context: '',
+          type: 'vocabulary'
+        });
+        continue;
+      }
+
+      // Pattern 3: Quoted phrases with translations
+      match = trimmed.match(/["'](.+?)["']\s+(?:means?|translates?\s+to|is)\s+["'](.+?)["']/i);
+      if (match) {
+        entries.push({
+          nativeText: match[1].trim(),
+          englishText: match[2].trim(),
+          phonetics: '',
+          context: '',
+          type: 'conversation'
+        });
+        continue;
+      }
+
+      // If line seems substantial, treat as cultural/grammar context
+      if (trimmed.length > 50 && trimmed.split(' ').length > 5) {
+        entries.push({
+          nativeText: `${selectedLanguage.name} cultural note`,
+          englishText: trimmed,
+          phonetics: '',
+          context: 'Extracted from research material',
+          type: 'culture'
+        });
+      }
+    }
+
+    return entries;
+  };
+
+  const handlePreview = async () => {
+    let parsed: any[] = [];
+
+    if (inputMode === 'smart') {
+      // AI-powered analysis and categorization
+      parsed = await analyzeWithAI(bulkText);
+    } else if (inputMode === 'structured') {
+      // Manual structured format
+      parsed = parseBulkText(bulkText);
+    } else {
+      // Free-form extraction
+      parsed = extractFromFreeform(bulkText);
+    }
+
     setPreview(parsed);
   };
 
   const handleSaveAll = async () => {
-    const entries = parseBulkText(bulkText);
-    if (entries.length === 0) {
-      alert("No valid entries found. Make sure each line has at least: Native Text | English Meaning");
+    if (preview.length === 0) {
+      alert("Please preview entries first before saving.");
       return;
     }
 
     setSaving(true);
     try {
       let successCount = 0;
-      for (const entry of entries) {
+      for (const entry of preview) {
         if (!entry.nativeText || !entry.englishText) continue;
 
         const trainingEntry: any = {
-          type,
+          type: entry.type || type, // Use AI-detected type or fallback to manual selection
           language: selectedLanguage.id,
           languageName: selectedLanguage.name,
           nativeText: entry.nativeText,
@@ -836,7 +970,69 @@ function BulkAddForm({ onDone, defaultLanguage }: { onDone: () => void; defaultL
         <div className="w-8 h-8 bg-purple-500 rounded-xl flex items-center justify-center"><Upload size={16} className="text-white" /></div>
         <div>
           <h3 className="font-black text-lg">Bulk Paste Training Data</h3>
-          <p className="text-xs text-white/40">Paste multiple entries at once from research materials</p>
+          <p className="text-xs text-white/40">Paste research materials - AI will analyze and categorize automatically</p>
+        </div>
+      </div>
+
+      {/* Input Mode Selection */}
+      <div>
+        <label className="text-[10px] uppercase tracking-widest text-white/60 font-bold mb-3 block">
+          Choose Input Method
+        </label>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <button
+            type="button"
+            onClick={() => setInputMode('smart')}
+            className={`p-4 rounded-2xl border text-left transition-all ${
+              inputMode === 'smart'
+                ? 'bg-purple-500/20 border-purple-500 text-purple-400'
+                : 'bg-[#0F0F0F] border-[#2A2A2A] text-white/60 hover:border-purple-500/30'
+            }`}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles size={16} className={inputMode === 'smart' ? 'text-purple-400' : 'text-white/40'} />
+              <span className="font-bold text-sm">Smart AI Paste</span>
+            </div>
+            <p className="text-xs text-white/50">
+              Paste any research text, articles, or notes. AI analyzes and categorizes automatically.
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setInputMode('structured')}
+            className={`p-4 rounded-2xl border text-left transition-all ${
+              inputMode === 'structured'
+                ? 'bg-blue-500/20 border-blue-500 text-blue-400'
+                : 'bg-[#0F0F0F] border-[#2A2A2A] text-white/60 hover:border-blue-500/30'
+            }`}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Upload size={16} className={inputMode === 'structured' ? 'text-blue-400' : 'text-white/40'} />
+              <span className="font-bold text-sm">Structured Paste</span>
+            </div>
+            <p className="text-xs text-white/50">
+              Paste formatted data: Word | Meaning | Phonetics | Context (one per line)
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setInputMode('freeform')}
+            className={`p-4 rounded-2xl border text-left transition-all ${
+              inputMode === 'freeform'
+                ? 'bg-green-500/20 border-green-500 text-green-400'
+                : 'bg-[#0F0F0F] border-[#2A2A2A] text-white/60 hover:border-green-500/30'
+            }`}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Info size={16} className={inputMode === 'freeform' ? 'text-green-400' : 'text-white/40'} />
+              <span className="font-bold text-sm">Free-form Paste</span>
+            </div>
+            <p className="text-xs text-white/50">
+              Paste unstructured text with words/phrases. Extracts patterns like "word - meaning"
+            </p>
+          </button>
         </div>
       </div>
 
@@ -857,49 +1053,107 @@ function BulkAddForm({ onDone, defaultLanguage }: { onDone: () => void; defaultL
         </select>
       </div>
 
-      {/* Entry Type */}
-      <div>
-        <label className="text-[10px] uppercase tracking-widest text-white/60 font-bold mb-2 block">Entry Type</label>
-        <div className="flex flex-wrap gap-2">
-          {(Object.keys(TYPE_LABELS) as TrainingType[]).map(t => (
-            <button key={t} type="button" onClick={() => setType(t)}
-              className={"px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all " + (type === t ? TYPE_LABELS[t].color : "bg-transparent border-[#2A2A2A] text-white/40 hover:border-purple-500/30")}>
-              {TYPE_LABELS[t].label}
-            </button>
-          ))}
+      {/* Entry Type - Only show for structured mode */}
+      {inputMode === 'structured' && (
+        <div>
+          <label className="text-[10px] uppercase tracking-widest text-white/60 font-bold mb-2 block">Entry Type</label>
+          <div className="flex flex-wrap gap-2">
+            {(Object.keys(TYPE_LABELS) as TrainingType[]).map(t => (
+              <button key={t} type="button" onClick={() => setType(t)}
+                className={"px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all " + (type === t ? TYPE_LABELS[t].color : "bg-transparent border-[#2A2A2A] text-white/40 hover:border-purple-500/30")}>
+                {TYPE_LABELS[t].label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Instructions */}
-      <div className="bg-purple-500/10 border border-purple-500/20 rounded-2xl p-4">
-        <h4 className="text-xs font-bold text-purple-400 mb-2">📋 Format Instructions</h4>
-        <p className="text-xs text-white/60 leading-relaxed mb-2">
-          Paste your research data with each entry on a new line. Separate fields with <strong>|</strong> (pipe), <strong>Tab</strong>, or <strong>,</strong> (comma):
-        </p>
-        <div className="bg-black/40 rounded-lg p-3 font-mono text-xs text-white/80 space-y-1">
-          <div>{selectedLanguage.name} Word | English Meaning | Phonetics | Context</div>
-          <div className="text-purple-300">Ọmọ | Child | oh-moh | Used for any young person</div>
-          <div className="text-purple-300">Odabo | Goodbye | oh-dah-boh | Formal parting phrase</div>
-        </div>
-        <p className="text-xs text-white/40 mt-2">
-          <strong>Minimum:</strong> Native Text and English Meaning. Phonetics and Context are optional.
-        </p>
+      {/* Instructions - Dynamic based on mode */}
+      <div className={`border rounded-2xl p-4 ${
+        inputMode === 'smart' ? 'bg-purple-500/10 border-purple-500/20' :
+        inputMode === 'structured' ? 'bg-blue-500/10 border-blue-500/20' :
+        'bg-green-500/10 border-green-500/20'
+      }`}>
+        <h4 className={`text-xs font-bold mb-2 ${
+          inputMode === 'smart' ? 'text-purple-400' :
+          inputMode === 'structured' ? 'text-blue-400' :
+          'text-green-400'
+        }`}>
+          📋 {inputMode === 'smart' ? 'Smart AI Analysis' : inputMode === 'structured' ? 'Format Instructions' : 'Free-form Pattern Matching'}
+        </h4>
+        
+        {inputMode === 'smart' && (
+          <>
+            <p className="text-xs text-white/60 leading-relaxed mb-2">
+              Paste any text containing {selectedLanguage.name} language information. The AI will:
+            </p>
+            <ul className="text-xs text-white/60 space-y-1 ml-4">
+              <li>• Extract vocabulary words and their meanings</li>
+              <li>• Identify conversation phrases and dialogues</li>
+              <li>• Detect grammar rules and patterns</li>
+              <li>• Find cultural context and usage notes</li>
+              <li>• Automatically categorize each item</li>
+            </ul>
+            <p className="text-xs text-purple-400 mt-2 font-bold">
+              Just paste paragraphs, articles, or notes - AI handles the rest!
+            </p>
+          </>
+        )}
+
+        {inputMode === 'structured' && (
+          <>
+            <p className="text-xs text-white/60 leading-relaxed mb-2">
+              Paste data with each entry on a new line. Separate fields with <strong>|</strong> (pipe), <strong>Tab</strong>, or <strong>,</strong> (comma):
+            </p>
+            <div className="bg-black/40 rounded-lg p-3 font-mono text-xs text-white/80 space-y-1">
+              <div>{selectedLanguage.name} Word | English Meaning | Phonetics | Context</div>
+              <div className="text-blue-300">Ọmọ | Child | oh-moh | Used for any young person</div>
+              <div className="text-blue-300">Odabo | Goodbye | oh-dah-boh | Formal parting phrase</div>
+            </div>
+            <p className="text-xs text-white/40 mt-2">
+              <strong>Minimum:</strong> Native Text and English Meaning. Phonetics and Context are optional.
+            </p>
+          </>
+        )}
+
+        {inputMode === 'freeform' && (
+          <>
+            <p className="text-xs text-white/60 leading-relaxed mb-2">
+              Paste unstructured text. The system will detect these patterns:
+            </p>
+            <div className="bg-black/40 rounded-lg p-3 text-xs text-white/80 space-y-1">
+              <div className="text-green-300">• Word - Meaning (dash separator)</div>
+              <div className="text-green-300">• Word: Meaning (colon separator)</div>
+              <div className="text-green-300">• "Phrase" means "Translation"</div>
+              <div className="text-green-300">• Cultural notes (long sentences)</div>
+            </div>
+            <p className="text-xs text-white/40 mt-2">
+              Works well with copied text from websites, documents, or notes.
+            </p>
+          </>
+        )}
       </div>
 
       {/* Bulk Text Input */}
       <div>
         <label className="text-[10px] uppercase tracking-widest text-white/60 font-bold mb-2 block">
-          Paste Training Data *
+          Paste {inputMode === 'smart' ? 'Research Material' : inputMode === 'structured' ? 'Training Data' : 'Text with Vocabulary'} *
         </label>
         <textarea
           value={bulkText}
           onChange={e => setBulkText(e.target.value)}
           rows={12}
-          placeholder={`Example:\n${selectedLanguage.name} Word | English | Phonetics | Context\nWord 1 | Meaning 1 | Pronunciation 1 | Usage 1\nWord 2 | Meaning 2 | Pronunciation 2 | Usage 2`}
+          placeholder={
+            inputMode === 'smart' 
+              ? `Paste any article, research notes, or language learning materials about ${selectedLanguage.name}. AI will extract and categorize everything automatically.\n\nExample:\n"The Edo people greet with 'Kọyọ' (ko-yo) which means hello. In formal settings, they say 'Ọghọ' to show respect. Common phrases include 'Vbèè oye hẹ?' meaning 'how are you?'..."`
+              : inputMode === 'structured'
+              ? `Example:\n${selectedLanguage.name} Word | English | Phonetics | Context\nWord 1 | Meaning 1 | Pronunciation 1 | Usage 1\nWord 2 | Meaning 2 | Pronunciation 2 | Usage 2`
+              : `Example:\nỌmọ - Child\nOdabo: Goodbye\n"Báwo ni?" means "How are you?"\n\nIn Yoruba culture, greetings are very important and show respect...`
+          }
           className={INPUT_CLASS + " resize-none font-mono text-xs"}
         />
         <p className="text-xs text-white/40 mt-1">
-          {bulkText.trim().split('\n').filter(l => l.trim()).length} lines detected
+          {bulkText.trim().split('\n').filter(l => l.trim()).length} lines • {bulkText.length} characters
         </p>
       </div>
 
@@ -907,24 +1161,52 @@ function BulkAddForm({ onDone, defaultLanguage }: { onDone: () => void; defaultL
       <button
         type="button"
         onClick={handlePreview}
-        disabled={!bulkText.trim()}
-        className="w-full px-4 py-2.5 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 text-sm font-bold hover:bg-purple-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={!bulkText.trim() || analyzing}
+        className={`w-full px-4 py-2.5 rounded-xl border text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+          inputMode === 'smart' 
+            ? 'bg-purple-500/20 text-purple-400 border-purple-500/30 hover:bg-purple-500/30'
+            : inputMode === 'structured'
+            ? 'bg-blue-500/20 text-blue-400 border-blue-500/30 hover:bg-blue-500/30'
+            : 'bg-green-500/20 text-green-400 border-green-500/30 hover:bg-green-500/30'
+        }`}
       >
-        Preview Parsed Entries
+        {analyzing ? (
+          <>
+            <Sparkles size={16} className="inline animate-spin mr-2" />
+            AI Analyzing...
+          </>
+        ) : inputMode === 'smart' ? (
+          <>
+            <Sparkles size={16} className="inline mr-2" />
+            Analyze with AI
+          </>
+        ) : (
+          'Preview Parsed Entries'
+        )}
       </button>
 
       {/* Preview */}
       {preview.length > 0 && (
         <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
-          <h4 className="text-xs font-bold text-white/60 uppercase tracking-widest sticky top-0 bg-[#1A1A1A] py-2">
-            Preview ({preview.length} entries)
+          <h4 className="text-xs font-bold text-white/60 uppercase tracking-widest sticky top-0 bg-[#1A1A1A] py-2 flex items-center justify-between">
+            <span>Preview ({preview.length} entries)</span>
+            {inputMode === 'smart' && (
+              <span className="text-purple-400 normal-case">Auto-categorized by AI</span>
+            )}
           </h4>
           {preview.map((entry, idx) => (
             <div key={idx} className="bg-black/40 border border-white/10 rounded-xl p-3 text-xs space-y-1">
               <div className="flex items-start gap-2">
                 <span className="text-white/40">#{idx + 1}</span>
                 <div className="flex-1">
-                  <div className="text-white font-bold">{entry.nativeText}</div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-white font-bold">{entry.nativeText}</span>
+                    {entry.type && (
+                      <span className={`text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-full border ${TYPE_LABELS[entry.type as TrainingType]?.color || 'bg-gray-500/20 text-gray-400'}`}>
+                        {TYPE_LABELS[entry.type as TrainingType]?.label || entry.type}
+                      </span>
+                    )}
+                  </div>
                   <div className="text-white/70">{entry.englishText}</div>
                   {entry.phonetics && <div className="text-purple-400">/{entry.phonetics}/</div>}
                   {entry.context && <div className="text-white/40 italic">{entry.context}</div>}
