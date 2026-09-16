@@ -38,26 +38,86 @@ export default function AdminPage() {
     <div className="min-h-screen futuristic-shell flex flex-col">
       {!selectedLanguage ? (
         <div className="flex-1 flex items-center justify-center px-6 py-16">
-          <div className="w-full max-w-2xl rounded-3xl border border-[#00ff88]/20 bg-black/40 p-8 sm:p-12 text-center">
-            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-[#00ff88]/10">
-              <Globe className="h-8 w-8 text-[#00ff88]" />
+          <div className="w-full max-w-4xl space-y-6">
+            {/* Language Selection Card */}
+            <div className="rounded-3xl border border-[#00ff88]/20 bg-black/40 p-8 sm:p-12 text-center">
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-[#00ff88]/10">
+                <Globe className="h-8 w-8 text-[#00ff88]" />
+              </div>
+              <h2 className="text-3xl font-black text-white">Choose a language to work on</h2>
+              <p className="mt-3 text-sm leading-relaxed text-white/50">
+                Select the language your team will edit and use for AI training. No language is opened automatically.
+              </p>
+              <div className="mt-8 text-left">
+                <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-white/60">Training language</label>
+                <select
+                  defaultValue=""
+                  onChange={(event) => setSelectedLanguage(TRAINING_LANGUAGES.find(language => language.id === event.target.value) || null)}
+                  className="w-full rounded-xl border border-white/15 bg-[#0F0F0F] px-4 py-3 text-white focus:border-[#00ff88] focus:outline-none focus:ring-2 focus:ring-[#00ff88]"
+                >
+                  <option value="" disabled>Select a language</option>
+                  {TRAINING_LANGUAGES.map(language => (
+                    <option key={language.id} value={language.id}>{language.name} — {language.region}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <h2 className="text-3xl font-black text-white">Choose a language to work on</h2>
-            <p className="mt-3 text-sm leading-relaxed text-white/50">
-              Select the language your team will edit and use for AI training. No language is opened automatically.
-            </p>
-            <div className="mt-8 text-left">
-              <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-white/60">Training language</label>
-              <select
-                defaultValue=""
-                onChange={(event) => setSelectedLanguage(TRAINING_LANGUAGES.find(language => language.id === event.target.value) || null)}
-                className="w-full rounded-xl border border-white/15 bg-[#0F0F0F] px-4 py-3 text-white focus:border-[#00ff88] focus:outline-none focus:ring-2 focus:ring-[#00ff88]"
+
+            {/* Quick Access Cards */}
+            <div className="grid md:grid-cols-3 gap-4">
+              <button
+                onClick={() => navigate('/admin/training')}
+                className="group p-6 rounded-2xl border border-purple-500/20 bg-black/40 hover:bg-purple-500/10 hover:border-purple-500/40 transition-all text-left"
               >
-                <option value="" disabled>Select a language</option>
-                {TRAINING_LANGUAGES.map(language => (
-                  <option key={language.id} value={language.id}>{language.name} — {language.region}</option>
-                ))}
-              </select>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center group-hover:bg-purple-500/30 transition-colors">
+                    <GraduationCap className="w-6 h-6 text-purple-400" />
+                  </div>
+                  <h3 className="text-lg font-bold text-white">AI Training</h3>
+                </div>
+                <p className="text-sm text-white/60 leading-relaxed">
+                  Train BLACK AI with vocabulary, phrases, and cultural context for any language
+                </p>
+                <div className="mt-4 text-xs text-purple-400 font-bold uppercase tracking-wider">
+                  Open Training Studio →
+                </div>
+              </button>
+
+              <button
+                onClick={() => navigate('/admin/repository')}
+                className="group p-6 rounded-2xl border border-blue-500/20 bg-black/40 hover:bg-blue-500/10 hover:border-blue-500/40 transition-all text-left"
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/30 transition-colors">
+                    <Database className="w-6 h-6 text-blue-400" />
+                  </div>
+                  <h3 className="text-lg font-bold text-white">Repository</h3>
+                </div>
+                <p className="text-sm text-white/60 leading-relaxed">
+                  Browse and manage language databases, lexicons, and learning resources
+                </p>
+                <div className="mt-4 text-xs text-blue-400 font-bold uppercase tracking-wider">
+                  Open Repository →
+                </div>
+              </button>
+
+              <button
+                onClick={() => navigate('/admin/team')}
+                className="group p-6 rounded-2xl border border-green-500/20 bg-black/40 hover:bg-green-500/10 hover:border-green-500/40 transition-all text-left"
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-12 h-12 rounded-xl bg-green-500/20 flex items-center justify-center group-hover:bg-green-500/30 transition-colors">
+                    <Users className="w-6 h-6 text-green-400" />
+                  </div>
+                  <h3 className="text-lg font-bold text-white">Team</h3>
+                </div>
+                <p className="text-sm text-white/60 leading-relaxed">
+                  Manage team members who help train and improve the AI models
+                </p>
+                <div className="mt-4 text-xs text-green-400 font-bold uppercase tracking-wider">
+                  Manage Team →
+                </div>
+              </button>
             </div>
           </div>
         </div>
