@@ -13,7 +13,7 @@ import AdminRepository from './AdminRepository';
 import { AdminDashboard } from './AdminDashboard';
 import { NIGERIAN_LANGUAGES } from '../lib/nigerianLanguages';
 
-type AdminTab = 'training' | 'team' | 'repository' | 'dashboard';
+type AdminTab = 'training' | 'team' | 'repository' | 'dashboard' | 'bulk-paste';
 
 const TRAINING_LANGUAGES = Array.from(new Map(
   NIGERIAN_LANGUAGES.flatMap(region => region.languages.map(language => [
@@ -30,8 +30,9 @@ export default function AdminPage() {
 
   const tabs = [
     { id: 'training' as AdminTab, label: 'AI Training', icon: GraduationCap, description: 'Train and improve the AI model' },
-    { id: 'team' as AdminTab, label: 'Team Management', icon: Users, description: 'Manage team members who help train the AI' },
+    { id: 'bulk-paste' as AdminTab, label: 'Bulk Paste', icon: Upload, description: 'Import training data from various sources' },
     { id: 'repository' as AdminTab, label: 'Language Repository', icon: Database, description: 'Manage language data and resources' },
+    { id: 'team' as AdminTab, label: 'Team Management', icon: Users, description: 'Manage team members who help train the AI' },
   ];
 
   return (
@@ -224,6 +225,83 @@ export default function AdminPage() {
             transition={{ duration: 0.3 }}
           >
             {activeTab === 'training' && <AdminTraining selectedLanguage={selectedLanguage.id} />}
+            {activeTab === 'bulk-paste' && (
+              <div className="space-y-6">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <button
+                    onClick={() => navigate('/admin/smart-paste')}
+                    className="group p-8 rounded-2xl border border-purple-500/30 bg-black/40 hover:bg-purple-500/10 hover:border-purple-500/50 transition-all text-left"
+                  >
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-16 h-16 rounded-2xl bg-purple-500/20 flex items-center justify-center group-hover:bg-purple-500/30 transition-colors">
+                        <Sparkles className="w-8 h-8 text-purple-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-white">Smart AI Paste</h3>
+                        <p className="text-xs text-purple-400 uppercase tracking-wider">Recommended</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-white/70 leading-relaxed">
+                      Paste any research text, articles, or notes. AI automatically extracts and categorizes everything.
+                    </p>
+                  </button>
+
+                  <button
+                    onClick={() => navigate('/admin/url-extract')}
+                    className="group p-8 rounded-2xl border border-orange-500/30 bg-black/40 hover:bg-orange-500/10 hover:border-orange-500/50 transition-all text-left"
+                  >
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-16 h-16 rounded-2xl bg-orange-500/20 flex items-center justify-center group-hover:bg-orange-500/30 transition-colors">
+                        <Globe className="w-8 h-8 text-orange-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-white">URL Extract</h3>
+                        <p className="text-xs text-orange-400 uppercase tracking-wider">From Websites</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-white/70 leading-relaxed">
+                      Paste a website URL. AI fetches content and extracts training materials automatically.
+                    </p>
+                  </button>
+
+                  <button
+                    onClick={() => navigate('/admin/structured-paste')}
+                    className="group p-8 rounded-2xl border border-blue-500/30 bg-black/40 hover:bg-blue-500/10 hover:border-blue-500/50 transition-all text-left"
+                  >
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-16 h-16 rounded-2xl bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/30 transition-colors">
+                        <Upload className="w-8 h-8 text-blue-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-white">Structured Paste</h3>
+                        <p className="text-xs text-blue-400 uppercase tracking-wider">Formatted Data</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-white/70 leading-relaxed">
+                      Paste formatted data: Word | Meaning | Phonetics | Context (spreadsheet format).
+                    </p>
+                  </button>
+
+                  <button
+                    onClick={() => navigate('/admin/freeform-paste')}
+                    className="group p-8 rounded-2xl border border-green-500/30 bg-black/40 hover:bg-green-500/10 hover:border-green-500/50 transition-all text-left"
+                  >
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-16 h-16 rounded-2xl bg-green-500/20 flex items-center justify-center group-hover:bg-green-500/30 transition-colors">
+                        <Info className="w-8 h-8 text-green-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-white">Free-form Paste</h3>
+                        <p className="text-xs text-green-400 uppercase tracking-wider">Unstructured</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-white/70 leading-relaxed">
+                      Paste unstructured notes. Auto-detects patterns like "word - meaning".
+                    </p>
+                  </button>
+                </div>
+              </div>
+            )}
             {activeTab === 'team' && <TeamManagement />}
             {activeTab === 'repository' && (
               <AdminRepository
