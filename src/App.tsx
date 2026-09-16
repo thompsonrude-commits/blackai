@@ -10,6 +10,8 @@ import AdminRepository from './components/AdminRepository';
 import AdminTraining from './components/AdminTraining';
 import SmartAIPaste from './components/SmartAIPaste';
 import URLExtract from './components/URLExtract';
+import StructuredPaste from './components/StructuredPaste';
+import FreeformPaste from './components/FreeformPaste';
 import AgentManagement from './components/AgentManagement';
 import TeamManagement from './components/TeamManagement';
 import LanguagesMenu from './components/LanguagesMenu';
@@ -229,8 +231,8 @@ export default function App() {
               <Route path="/admin/training" element={<AdminSubpage><AdminTraining /></AdminSubpage>} />
               <Route path="/admin/smart-paste" element={<AdminSubpage><SmartAIPaste /></AdminSubpage>} />
               <Route path="/admin/url-extract" element={<AdminSubpage><URLExtract /></AdminSubpage>} />
-              <Route path="/admin/structured-paste" element={<AdminSubpage><div className="text-white p-8">Structured Paste - Coming Soon</div></AdminSubpage>} />
-              <Route path="/admin/freeform-paste" element={<AdminSubpage><div className="text-white p-8">Free-form Paste - Coming Soon</div></AdminSubpage>} />
+              <Route path="/admin/structured-paste" element={<AdminSubpage><StructuredPaste /></AdminSubpage>} />
+              <Route path="/admin/freeform-paste" element={<AdminSubpage><FreeformPaste /></AdminSubpage>} />
               <Route path="/admin/agents" element={<AdminSubpage><AgentManagement /></AdminSubpage>} />
               <Route path="/admin/team" element={<AdminSubpage><TeamManagement /></AdminSubpage>} />
             </>

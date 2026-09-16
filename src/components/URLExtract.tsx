@@ -140,25 +140,79 @@ export default function URLExtract() {
         body: JSON.stringify({
           messages: [{
             role: 'system',
-            content: `Extract ${selectedLanguage.name} language training data from this text. Return JSON array with: nativeText, englishText, phonetics, context, type (vocabulary/conversation/grammar/culture).`
+            content: `You are a ${selectedLanguage.name} language expert. Analyze the provided text and extract language training data.
+
+Find any ${selectedLanguage.name} words, phrases, sentences, or language content.
+
+Return ONLY a JSON array (no markdown, no explanations) with this exact structure:
+[
+  {
+    "nativeText": "${selectedLanguage.name} word or phrase",
+    "englishText": "English translation",
+    "phonetics": "pronunciation (optional)",
+    "context": "example sentence or usage context (optional)",
+    "type": "vocabulary OR conversation OR grammar OR culture"
+  }
+]
+
+If you find NOTHING related to ${selectedLanguage.name} language, return an empty array: []
+
+Rules:
+- Return ONLY valid JSON array
+- Each entry MUST have nativeText and englishText
+- Type must be one of: vocabulary, conversation, grammar, culture
+- If text contains no ${selectedLanguage.name} content, return []`
           }, {
             role: 'user',
-            content: fetchedContent
+            content: `Extract ${selectedLanguage.name} language training data from this text:\n\n${fetchedContent.substring(0, 4000)}`
           }]
         })
       });
 
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
       const data = await response.json();
-      const content = data.choices?.[0]?.message?.content || data.content || '';
+      console.log('AI Response:', data);
       
-      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      const content = data.choices?.[0]?.message?.content || data.content || '';
+      console.log('AI Content:', content);
+      
+      if (!content) {
+        throw new Error('No response from AI');
+      }
+
+      // Try to extract JSON array from response
+      let parsed: any[] = [];
+      
+      // Remove markdown code blocks if present
+      const cleanedContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      
+      // Try to find JSON array
+      const jsonMatch = cleanedContent.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        setPreview(Array.isArray(parsed) ? parsed : []);
+        try {
+          parsed = JSON.parse(jsonMatch[0]);
+          if (!Array.isArray(parsed)) {
+            parsed = [];
+          }
+        } catch (e) {
+          console.error('JSON parse error:', e);
+          throw new Error('Invalid JSON response from AI');
+        }
+      }
+
+      if (parsed.length === 0) {
+        alert(`❌ No training data could be extracted.\n\nPossible reasons:\n• The text doesn't contain ${selectedLanguage.name} language content\n• Try different text with clear ${selectedLanguage.name} words/phrases\n• The content might be too general`);
+      } else {
+        setPreview(parsed);
         alert(`✅ Found ${parsed.length} training items!`);
       }
-    } catch (error) {
-      alert('Analysis failed. Please try again.');
+      
+    } catch (error: any) {
+      console.error('Analysis error:', error);
+      alert(`❌ Analysis failed: ${error.message}\n\nPlease try again or paste different content.`);
     } finally {
       setAnalyzing(false);
     }
