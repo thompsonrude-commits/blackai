@@ -29,6 +29,7 @@ export default defineConfig(({ mode }) => {
         '/api/ai/vision': { target: 'http://127.0.0.1:5001', changeOrigin: true, rewrite: (p) => p.replace(/^\/api\/ai\/vision/, '/aiVision') },
         '/api/ai/tts': { target: 'http://127.0.0.1:5001', changeOrigin: true, rewrite: (p) => p.replace(/^\/api\/ai\/tts/, '/aiTTS') },
         '/api/v1/chat': { target: 'http://127.0.0.1:5001', changeOrigin: true, rewrite: (p) => p.replace(/^\/api\/v1\/chat/, '/aiChat') },
+        '/api/v1/fetch-url': { target: 'http://127.0.0.1:5001', changeOrigin: true, rewrite: (p) => p.replace(/^\/api\/v1\/fetch-url/, '/v1FetchUrl') },
         '/api/v1/stream': { target: 'http://127.0.0.1:5001', changeOrigin: true, rewrite: (p) => p.replace(/^\/api\/v1\/stream/, '/aiStream') },
         '/api/v1/search': { target: 'http://127.0.0.1:5001', changeOrigin: true, rewrite: (p) => p.replace(/^\/api\/v1\/search/, '/aiSearch') },
         '/api/v1/transcribe': { target: 'http://127.0.0.1:5001', changeOrigin: true, rewrite: (p) => p.replace(/^\/api\/v1\/transcribe/, '/aiTranscribe') },

@@ -28,6 +28,7 @@ const aliasMap = {
   v1Ocr: ['/v1Ocr', '/api/v1/ocr'],
   v1ImageGenerate: ['/v1ImageGenerate', '/api/v1/image/generate'],
   v1Providers: ['/v1Providers', '/api/v1/providers'],
+  v1FetchUrl: ['/v1FetchUrl', '/api/v1/fetch-url'],
   v1EdoLexicon: ['/v1EdoLexicon', '/api/v1/edo/lexicon'],
   v1VisualOrchestrator: ['/v1VisualOrchestrator', '/api/v1/visual-orchestrator'],
   v1Document: ['/v1Document', '/api/v1/documents'],

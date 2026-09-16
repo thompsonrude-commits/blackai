@@ -8,6 +8,7 @@
  *   POST /ai/image       — image generation with fallback
  *   POST /ai/transcribe  — Whisper audio transcription
  *   POST /ai/search      — Tavily web search
+ *   POST /api/v1/fetch-url — fetch and extract webpage text
  *   GET  /ai/health      — provider health status
  */
 
@@ -35,6 +36,21 @@ import { getAllHealthSnapshots, logRequest } from './logger';
 import { getMemCacheStats } from './cache';
 import { AIRequest, ProviderHealth } from './types';
 import { getStatus as getGenStatus } from './media/generationStatus';
+
+function repairMojibake(text: string): string {
+  const replacements: Array<[string, string]> = [
+    ['â€™', '’'], ['â€œ', '“'], ['â€', '”'], ['â€“', '–'],
+    ['â€”', '—'], ['Â ', ' '], ['Ã©', 'é'], ['Ã¨', 'è'],
+    ['Ã¬', 'ì'], ['Ã²', 'ò'], ['Ã¹', 'ù'], ['Ã¡', 'á'],
+    ['Ã³', 'ó'], ['Ãº', 'ú'], ['â€¦', '…'],
+  ];
+  const repaired = replacements.reduce((result, [broken, fixed]) => result.replaceAll(broken, fixed), text);
+  return repaired
+    .replace(/ï¿½/giu, '')
+    .replace(/\uFFFD/g, '')
+    .replace(/\bvb(?=\s+ugie\b)/giu, 'vb')
+    .replace(/[ \t]{2,}/g, ' ');
+}
 
 
 // ── Init ───────────────────────────────────────────────────────────────────
@@ -69,6 +85,98 @@ export const v1Providers = onRequest(
     } catch (err: any) {
       console.error('[v1Providers] Error building provider list:', err);
       res.status(500).json({ status: 'error', error: err?.message || 'failed to build provider list' });
+    }
+  }
+);
+
+// ── /api/v1/fetch-url — server-side webpage text extraction
+export const v1FetchUrl = onRequest(
+  { cors: false, timeoutSeconds: 30 },
+  async (req, res) => {
+    if (setCorsHeaders(req, res)) return;
+
+    if (req.method !== 'POST') {
+      res.status(405).json({ error: 'Method not allowed' });
+      return;
+    }
+
+    try {
+      const rawUrl = typeof req.body?.url === 'string' ? req.body.url.trim() : '';
+      if (!rawUrl) {
+        res.status(400).json({ error: 'URL is required' });
+        return;
+      }
+
+      const target = new URL(rawUrl);
+      if (!['http:', 'https:'].includes(target.protocol)) {
+        res.status(400).json({ error: 'Only HTTP and HTTPS URLs are supported' });
+        return;
+      }
+
+      const response = await fetch(target, {
+        headers: {
+          Accept: 'text/html, text/plain;q=0.9',
+          'User-Agent': 'BLACK-AI-URL-Extractor/1.0',
+        },
+        signal: AbortSignal.timeout(25_000),
+      });
+
+      if (!response.ok) {
+        res.status(502).json({ error: `Failed to fetch URL: ${response.status}` });
+        return;
+      }
+
+      const contentType = response.headers.get('content-type') || '';
+      const charset = contentType.match(/charset=([^;]+)/i)?.[1]?.trim() || 'utf-8';
+      const bytes = await response.arrayBuffer();
+      let html: string;
+      try {
+        html = new TextDecoder(charset).decode(bytes);
+      } catch {
+        html = new TextDecoder('utf-8').decode(bytes);
+      }
+      let content = html
+        .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ' ')
+        .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ')
+        .replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi, ' ')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/(p|div|h[1-6]|li|tr|section|article)>/gi, '\n')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&nbsp;/gi, ' ')
+        .replace(/&amp;/gi, '&')
+        .replace(/&lt;/gi, '<')
+        .replace(/&gt;/gi, '>')
+        .replace(/&#(\d+);/g, (_match, code) => String.fromCharCode(Number(code)))
+        .replace(/[ \t]+\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+
+      // Some older educational sites are protected by an anti-bot page when
+      // requested from a server. Use a reader fallback that returns the same
+      // public page as text without requiring browser cookies.
+      const looksBlocked = /incapsula|_Incapsula_Resource|access denied|robot check/i.test(content);
+      if (content.length < 100 || looksBlocked) {
+        const readerResponse = await fetch(`https://r.jina.ai/http://${target.host}${target.pathname}${target.search}`, {
+          headers: { Accept: 'text/plain', 'User-Agent': 'BLACK-AI-URL-Extractor/1.0' },
+          signal: AbortSignal.timeout(25_000),
+        });
+        if (readerResponse.ok) {
+          content = (await readerResponse.text()).trim();
+        }
+      }
+
+      content = repairMojibake(content);
+
+      if (content.length < 100) {
+        res.status(422).json({ error: 'Could not extract meaningful content from URL' });
+        return;
+      }
+
+      res.status(200).json({ success: true, content, length: content.length });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('[v1FetchUrl] Error:', message);
+      res.status(500).json({ error: 'Failed to fetch URL', message });
     }
   }
 );

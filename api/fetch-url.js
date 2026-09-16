@@ -32,7 +32,15 @@ module.exports = async (req, res) => {
       throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
     }
 
-    const html = await response.text();
+    const contentType = response.headers.get('content-type') || '';
+    const charset = contentType.match(/charset=([^;]+)/i)?.[1]?.trim() || 'utf-8';
+    const bytes = await response.arrayBuffer();
+    let html;
+    try {
+      html = new TextDecoder(charset).decode(bytes);
+    } catch {
+      html = new TextDecoder('utf-8').decode(bytes);
+    }
 
     // Simple HTML parsing - remove scripts, styles, extract text
     let content = html
@@ -42,7 +50,45 @@ module.exports = async (req, res) => {
       .replace(/\s+/g, ' ')
       .trim();
 
-    if (content.length < 100) {
+    // Fall back to a text reader for sites that return an anti-bot page to
+    // server-side requests (common with older educational websites).
+    const looksBlocked = /incapsula|_Incapsula_Resource|access denied|robot check/i.test(content);
+    if (content.length < 100 || looksBlocked) {
+      const readerUrl = `https://r.jina.ai/http://${new URL(url).host}${new URL(url).pathname}${new URL(url).search}`;
+      const readerResponse = await fetch(readerUrl, {
+        headers: {
+          Accept: 'text/plain',
+          'User-Agent': 'BLACK-AI-URL-Extractor/1.0'
+        }
+      });
+      if (readerResponse.ok) {
+        content = (await readerResponse.text()).trim();
+      }
+    }
+
+    content = content
+      .replaceAll('â€™', '’')
+      .replaceAll('â€œ', '“')
+      .replaceAll('â€', '”')
+      .replaceAll('â€“', '–')
+      .replaceAll('â€”', '—')
+      .replaceAll('Â ', ' ')
+      .replaceAll('Ã©', 'é')
+      .replaceAll('Ã¨', 'è')
+      .replaceAll('Ã¬', 'ì')
+      .replaceAll('Ã²', 'ò')
+      .replaceAll('Ã¹', 'ù')
+      .replaceAll('Ã¡', 'á')
+      .replaceAll('Ã³', 'ó')
+      .replaceAll('Ãº', 'ú')
+      .replaceAll('â€¦', '…');
+    content = content
+      .replace(/ï¿½/giu, '')
+      .replace(/\uFFFD/g, '')
+      .replace(/\bvb(?=\s+ugie\b)/giu, 'vb')
+      .replace(/[ \t]{2,}/g, ' ');
+
+    if (content.length < 100 || /incapsula|_Incapsula_Resource|access denied|robot check/i.test(content)) {
       throw new Error('Could not extract meaningful content from URL');
     }
 

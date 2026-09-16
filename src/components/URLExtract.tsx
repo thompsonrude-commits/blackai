@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { collection, doc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { auth, db } from '../lib/firebase';
 import { ArrowLeft, Globe, Sparkles, Upload, Link } from 'lucide-react';
 import { NIGERIAN_LANGUAGES } from '../lib/nigerianLanguages';
+import { extractTrainingEntries } from '../lib/trainingExtraction';
+import { repairMojibake } from '../lib/textEncoding';
 
 const ALL_LANGUAGES = Array.from(
   new Map(
@@ -53,7 +55,7 @@ export default function URLExtract() {
         throw new Error('Could not extract meaningful content from URL');
       }
 
-      setPastedContent(content);
+      setPastedContent(repairMojibake(content));
       alert(`✅ Content fetched! (${content.length} characters)\nClick "Analyze with AI" to extract training data.`);
       
     } catch (error: any) {
@@ -142,8 +144,14 @@ Rules:
         }
       }
 
+      // AI is optional. Keep URL extraction useful when the provider is
+      // unavailable or returns a non-JSON fallback response.
       if (parsed.length === 0) {
-        alert(`❌ No training data could be extracted.\n\nPossible reasons:\n• The text doesn't contain ${selectedLanguage.name} language content\n• Try different text with clear ${selectedLanguage.name} words/phrases\n• The content might be too general`);
+        parsed = extractTrainingEntries(pastedContent, selectedLanguage.name);
+      }
+
+      if (parsed.length === 0) {
+        alert(`❌ No training data could be extracted from this content.`);
       } else {
         setPreview(parsed);
         alert(`✅ Found ${parsed.length} training items!`);
@@ -151,7 +159,13 @@ Rules:
       
     } catch (error: any) {
       console.error('Analysis error:', error);
-      alert(`❌ Analysis failed: ${error.message}\n\nPlease try again or paste different content.`);
+      const localEntries = extractTrainingEntries(pastedContent, selectedLanguage.name);
+      if (localEntries.length > 0) {
+        setPreview(localEntries);
+        alert(`✅ AI unavailable, but found ${localEntries.length} entries locally.`);
+      } else {
+        alert(`❌ Analysis failed: ${error.message}`);
+      }
     } finally {
       setAnalyzing(false);
     }
@@ -162,11 +176,16 @@ Rules:
 
     setSaving(true);
     try {
+      if (!auth.currentUser) {
+        throw new Error('Your admin session is not connected to Firebase. Please sign in again.');
+      }
+
+      const batch = writeBatch(db);
       let successCount = 0;
       for (const entry of preview) {
         if (!entry.nativeText || !entry.englishText) continue;
 
-        await addDoc(collection(db, 'aiTraining'), {
+        batch.set(doc(collection(db, 'aiTraining')), {
           type: entry.type || 'vocabulary',
           language: selectedLanguage.id,
           languageName: selectedLanguage.name,
@@ -179,10 +198,20 @@ Rules:
         successCount++;
       }
 
+      await batch.commit();
       alert(`✅ Successfully added ${successCount} training entries!`);
       navigate('/admin');
     } catch (err) {
-      alert('Failed to save entries');
+      const code = typeof err === 'object' && err !== null && 'code' in err
+        ? String((err as { code?: string }).code)
+        : '';
+      const message = err instanceof Error ? err.message : String(err);
+      const isAuthError = !auth.currentUser || code === 'permission-denied' || code === 'unauthenticated';
+      alert(
+        isAuthError
+          ? 'Failed to save entries: your Firebase admin session is missing or expired. Please sign in again, then retry.'
+          : `Failed to save entries: ${message}`
+      );
     } finally {
       setSaving(false);
     }

@@ -13,6 +13,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { recordAudioBlob } from "../lib/voice";
 import { NIGERIAN_LANGUAGES } from "../lib/nigerianLanguages";
 import { useLexicon, LexiconEntry } from "../lib/useLexicon";
+import { extractTrainingEntries } from "../lib/trainingExtraction";
+import { repairMojibake } from "../lib/textEncoding";
 
 type TrainingType = "conversation" | "correction" | "vocabulary" | "grammar" | "culture" | "spelling" | "phonetics" | "terminology";
 
@@ -839,11 +841,14 @@ Be thorough - extract as many useful training items as possible.`
         return Array.isArray(parsed) ? parsed : [];
       }
       
-      return [];
+      return extractTrainingEntries(text, selectedLanguage.name);
     } catch (error) {
       console.error('AI analysis failed:', error);
-      alert('AI analysis failed. Try structured paste instead.');
-      return [];
+      const localEntries = extractTrainingEntries(text, selectedLanguage.name);
+      if (localEntries.length === 0) {
+        alert('AI analysis failed and no recognizable training entries were found. Try structured paste instead.');
+      }
+      return localEntries;
     } finally {
       setAnalyzing(false);
     }
@@ -852,40 +857,23 @@ Be thorough - extract as many useful training items as possible.`
   const fetchFromUrl = async (url: string): Promise<string> => {
     setFetchingUrl(true);
     try {
-      // Use AI proxy to fetch and extract content
-      const response = await fetch('/api/ai/chat', {
+      // Use the server-side URL fetcher so webpage retrieval does not depend on
+      // the AI provider implementing tool calls.
+      const response = await fetch('/api/v1/fetch-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [{
-            role: 'system',
-            content: `You are a web content extractor. Fetch the content from the provided URL and extract only the main text content (articles, blog posts, language learning material, etc.). Remove navigation, ads, headers, footers, and other non-essential content. Return ONLY the main text content, preserving paragraph structure.`
-          }, {
-            role: 'user',
-            content: `Fetch and extract the main content from this URL: ${url}`
-          }],
-          tools: [{
-            type: 'function',
-            function: {
-              name: 'web_search',
-              description: 'Search the web or fetch content from a URL',
-              parameters: {
-                type: 'object',
-                properties: {
-                  query: { type: 'string', description: 'Search query or URL to fetch' }
-                },
-                required: ['query']
-              }
-            }
-          }]
-        })
+        body: JSON.stringify({ url })
       });
 
+      if (!response.ok) {
+        throw new Error(`URL fetch failed (${response.status})`);
+      }
+
       const data = await response.json();
-      const content = data.choices?.[0]?.message?.content || data.content || '';
-      
-      if (!content) {
-        throw new Error('No content extracted from URL');
+      const content = data.content || data.text || '';
+
+      if (!content || content.length < 100) {
+        throw new Error('No meaningful content extracted from URL');
       }
 
       return content;
@@ -905,7 +893,7 @@ Be thorough - extract as many useful training items as possible.`
 
     try {
       const content = await fetchFromUrl(urlInput);
-      setBulkText(content);
+      setBulkText(repairMojibake(content));
       alert('✅ Content fetched! Click "Analyze with AI" to extract training data.');
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Failed to fetch URL');
@@ -979,7 +967,7 @@ Be thorough - extract as many useful training items as possible.`
   const handlePreview = async () => {
     let parsed: any[] = [];
 
-    if (inputMode === 'smart') {
+    if (inputMode === 'smart' || inputMode === 'url') {
       // AI-powered analysis and categorization
       parsed = await analyzeWithAI(bulkText);
     } else if (inputMode === 'structured') {

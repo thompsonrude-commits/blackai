@@ -48,6 +48,7 @@ const functionMap: Record<string, string[]> = {
   aiVision: ['/api/ai/vision', '/api/v1/vision/analyze'],
   v1ImageGenerate: ['/api/v1/image/generate'],
   v1Providers: ['/api/v1/providers'],
+  v1FetchUrl: ['/api/v1/fetch-url'],
   v1EdoLexicon: ['/api/v1/edo/lexicon'],
 };
 
