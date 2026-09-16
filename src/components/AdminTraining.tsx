@@ -4,7 +4,7 @@ import {
   collection, addDoc, onSnapshot, deleteDoc, doc, setDoc,
   serverTimestamp, orderBy, query, updateDoc, where
 } from "firebase/firestore";
-import { db, uploadAudio } from "../lib/firebase";
+import { db, uploadAudio, auth } from "../lib/firebase";
 import {
   Sparkles, Mic, Square, Upload, Trash2, Play,
   X, Plus, Volume2, Edit2, Save, ChevronDown, ChevronUp, Info, Users, Globe
@@ -127,6 +127,21 @@ function LexiconManager() {
     if (!confirm(`Delete "${entry.edoWord}" from the language lexicon?`)) return;
     setSaving(true);
     try {
+      // Debug: Log current auth state
+      const currentUser = auth.currentUser;
+      console.log('[AdminTraining] Current user:', {
+        uid: currentUser?.uid,
+        email: currentUser?.email,
+        emailVerified: currentUser?.emailVerified
+      });
+      
+      // Get and log the ID token
+      if (currentUser) {
+        const token = await currentUser.getIdToken();
+        const tokenResult = await currentUser.getIdTokenResult();
+        console.log('[AdminTraining] Token claims:', tokenResult.claims);
+      }
+      
       // A tombstone is required for built-in repository words; deleting only
       // the override would cause the static word to return on the next load.
       await setDoc(doc(db, "coreVocabAudio", entry.id), {
@@ -137,6 +152,7 @@ function LexiconManager() {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       alert("Failed to delete lexicon entry: " + message);
+      console.error('[AdminTraining] Delete error:', error);
     } finally {
       setSaving(false);
     }

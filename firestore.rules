@@ -10,8 +10,9 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
     function isMasterAdmin() {
-      // Allow multiple admin emails
+      // Allow by UID (works even if email not verified)
       return isSignedIn() && (
+        request.auth.uid == 'q5pJbYHo6XV5dBcMytiIo20dWgp2' || // obosathompsons@gmail.com
         request.auth.token.email == 'obosathompsons@gmail.com' ||
         request.auth.token.email in [
           'obosathompsons@gmail.com'
@@ -64,7 +65,7 @@ service cloud.firestore {
     // ── Languages Repository ───────────────────────────────────────────────
     match /languages/{languageId} {
       allow read: if true;
-      allow write: if isSignedIn();
+      allow write: if isMasterAdmin();
     }
 
     // ── Developer Accounts ─────────────────────────────────────────────────
@@ -76,19 +77,19 @@ service cloud.firestore {
     // ── Core Vocabulary Audio ──────────────────────────────────────────────
     match /coreVocabAudio/{audioId} {
       allow read: if true;
-      allow write: if isSignedIn();
+      allow write: if isMasterAdmin();
     }
 
     // ── Community Vocabulary ───────────────────────────────────────────────
     match /communityVocab/{vocabId} {
       allow read: if true;
-      allow write: if isSignedIn();
+      allow write: if isMasterAdmin();
     }
 
     // ── AI Training Studio ─────────────────────────────────────────────────
     match /aiTraining/{entryId} {
       allow read: if true;
-      allow write: if isSignedIn();
+      allow write: if isMasterAdmin();
     }
 
     // ── Request Logs (Cloud Functions write via admin SDK — no client access) ──
