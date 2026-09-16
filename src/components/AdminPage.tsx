@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { GraduationCap, Users, Database, BarChart3, Settings, ArrowLeft, Globe, Sparkles, Upload, Info } from 'lucide-react';
+import { GraduationCap, Users, Database, BarChart3, Settings, ArrowLeft, Globe, Sparkles, Upload, Info, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AdminTraining from './AdminTraining';
 import TeamManagement from './TeamManagement';
