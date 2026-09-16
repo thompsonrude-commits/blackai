@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { ArrowLeft, FileText, Sparkles, Upload } from 'lucide-react';
+import { ArrowLeft, Globe, Sparkles, Upload, Link } from 'lucide-react';
 import { NIGERIAN_LANGUAGES } from '../lib/nigerianLanguages';
 
 const ALL_LANGUAGES = Array.from(
@@ -18,12 +18,51 @@ const INPUT_CLASS = "w-full bg-[#0F0F0F] border border-[#3A3A3A] rounded-xl px-3
 export default function URLExtract() {
   const navigate = useNavigate();
   const [language, setLanguage] = useState('edo');
+  const [urlInput, setUrlInput] = useState('');
   const [pastedContent, setPastedContent] = useState('');
+  const [fetchingUrl, setFetchingUrl] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState<any[]>([]);
 
   const selectedLanguage = ALL_LANGUAGES.find(l => l.id === language) || ALL_LANGUAGES[0];
+
+  const fetchFromUrl = async () => {
+    if (!urlInput.trim()) {
+      alert('Please enter a URL');
+      return;
+    }
+
+    setFetchingUrl(true);
+    try {
+      // Call our backend to fetch the URL (bypasses CORS)
+      const response = await fetch('/api/v1/fetch-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: urlInput })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch URL');
+      }
+
+      const data = await response.json();
+      const content = data.content || data.text || '';
+
+      if (!content || content.length < 100) {
+        throw new Error('Could not extract meaningful content from URL');
+      }
+
+      setPastedContent(content);
+      alert(`✅ Content fetched! (${content.length} characters)\nClick "Analyze with AI" to extract training data.`);
+      
+    } catch (error: any) {
+      console.error('URL fetch error:', error);
+      alert(`❌ Failed to fetch URL: ${error.message}\n\nPlease copy the webpage content manually and paste it below.`);
+    } finally {
+      setFetchingUrl(false);
+    }
+  };
 
   const analyzeWithAI = async () => {
     if (!pastedContent.trim()) {
@@ -164,11 +203,11 @@ Rules:
           
           <div className="flex items-center gap-4 mb-4">
             <div className="w-16 h-16 rounded-2xl bg-orange-500/20 flex items-center justify-center">
-              <FileText size={32} className="text-orange-400" />
+              <Globe size={32} className="text-orange-400" />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-white">Content Extract</h1>
-              <p className="text-white/60">Paste content from websites or documents to extract training data</p>
+              <h1 className="text-3xl font-black text-white">URL Extract</h1>
+              <p className="text-white/60">Extract training data from website URLs</p>
             </div>
           </div>
         </div>
@@ -191,16 +230,53 @@ Rules:
 
         {/* Instructions */}
         <div className="bg-orange-500/10 border border-orange-500/20 rounded-2xl p-6 mb-6">
-          <h3 className="text-sm font-bold text-orange-400 mb-3">📝 How It Works</h3>
+          <h3 className="text-sm font-bold text-orange-400 mb-3">🌐 How It Works</h3>
           <ul className="text-sm text-white/60 space-y-2 ml-4">
-            <li>• Visit any website with {selectedLanguage.name} language content</li>
-            <li>• Copy the article or text content from the webpage</li>
-            <li>• Paste it in the text area below</li>
+            <li>• Enter a website URL containing {selectedLanguage.name} content</li>
+            <li>• Click "Fetch Content" to automatically extract text</li>
+            <li>• Review and edit the extracted content if needed</li>
             <li>• Click "Analyze with AI" to extract training data</li>
-            <li>• AI will find vocabulary, phrases, and grammar patterns</li>
+            <li>• AI finds vocabulary, phrases, and grammar patterns</li>
           </ul>
           <p className="text-sm text-orange-400 mt-4 font-bold">
-            Perfect for language blogs, dictionaries, and educational websites!
+            If auto-fetch fails, you can manually copy and paste the content!
+          </p>
+        </div>
+
+        {/* URL Input */}
+        <div className="bg-black/40 border border-white/10 rounded-2xl p-6 mb-6">
+          <label className="text-xs uppercase tracking-widest text-white/60 font-bold mb-3 block flex items-center gap-2">
+            <Link size={14} />
+            Website URL
+          </label>
+          <div className="flex gap-3">
+            <input
+              type="url"
+              value={urlInput}
+              onChange={e => setUrlInput(e.target.value)}
+              placeholder="https://example.com/edo-language-lessons"
+              className={INPUT_CLASS + " flex-1"}
+            />
+            <button
+              onClick={fetchFromUrl}
+              disabled={fetchingUrl || !urlInput.trim()}
+              className="px-6 py-2.5 rounded-xl bg-orange-500/20 text-orange-400 border border-orange-500/30 font-bold hover:bg-orange-500/30 transition-all disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
+            >
+              {fetchingUrl ? (
+                <>
+                  <Sparkles size={16} className="animate-spin" />
+                  Fetching...
+                </>
+              ) : (
+                <>
+                  <Globe size={16} />
+                  Fetch Content
+                </>
+              )}
+            </button>
+          </div>
+          <p className="text-xs text-white/40 mt-2">
+            Enter URL and click "Fetch Content" to auto-extract
           </p>
         </div>
 
@@ -208,11 +284,11 @@ Rules:
         <div className="bg-black/40 border border-white/10 rounded-2xl p-6 mb-6">
           <div className="flex items-center justify-between mb-3">
             <label className="text-xs uppercase tracking-widest text-white/60 font-bold">
-              Paste Content from Website
+              Content (Edit if needed)
             </label>
             {pastedContent && (
               <button
-                onClick={() => { setPastedContent(''); setPreview([]); }}
+                onClick={() => { setPastedContent(''); setUrlInput(''); setPreview([]); }}
                 className="text-xs text-orange-400 hover:text-orange-300"
               >
                 Clear
@@ -223,11 +299,11 @@ Rules:
             value={pastedContent}
             onChange={e => setPastedContent(e.target.value)}
             rows={15}
-            placeholder={`Copy and paste article or webpage content here...\n\nExample:\n"Ọbọ" means "monkey" in Edo language.\n"Vbè ghé" means "good morning".\n\nOr paste an entire article, blog post, or dictionary page about ${selectedLanguage.name} language.`}
+            placeholder={`Fetched content will appear here, or paste manually...\n\nExample:\n"Ọbọ" means "monkey" in Edo language.\n"Vbè ghé" means "good morning".\n\nYou can also paste entire articles or dictionary pages.`}
             className={INPUT_CLASS + " resize-none text-xs"}
           />
           <p className="text-xs text-white/40 mt-2">
-            {pastedContent ? `${pastedContent.length} characters • Ready to analyze` : `Paste content from websites, articles, or documents`}
+            {pastedContent ? `${pastedContent.length} characters • You can edit before analyzing` : `Content will appear here after fetch, or paste manually`}
           </p>
         </div>
 

@@ -14,6 +14,7 @@
     { "src": "/health", "dest": "/api/health.js" },
     { "src": "/api/ai/chat", "dest": "/api/chat.js" },
     { "src": "/api/v1/chat", "dest": "/api/chat.js" },
+    { "src": "/api/v1/fetch-url", "dest": "/api/fetch-url.js" },
     { "src": "/api/ai/stream", "dest": "/api/stream.js" },
     { "src": "/api/ai/image", "dest": "/api/image.js" },
     { "src": "/api/v1/image/generate", "dest": "/api/image.js" },
