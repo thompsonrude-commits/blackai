@@ -752,10 +752,12 @@ function TrainingCard({ entry, expanded, onToggle, onDelete }: { entry: Training
 }
 
 function BulkAddForm({ onDone, defaultLanguage }: { onDone: () => void; defaultLanguage?: string }) {
-  const [inputMode, setInputMode] = useState<'smart' | 'structured' | 'freeform'>('smart');
+  const [inputMode, setInputMode] = useState<'smart' | 'structured' | 'freeform' | 'url'>('smart');
   const [type, setType] = useState<TrainingType>("vocabulary");
   const [language, setLanguage] = useState(defaultLanguage || "edo");
   const [bulkText, setBulkText] = useState("");
+  const [urlInput, setUrlInput] = useState("");
+  const [fetchingUrl, setFetchingUrl] = useState(false);
   const [saving, setSaving] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [preview, setPreview] = useState<any[]>([]);
@@ -844,6 +846,69 @@ Be thorough - extract as many useful training items as possible.`
       return [];
     } finally {
       setAnalyzing(false);
+    }
+  };
+
+  const fetchFromUrl = async (url: string): Promise<string> => {
+    setFetchingUrl(true);
+    try {
+      // Use AI proxy to fetch and extract content
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [{
+            role: 'system',
+            content: `You are a web content extractor. Fetch the content from the provided URL and extract only the main text content (articles, blog posts, language learning material, etc.). Remove navigation, ads, headers, footers, and other non-essential content. Return ONLY the main text content, preserving paragraph structure.`
+          }, {
+            role: 'user',
+            content: `Fetch and extract the main content from this URL: ${url}`
+          }],
+          tools: [{
+            type: 'function',
+            function: {
+              name: 'web_search',
+              description: 'Search the web or fetch content from a URL',
+              parameters: {
+                type: 'object',
+                properties: {
+                  query: { type: 'string', description: 'Search query or URL to fetch' }
+                },
+                required: ['query']
+              }
+            }
+          }]
+        })
+      });
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || data.content || '';
+      
+      if (!content) {
+        throw new Error('No content extracted from URL');
+      }
+
+      return content;
+    } catch (error) {
+      console.error('URL fetch failed:', error);
+      throw new Error('Failed to fetch content from URL. Make sure the URL is valid and accessible.');
+    } finally {
+      setFetchingUrl(false);
+    }
+  };
+
+  const handleFetchUrl = async () => {
+    if (!urlInput.trim()) {
+      alert('Please enter a URL');
+      return;
+    }
+
+    try {
+      const content = await fetchFromUrl(urlInput);
+      setBulkText(content);
+      alert('✅ Content fetched! Click "Analyze with AI" to extract training data.');
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Failed to fetch URL');
     }
   };
 
@@ -979,7 +1044,7 @@ Be thorough - extract as many useful training items as possible.`
         <label className="text-[10px] uppercase tracking-widest text-white/60 font-bold mb-3 block">
           Choose Input Method
         </label>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           <button
             type="button"
             onClick={() => setInputMode('smart')}
@@ -995,6 +1060,24 @@ Be thorough - extract as many useful training items as possible.`
             </div>
             <p className="text-xs text-white/50">
               Paste any research text, articles, or notes. AI analyzes and categorizes automatically.
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setInputMode('url')}
+            className={`p-4 rounded-2xl border text-left transition-all ${
+              inputMode === 'url'
+                ? 'bg-orange-500/20 border-orange-500 text-orange-400'
+                : 'bg-[#0F0F0F] border-[#2A2A2A] text-white/60 hover:border-orange-500/30'
+            }`}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Globe size={16} className={inputMode === 'url' ? 'text-orange-400' : 'text-white/40'} />
+              <span className="font-bold text-sm">URL Extract</span>
+            </div>
+            <p className="text-xs text-white/50">
+              Paste a website URL. AI fetches and extracts language training materials automatically.
             </p>
           </button>
 
@@ -1071,15 +1154,17 @@ Be thorough - extract as many useful training items as possible.`
       {/* Instructions - Dynamic based on mode */}
       <div className={`border rounded-2xl p-4 ${
         inputMode === 'smart' ? 'bg-purple-500/10 border-purple-500/20' :
+        inputMode === 'url' ? 'bg-orange-500/10 border-orange-500/20' :
         inputMode === 'structured' ? 'bg-blue-500/10 border-blue-500/20' :
         'bg-green-500/10 border-green-500/20'
       }`}>
         <h4 className={`text-xs font-bold mb-2 ${
           inputMode === 'smart' ? 'text-purple-400' :
+          inputMode === 'url' ? 'text-orange-400' :
           inputMode === 'structured' ? 'text-blue-400' :
           'text-green-400'
         }`}>
-          📋 {inputMode === 'smart' ? 'Smart AI Analysis' : inputMode === 'structured' ? 'Format Instructions' : 'Free-form Pattern Matching'}
+          📋 {inputMode === 'smart' ? 'Smart AI Analysis' : inputMode === 'url' ? 'URL Content Extraction' : inputMode === 'structured' ? 'Format Instructions' : 'Free-form Pattern Matching'}
         </h4>
         
         {inputMode === 'smart' && (
@@ -1096,6 +1181,23 @@ Be thorough - extract as many useful training items as possible.`
             </ul>
             <p className="text-xs text-purple-400 mt-2 font-bold">
               Just paste paragraphs, articles, or notes - AI handles the rest!
+            </p>
+          </>
+        )}
+
+        {inputMode === 'url' && (
+          <>
+            <p className="text-xs text-white/60 leading-relaxed mb-2">
+              Enter a website URL containing {selectedLanguage.name} language learning materials. The system will:
+            </p>
+            <ul className="text-xs text-white/60 space-y-1 ml-4">
+              <li>• Fetch the webpage content automatically</li>
+              <li>• Extract main article/text (removes ads, navigation, etc.)</li>
+              <li>• Analyze with AI to extract training data</li>
+              <li>• Auto-categorize vocabulary, phrases, and grammar</li>
+            </ul>
+            <p className="text-xs text-orange-400 mt-2 font-bold">
+              Perfect for language learning blogs, dictionaries, and educational websites!
             </p>
           </>
         )}
@@ -1134,8 +1236,47 @@ Be thorough - extract as many useful training items as possible.`
         )}
       </div>
 
-      {/* Bulk Text Input */}
-      <div>
+      {/* URL Input - Only for URL mode */}
+      {inputMode === 'url' && (
+        <div>
+          <label className="text-[10px] uppercase tracking-widest text-white/60 font-bold mb-2 block">
+            Enter Website URL *
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="url"
+              value={urlInput}
+              onChange={e => setUrlInput(e.target.value)}
+              placeholder="https://example.com/edo-language-lessons"
+              className={INPUT_CLASS + " flex-1"}
+            />
+            <button
+              type="button"
+              onClick={handleFetchUrl}
+              disabled={fetchingUrl || !urlInput.trim()}
+              className="px-4 py-2.5 rounded-xl bg-orange-500/20 text-orange-400 border border-orange-500/30 text-sm font-bold hover:bg-orange-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {fetchingUrl ? (
+                <>
+                  <Sparkles size={16} className="animate-spin" />
+                  Fetching...
+                </>
+              ) : (
+                <>
+                  <Globe size={16} />
+                  Fetch Content
+                </>
+              )}
+            </button>
+          </div>
+          <p className="text-xs text-white/40 mt-2">
+            Enter a URL to a blog post, dictionary entry, or language learning article
+          </p>
+        </div>
+      )}
+
+      {/* Bulk Text Input - Hidden for URL mode until content is fetched */}
+      {inputMode !== 'url' && (
         <label className="text-[10px] uppercase tracking-widest text-white/60 font-bold mb-2 block">
           Paste {inputMode === 'smart' ? 'Research Material' : inputMode === 'structured' ? 'Training Data' : 'Text with Vocabulary'} *
         </label>
@@ -1156,6 +1297,32 @@ Be thorough - extract as many useful training items as possible.`
           {bulkText.trim().split('\n').filter(l => l.trim()).length} lines • {bulkText.length} characters
         </p>
       </div>
+      )}
+
+      {/* Show fetched content for URL mode */}
+      {inputMode === 'url' && bulkText && (
+        <div>
+          <label className="text-[10px] uppercase tracking-widest text-white/60 font-bold mb-2 block flex items-center justify-between">
+            <span>Fetched Content</span>
+            <button
+              type="button"
+              onClick={() => { setBulkText(''); setUrlInput(''); }}
+              className="text-[9px] text-orange-400 hover:text-orange-300"
+            >
+              Clear & Try Another URL
+            </button>
+          </label>
+          <textarea
+            value={bulkText}
+            onChange={e => setBulkText(e.target.value)}
+            rows={8}
+            className={INPUT_CLASS + " resize-none text-xs"}
+          />
+          <p className="text-xs text-white/40 mt-1">
+            {bulkText.length} characters • You can edit this before analyzing
+          </p>
+        </div>
+      )}
 
       {/* Preview Button */}
       <button
@@ -1163,7 +1330,7 @@ Be thorough - extract as many useful training items as possible.`
         onClick={handlePreview}
         disabled={!bulkText.trim() || analyzing}
         className={`w-full px-4 py-2.5 rounded-xl border text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-          inputMode === 'smart' 
+          inputMode === 'smart' || inputMode === 'url'
             ? 'bg-purple-500/20 text-purple-400 border-purple-500/30 hover:bg-purple-500/30'
             : inputMode === 'structured'
             ? 'bg-blue-500/20 text-blue-400 border-blue-500/30 hover:bg-blue-500/30'
@@ -1175,7 +1342,7 @@ Be thorough - extract as many useful training items as possible.`
             <Sparkles size={16} className="inline animate-spin mr-2" />
             AI Analyzing...
           </>
-        ) : inputMode === 'smart' ? (
+        ) : (inputMode === 'smart' || inputMode === 'url') ? (
           <>
             <Sparkles size={16} className="inline mr-2" />
             Analyze with AI
