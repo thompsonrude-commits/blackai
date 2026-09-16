@@ -32,11 +32,12 @@ export default function SmartAIPaste() {
     }
 
     setAnalyzing(true);
-    try {
-      const response = await fetch('/api/ai/chat', {
+    try{
+      const response = await fetch('/api/v1/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          task: 'chat',
           messages: [{
             role: 'system',
             content: `You are a linguistic expert analyzing ${selectedLanguage.name} language training materials. Extract vocabulary, phrases, grammar rules, cultural notes, and conversation patterns from the provided text. For each item, identify:
@@ -66,7 +67,7 @@ Be thorough - extract as many useful training items as possible.`
       });
 
       const data = await response.json();
-      const content = data.choices?.[0]?.message?.content || data.content || '';
+      const content = data.text || data.choices?.[0]?.message?.content || data.content || '';
       
       const jsonMatch = content.match(/\[[\s\S]*\]/);
       if (jsonMatch) {

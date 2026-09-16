@@ -134,10 +134,11 @@ export default function URLExtract() {
 
     setAnalyzing(true);
     try {
-      const response = await fetch('/api/ai/chat', {
+      const response = await fetch('/api/v1/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          task: 'chat',
           messages: [{
             role: 'system',
             content: `You are a ${selectedLanguage.name} language expert. Analyze the provided text and extract language training data.
@@ -176,7 +177,7 @@ Rules:
       const data = await response.json();
       console.log('AI Response:', data);
       
-      const content = data.choices?.[0]?.message?.content || data.content || '';
+      const content = data.text || data.choices?.[0]?.message?.content || data.content || '';
       console.log('AI Content:', content);
       
       if (!content) {
