@@ -400,7 +400,7 @@ function buildImageResult(rawPrompt: string): { type: 'map'|'flag'|'ai'|'video';
 }
 
 // ── Typewriter hook ───────────────────────────────────────────────────────
-function useTypewriter(text: string, speed = 25) {  // Balanced speed - 25ms per character
+function useTypewriter(text: string, speed = 31) {  // Reduced speed by 25% (was 25ms, now 31ms)
   const [displayed, setDisplayed] = useState('');
   const prevText = useRef('');
   useEffect(() => {
@@ -459,7 +459,7 @@ function sanitizeDisplayText(value: string): string {
 
 function TypewriterBubble({ content, isNew }: { content: string; isNew: boolean }) {
   const safeContent = sanitizeDisplayText(content);
-  const displayed = useTypewriter(isNew ? safeContent : '', 25);  // Balanced speed - 25ms per character
+  const displayed = useTypewriter(isNew ? safeContent : '', 31);  // Reduced speed by 25% (was 25ms, now 31ms)
   const text = isNew ? displayed : safeContent;
   return (
     <div className="max-w-[85%] bg-[#1a1a1a] border border-[#00ff88]/30 px-4 py-3 rounded-2xl rounded-tl-sm text-gray-100 text-base leading-[1.6] whitespace-pre-wrap shadow-[0_0_20px_rgba(0,255,136,0.1)] break-words overflow-hidden">
