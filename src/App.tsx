@@ -305,12 +305,6 @@ function Footer() {
           <span className="text-[#00ff88] font-black">BLACK AI</span> created by <span className="font-semibold">Obosa Thompson Emuze</span>
         </p>
       </div>
-      <a
-        href="/admin/login"
-        className="mt-2 inline-block text-xs text-white/40 hover:text-[#00ff88] transition-colors"
-      >
-        Admin training
-      </a>
     </footer>
   );
 }
