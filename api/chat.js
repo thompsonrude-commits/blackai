@@ -21,6 +21,14 @@ module.exports = async (req, res) => {
 
     // Direct Groq API call
     const GROQ_KEY = process.env.GROQ_API_KEY || process.env.GROQ_KEY || process.env.VITE_GROQ_KEY;
+    
+    console.log('Environment check:', {
+      hasGROQ_API_KEY: !!process.env.GROQ_API_KEY,
+      hasGROQ_KEY: !!process.env.GROQ_KEY,
+      hasVITE_GROQ_KEY: !!process.env.VITE_GROQ_KEY,
+      finalKey: !!GROQ_KEY
+    });
+    
     if (!GROQ_KEY) {
       console.error('GROQ API key not found in environment variables');
       console.error('Checked: GROQ_API_KEY, GROQ_KEY, VITE_GROQ_KEY');
