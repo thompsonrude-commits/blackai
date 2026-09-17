@@ -515,6 +515,9 @@ const activeImageGenerationKeys = new Set<string>();
 function ImageBubble({ url, originalContent, prompt, imgType, label, onImageReady, msgIndex, user }: { url: string; originalContent?: string; prompt: string; imgType: 'map'|'flag'|'ai'; label: string; onImageReady?: (index: number, src: string, provider?: string) => void; msgIndex?: number; user?: FirebaseUser | null }) {
   const [imgSrc, setImgSrc] = useState<string | null>(null);
   const [finalSrc, setFinalSrc] = useState<string | null>(null);
+  const [upscaledSrc, setUpscaledSrc] = useState<string | null>(null);
+  const [isUpscaling, setIsUpscaling] = useState(false);
+  const [upscaleError, setUpscaleError] = useState('');
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Parse overlay from original content (which always has the metadata, even after URL replacement)
@@ -596,7 +599,8 @@ function ImageBubble({ url, originalContent, prompt, imgType, label, onImageRead
       setProgress(90);
       
       console.log('[ImageBubble] Generation successful:', result);
-      setImgSrc(result.imageUrl); 
+      setImgSrc(result.imageUrl);
+      setUpscaledSrc(null);
       setProviderLabel(`${result.model} (${result.provider})`); 
       setStatus('loading');
       if (onImageReady && typeof msgIndex === 'number') onImageReady(msgIndex, result.imageUrl, result.model);
@@ -611,7 +615,8 @@ function ImageBubble({ url, originalContent, prompt, imgType, label, onImageRead
       console.log('[ImageBubble] Fallback URL:', directUrl);
       
       setProgress(90);
-      setImgSrc(directUrl); 
+      setImgSrc(directUrl);
+      setUpscaledSrc(null);
       setProviderLabel('flux via pollinations (direct)'); 
       setStatus('loading');
       if (onImageReady && typeof msgIndex === 'number') onImageReady(msgIndex, directUrl, 'flux');
@@ -740,17 +745,48 @@ function ImageBubble({ url, originalContent, prompt, imgType, label, onImageRead
     console.error('[ImageBubble] All image generation attempts failed');
   }, [imgSrc, url, retryCount, buildLocalPlaceholder, prompt]);
 
+  const handleUpscale = useCallback(async () => {
+    const source = finalSrc || imgSrc;
+    if (!source || isUpscaling) return;
+    setIsUpscaling(true);
+    setUpscaleError('');
+    try {
+      const imageData = source.startsWith('data:') ? source : await fetchImageAsBase64(source);
+      if (!imageData) throw new Error('The image could not be fetched for upscaling.');
+      const image = new Image();
+      image.decoding = 'async';
+      image.src = imageData;
+      await new Promise<void>((resolve, reject) => {
+        image.onload = () => resolve();
+        image.onerror = () => reject(new Error('The image could not be decoded for upscaling.'));
+      });
+      const canvas = document.createElement('canvas');
+      canvas.width = image.naturalWidth * 2;
+      canvas.height = image.naturalHeight * 2;
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('Canvas upscaling is unavailable in this browser.');
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = 'high';
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      setUpscaledSrc(canvas.toDataURL('image/png', 1));
+    } catch (error) {
+      setUpscaleError(error instanceof Error ? error.message : 'Upscaling failed.');
+    } finally {
+      setIsUpscaling(false);
+    }
+  }, [finalSrc, imgSrc, isUpscaling]);
+
   const handleDownload = useCallback((format: 'png'|'jpg') => {
-    const src = finalSrc || imgSrc;
+    const src = upscaledSrc || finalSrc || imgSrc;
     if (!src) return;
     if (src.startsWith('data:')) { const link = document.createElement('a'); link.download = `blackai-${prompt.slice(0,20).replace(/\s+/g,'-')}.${format}`; link.href = src; link.click(); return; }
     const canvas = document.createElement('canvas'); const img = new Image(); img.crossOrigin = 'anonymous';
     img.onload = () => { canvas.width = img.naturalWidth; canvas.height = img.naturalHeight; const ctx = canvas.getContext('2d')!; if (format === 'jpg') { ctx.fillStyle = '#fff'; ctx.fillRect(0,0,canvas.width,canvas.height); } ctx.drawImage(img,0,0); const link = document.createElement('a'); link.download = `black-ai-${prompt.slice(0,20).replace(/\s+/g,'-')}.${format}`; link.href = canvas.toDataURL(format==='jpg'?'image/jpeg':'image/png',0.95); link.click(); };
     img.src = src;
-  }, [finalSrc, imgSrc, prompt]);
+  }, [upscaledSrc, finalSrc, imgSrc, prompt]);
 
   // Display: use finalSrc (with text overlay) when available, else imgSrc
-  const displaySrc = finalSrc || imgSrc;
+  const displaySrc = upscaledSrc || finalSrc || imgSrc;
 
   return (
     <div className="max-w-[92%] rounded-2xl overflow-hidden border border-[#00ff88]/30 shadow-lg bg-[#0a0a0a]">
@@ -769,10 +805,14 @@ function ImageBubble({ url, originalContent, prompt, imgType, label, onImageRead
         <div className="px-3 py-2 bg-[#1a1a1a] border-t border-[#00ff88]/20 flex items-center gap-2">
           <span className="text-[10px] text-green-400 font-medium flex-1 truncate">🎨 {prompt.slice(0,50)}{prompt.length>50?'...':''}</span>
           <button onClick={handleRetry} className="px-2 py-1 text-[10px] font-bold text-green-400 border border-[#00ff88]/30 rounded-lg hover:bg-[#00ff88]/10 transition-colors" title="Regenerate">🔄</button>
+          <button onClick={handleUpscale} disabled={isUpscaling} className="px-2 py-1 text-[10px] font-bold text-[#00ff88] border border-[#00ff88]/30 rounded-lg hover:bg-[#00ff88]/10 transition-colors disabled:opacity-50" title="Create a higher-resolution 2x version">
+            {isUpscaling ? '⏳ Upscaling' : upscaledSrc ? '✅ 2x' : '⬆ 2x'}
+          </button>
           <button onClick={() => handleDownload('png')} className="px-2 py-1 text-[10px] font-bold text-[#00ff88] border border-[#00ff88]/30 rounded-lg hover:bg-[#00ff88]/10 transition-colors">⬇ PNG</button>
           <button onClick={() => handleDownload('jpg')} className="px-2 py-1 text-[10px] font-bold text-[#00ff88] border border-[#00ff88]/30 rounded-lg hover:bg-[#00ff88]/10 transition-colors">⬇ JPG</button>
         </div>
       )}
+      {upscaleError && <p className="px-3 pb-2 text-[10px] text-amber-300">{upscaleError}</p>}
     </div>
   );
 }
@@ -1107,7 +1147,12 @@ export default function GeneralAssistant({ user, isAdmin, currentSessionId, onOp
     }
 
     const learnerId = user?.uid ?? 'anonymous';
-    if (teachingAwaitingAnswerRef.current && teachingSession && !isTeachingRequest(userMessage)) {
+    if (
+      teachingAwaitingAnswerRef.current &&
+      teachingSession &&
+      classifiedIntent.capability === 'chat' &&
+      !isTeachingRequest(userMessage)
+    ) {
       const evaluated = evaluateTeachingAnswer(teachingSession, userMessage);
       const response = evaluated.correct
         ? evaluated.feedback

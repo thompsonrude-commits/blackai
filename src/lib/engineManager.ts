@@ -7,6 +7,7 @@ import { DefaultKnowledgeEngine } from '../../core/knowledge/KnowledgeEngine';
 import { AgentRegistry } from '../../core/agent/registry';
 import { AgentPlanner } from '../../core/agent/planner';
 import { WorkflowManager } from '../../core/agent/WorkflowManager';
+import type { AgentDescriptor } from '../../core/agent/types';
 
 // Note: We're not directly importing NlieEngine to avoid Node.js EventEmitter dependency
 // Instead, we'll create a lightweight browser-compatible version
@@ -124,62 +125,70 @@ class EngineManager {
   private _registerDefaultAgents() {
     if (!this._agentRegistry) return;
 
-    const defaultAgents = [
+    const defaultAgents: AgentDescriptor[] = [
       {
         agentId: 'blackai.vision',
         name: 'Vision Agent',
+        role: 'specialist',
         description: 'Analyzes images and visual content',
         capabilities: ['vision', 'image.analyze'],
-        priority: 50,
+        pluginId: 'blackai-core',
       },
       {
         agentId: 'blackai.ocr',
         name: 'OCR Agent',
+        role: 'specialist',
         description: 'Extracts text from images and documents',
         capabilities: ['ocr', 'text.extract'],
-        priority: 40,
+        pluginId: 'blackai-core',
       },
       {
         agentId: 'blackai.speech',
         name: 'Speech Agent',
+        role: 'specialist',
         description: 'Processes audio and speech',
         capabilities: ['speech', 'audio.transcribe', 'audio.tts'],
-        priority: 40,
+        pluginId: 'blackai-core',
       },
       {
         agentId: 'blackai.image.generate',
         name: 'Image Generation Agent',
+        role: 'specialist',
         description: 'Generates images from text prompts',
         capabilities: ['image.generate', 'image.create'],
-        priority: 45,
+        pluginId: 'blackai-core',
       },
       {
         agentId: 'blackai.video',
         name: 'Video Agent',
+        role: 'specialist',
         description: 'Generates and processes video content',
         capabilities: ['video.generate', 'video.analyze'],
-        priority: 35,
+        pluginId: 'blackai-core',
       },
       {
         agentId: 'blackai.language',
         name: 'Language Agent',
+        role: 'specialist',
         description: 'Processes natural language and translations',
         capabilities: ['language', 'translation', 'nlie'],
-        priority: 60,
+        pluginId: 'blackai-core',
       },
       {
         agentId: 'blackai.memory',
         name: 'Memory Agent',
+        role: 'specialist',
         description: 'Manages conversation memory and context',
         capabilities: ['memory', 'context.retrieve'],
-        priority: 55,
+        pluginId: 'blackai-core',
       },
       {
         agentId: 'blackai.knowledge',
         name: 'Knowledge Agent',
+        role: 'specialist',
         description: 'Retrieves and indexes knowledge documents',
         capabilities: ['knowledge', 'document.search', 'document.index'],
-        priority: 50,
+        pluginId: 'blackai-core',
       },
     ];
 
