@@ -1043,6 +1043,16 @@ export default function GeneralAssistant({ user, isAdmin, currentSessionId, onOp
       } catch (imageError) {
         console.warn('[GeneralAssistant] image intent routing failed:', imageError);
       }
+      const unavailableImageMessage = 'Image generation is currently unavailable. No image was created; please try again when an image provider is available.';
+      setMessages(prev => [...prev,
+        { role: 'user', content: userMessage, timestamp: Date.now() },
+        { role: 'model', content: unavailableImageMessage, timestamp: Date.now(), isNew: true },
+      ]);
+      historyRef.current.push({ role: 'user', content: userMessage });
+      historyRef.current.push({ role: 'assistant', content: unavailableImageMessage });
+      setIsBusy(false);
+      setLogoState('idle');
+      return;
     }
 
     if (weatherQuery) {
@@ -1279,7 +1289,7 @@ Extract COMPLETE and DETAILED information from any text, labels, or packaging vi
     }
     
     const appCommand = parseAppCommand(userMessage);
-    if (appCommand) {
+    if (appCommand && !translationTarget && classifiedIntent.capability !== 'language') {
       setInput(''); setMessages(prev => [...prev, { role: 'user', content: displayMessage, timestamp: Date.now() }]);
       if (appCommand.command === 'clearChat') { historyRef.current = historyRef.current.filter(item => item.role === 'system'); setMessages([{ role: 'model', content: 'Chat history don clear. We fit start again fresh now.', timestamp: Date.now(), isNew: true }]); setIsBusy(false); setLogoState('idle'); return; }
       if (appCommand.command === 'setTheme' && appCommand.value) { const appliedTheme = applyTheme(appCommand.value); setTheme(appliedTheme); setMessages(prev => [...prev, { role: 'model', content: `Theme don change to ${appliedTheme}.`, timestamp: Date.now(), isNew: true }]); setIsBusy(false); setLogoState('idle'); return; }
@@ -1465,7 +1475,7 @@ Use these meanings when the source contains these Edo phrases.`;
             </h2>
           </motion.div>
         ) : (
-          <div className="space-y-4 pb-6">
+          <div className="space-y-4 pb-20">
             <AnimatePresence initial={false}>
             {messages.map((msg, idx) => {
               // Hide the last model message while streaming — it's the same content as the streaming bubble
