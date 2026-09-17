@@ -6,6 +6,7 @@
 
 export type ProviderId =
   | 'puter'
+  | 'jimeng'
   | 'native-gpu'
   | 'openrouter'
   | 'grok'
