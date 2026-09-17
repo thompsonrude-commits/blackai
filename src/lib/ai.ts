@@ -115,36 +115,36 @@ export async function* unifiedChatStream(messages: ChatMessageLike[], temperatur
             .slice(0, 2200);
         }
         
-        // Also query the new core knowledge engine
-        if (engineManager.isInitialized) {
-          const coreKnowledgeResults = await engineManager.queryKnowledge(
-            lastUserMessage.content,
-            { maxResults: 3, language: conversationLanguage }
-          );
-          
-          if (coreKnowledgeResults.length > 0) {
-            const coreContext = coreKnowledgeResults
-              .map((doc) => `- ${doc.title}: ${doc.content.slice(0, 500)}${doc.tags ? ` [Tags: ${doc.tags.join(', ')}]` : ''}`)
-              .join('\n');
-            knowledgeContext += knowledgeContext ? '\n' + coreContext : '\n\n[Relevant Knowledge]:\n' + coreContext;
-            console.log(`[AI] Core knowledge engine added ${coreKnowledgeResults.length} documents to context`);
-          }
-        }
+        // DISABLED: Core knowledge engine - was not adding value
+        // if (engineManager.isInitialized) {
+        //   const coreKnowledgeResults = await engineManager.queryKnowledge(
+        //     lastUserMessage.content,
+        //     { maxResults: 3, language: conversationLanguage }
+        //   );
+        //   
+        //   if (coreKnowledgeResults.length > 0) {
+        //     const coreContext = coreKnowledgeResults
+        //       .map((doc) => `- ${doc.title}: ${doc.content.slice(0, 500)}${doc.tags ? ` [Tags: ${doc.tags.join(', ')}]` : ''}`)
+        //       .join('\n');
+        //     knowledgeContext += knowledgeContext ? '\n' + coreContext : '\n\n[Relevant Knowledge]:\n' + coreContext;
+        //   }
+        // }
       } catch (err) {
         console.warn('[AI] Knowledge search failed:', err);
       }
     }
 
-    // Use NLIE Engine for Nigerian language detection (enhanced detection)
-    let nlieDetection;
-    try {
-      if (lastUserMessage && engineManager.isInitialized) {
-        nlieDetection = await engineManager.detectLanguage(lastUserMessage.content);
-        console.log('[AI] NLIE detection result:', nlieDetection);
-      }
-    } catch (err) {
-      console.warn('[AI] NLIE detection failed, falling back to default:', err);
-    }
+    // DISABLED: NLIE Engine - was causing issues
+    // DISABLED: NLIE engine - was causing issues with language detection
+    // let nlieDetection;
+    // try {
+    //   if (lastUserMessage && engineManager.isInitialized) {
+    //     nlieDetection = await engineManager.detectLanguage(lastUserMessage.content);
+    //     console.log('[AI] NLIE detection result:', nlieDetection);
+    //   }
+    // } catch (err) {
+    //   console.warn('[AI] NLIE detection failed, falling back to default:', err);
+    // }
 
     const detectedLanguage = lastUserMessage
       ? defaultLanguageCoordinationEngine.detectLanguage(lastUserMessage.content)
@@ -156,11 +156,11 @@ export async function* unifiedChatStream(messages: ChatMessageLike[], temperatur
         })))
       : undefined;
     
-    // Build language context with NLIE detection if available
-    const languageContext = detectedLanguage?.reliable || nlieDetection
+    // Build language context (NLIE disabled - using only default detection)
+    const languageContext = detectedLanguage?.reliable
       ? {
           role: 'system' as const,
-          content: `Language coordination: preserve the user's original expression and respond in or appropriately explain ${nlieDetection?.language || detectedLanguage?.languageId}. ${nlieDetection ? `NLIE detection: ${nlieDetection.language} (confidence: ${nlieDetection.confidence.toFixed(2)}, code-switching: ${nlieDetection.isCodeSwitched ? 'detected' : 'none'}).` : ''} Code-switching: ${detectedLanguage?.codeSwitching || nlieDetection?.isCodeSwitched ? 'present' : 'not detected'}. Capability: ${cognitivePlan?.capability ?? 'chat'}. Verification: ${cognitivePlan?.verification.passed ? 'passed' : 'uncertain'}. Do not claim a translation is verified unless supported by supplied knowledge.`,
+          content: `Language coordination: preserve the user's original expression and respond in or appropriately explain ${detectedLanguage?.languageId}. Code-switching: ${detectedLanguage?.codeSwitching ? 'present' : 'not detected'}. Capability: ${cognitivePlan?.capability ?? 'chat'}. Verification: ${cognitivePlan?.verification.passed ? 'passed' : 'uncertain'}. Do not claim a translation is verified unless supported by supplied knowledge.`,
         }
       : undefined;
     const enrichedMessages = lastUserMessage
@@ -204,49 +204,41 @@ export async function* unifiedChatStream(messages: ChatMessageLike[], temperatur
 
     const requestPlan = buildRequestPlan(lastUserMessage?.content ?? '', conversationLanguage);
 
-    // Check if request requires agent system (multi-step complex workflow)
-    if (lastUserMessage && shouldUseAgentSystem(lastUserMessage.content)) {
-      console.log('[AI] Request requires agent system, routing to workflow orchestration');
-      const explanation = explainWorkflow(lastUserMessage.content);
-      
-      try {
-        // Yield explanation first
-        yield* wordStream(explanation + '\n\n');
-        
-        // Execute workflow
-        const workflowResult = await executeAgentWorkflow(
-          lastUserMessage.content,
-          messages,
-          'user-session'
-        );
-        
-        if (workflowResult.success) {
-          recoveryService.recordSuccess('agent-workflow', 0, 0.9, 'workflow');
-          yield* wordStream(workflowResult.finalResponse);
-          return;
-        } else {
-          console.warn('[AI] Agent workflow failed, falling back to standard processing');
-          yield* wordStream('The multi-step workflow encountered issues. Let me try a simpler approach...\n\n');
-          // Fall through to standard processing
-        }
-      } catch (err) {
-        console.error('[AI] Agent workflow error:', err);
-        yield* wordStream('I had trouble with the multi-step processing. Let me handle this in a simpler way...\n\n');
-        // Fall through to standard processing
-      }
-    }
+    // DISABLED: Agent system was breaking normal responses
+    // Complex queries now go directly to main AI 
+    // if (lastUserMessage && shouldUseAgentSystem(lastUserMessage.content)) {
+    //   console.log('[AI] Request requires agent system, routing to workflow orchestration');
+    //   const explanation = explainWorkflow(lastUserMessage.content);
+    //   
+    //   try {
+    //     yield* wordStream(explanation + '\n\n');
+    //     const workflowResult = await executeAgentWorkflow(
+    //       lastUserMessage.content,
+    //       messages,
+    //       'user-session'
+    //     );
+    //     
+    //     if (workflowResult.success) {
+    //       recoveryService.recordSuccess('agent-workflow', 0, 0.9, 'workflow');
+    //       yield* wordStream(workflowResult.finalResponse);
+    //       return;
+    //     }
+    //   } catch (err) {
+    //     console.error('[AI] Agent workflow error:', err);
+    //   }
+    // }
 
-    if (lastUserMessage) {
-      const researchResponse = await routeResearchRequest(lastUserMessage.content);
-      // Only use research response if it has actual content
-      // Medical queries should go through main AI with proper system prompts
-      if (researchResponse && researchResponse.response) {
-        const text = sanitizeUserFacingText(researchResponse.response);
-        recoveryService.recordSuccess('local-research', 0, 0.8, 'research');
-        yield* wordStream(text);
-        return;
-      }
-    }
+    // DISABLED: Research engine was breaking normal responses
+    // Medical/training queries now go directly to main AI with proper system prompts
+    // if (lastUserMessage) {
+    //   const researchResponse = await routeResearchRequest(lastUserMessage.content);
+    //   if (researchResponse && researchResponse.response) {
+    //     const text = sanitizeUserFacingText(researchResponse.response);
+    //     recoveryService.recordSuccess('local-research', 0, 0.8, 'research');
+    //     yield* wordStream(text);
+    //     return;
+    //   }
+    // }
 
     const result = await _proxyChat({
       messages: messagesForChat,
