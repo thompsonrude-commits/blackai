@@ -1600,7 +1600,7 @@ Use these meanings when the source contains these Edo phrases.`;
 
             {isStreaming && (
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex justify-start">
-                <div className="max-w-[85%] bg-[#1a1a1a] border border-[#00ff88]/30 px-4 py-3 rounded-2xl rounded-tl-sm text-gray-100 text-base leading-[1.6] whitespace-pre-wrap shadow-[0_0_20px_rgba(0,255,136,0.1)] break-words overflow-hidden">
+                <div className="max-w-[85%] bg-[#1a1a1a] border border-[#00ff88]/30 px-4 py-3 rounded-2xl rounded-tl-sm text-gray-100 text-base leading-[1.6] whitespace-pre-wrap shadow-[0_0_20px_rgba(0,255,136,0.1)] break-words overflow-visible">
                   {sanitizeDisplayText(streamingContent)}<span className="inline-block w-2 h-4 bg-[#00ff88] ml-0.5 animate-pulse rounded-sm align-middle" />
                 </div>
               </motion.div>
