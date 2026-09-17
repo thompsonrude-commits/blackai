@@ -56,8 +56,9 @@ export function buildPollinationsImageUrl(prompt: string, width = 1024, height =
   const timestamp = Date.now();
   const seed = Math.floor(Math.random() * 1000000);
   
-  // Try Pollinations with proper encoding
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(safePrompt)}?width=${width}&height=${height}&nologo=true&seed=${seed}&model=flux&_=${timestamp}`;
+  // Try Pollinations with nologo parameter
+  // Note: nologo may not always work, but we try
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(safePrompt)}?width=${width}&height=${height}&nologo=true&enhance=true&seed=${seed}&model=flux&_=${timestamp}`;
 }
 
 function toSvgDataUrl(label: string): string {

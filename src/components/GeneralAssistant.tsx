@@ -751,24 +751,29 @@ function ImageBubble({ url, originalContent, prompt, imgType, label, onImageRead
     setIsUpscaling(true);
     setUpscaleError('');
     try {
-      const imageData = source.startsWith('data:') ? source : await fetchImageAsBase64(source);
-      if (!imageData) throw new Error('The image could not be fetched for upscaling.');
-      const image = new Image();
-      image.decoding = 'async';
-      image.src = imageData;
-      await new Promise<void>((resolve, reject) => {
-        image.onload = () => resolve();
-        image.onerror = () => reject(new Error('The image could not be decoded for upscaling.'));
-      });
-      const canvas = document.createElement('canvas');
-      canvas.width = image.naturalWidth * 2;
-      canvas.height = image.naturalHeight * 2;
-      const context = canvas.getContext('2d');
-      if (!context) throw new Error('Canvas upscaling is unavailable in this browser.');
-      context.imageSmoothingEnabled = true;
-      context.imageSmoothingQuality = 'high';
-      context.drawImage(image, 0, 0, canvas.width, canvas.height);
-      setUpscaledSrc(canvas.toDataURL('image/png', 1));
+      // Try AI upscaling first
+      const { upscaleImageWithAI, upscaleImageBasic } = await import('../lib/imageUpscaler');
+      
+      console.log('[ImageBubble] Attempting AI upscaling...');
+      const aiResult = await upscaleImageWithAI(source, { scale: 2 });
+      
+      if (aiResult.success && (aiResult.upscaledUrl || aiResult.upscaledBase64)) {
+        const upscaledImage = aiResult.upscaledBase64 || aiResult.upscaledUrl!;
+        setUpscaledSrc(upscaledImage);
+        console.log('[ImageBubble] AI upscaling successful');
+        return;
+      }
+      
+      // Fallback to enhanced client-side upscaling
+      console.log('[ImageBubble] Falling back to enhanced client-side upscaling...');
+      const basicResult = await upscaleImageBasic(source, 2);
+      
+      if (basicResult.success && basicResult.upscaledBase64) {
+        setUpscaledSrc(basicResult.upscaledBase64);
+        console.log('[ImageBubble] Enhanced upscaling successful');
+      } else {
+        throw new Error(basicResult.error || 'Upscaling failed');
+      }
     } catch (error) {
       setUpscaleError(error instanceof Error ? error.message : 'Upscaling failed.');
     } finally {
