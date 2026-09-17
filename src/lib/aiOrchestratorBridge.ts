@@ -68,51 +68,73 @@ function getOrchestrator(): AIOrchestrator {
             
             console.log('[ImageEngine] Generating image with prompt:', payload.prompt);
             
-                // Use backend canonical image generation endpoint. Backend decides provider and authoritative ComfyUI usage.
-                try {
-                  const resp = await fetch('/api/v1/image/generate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt: payload.prompt }),
-                    signal: AbortSignal.timeout(120000),
-                  });
-
-                  if (!resp.ok) {
-                    // If backend reports ComfyUI-authoritative failure (503 with provider=comfyui), do NOT fallback to Pollinations
-                    try {
-                      const errBody = await resp.json();
-                      if (errBody && errBody.provider === 'comfyui' && errBody.success === false) {
-                        // Surface an error result so callers can handle it and not treat this as a generated image
-                        return { imageUrl: '', provider: 'comfyui', model: 'none', latencyMs: Date.now() - startTime };
-                      }
-                    } catch (e) {
-                      // ignore parse errors
-                    }
-                    console.warn('[ImageEngine] backend /api/v1/image/generate returned non-OK:', resp.status);
-                  } else {
-                    const data = await resp.json();
-                    if (data.imageUrl) {
-                      return { imageUrl: data.imageUrl, provider: data.provider || 'backend', model: data.model || data.provider, latencyMs: Date.now() - startTime };
-                    }
-                    if (data.generationId) {
-                      // Client should poll /api/images/status/:generationId to obtain final image — return a placeholder with generationId in imageUrl field
-                      return { imageUrl: `/api/images/status/${data.generationId}`, provider: data.provider || 'backend', model: data.model || data.provider || 'unknown', latencyMs: Date.now() - startTime };
-                    }
-                  }
-                } catch (err) {
-                  console.warn('[ImageEngine] Backend generation failed, falling back to Pollinations');
-                }
-
-                // Fallback: Pollinations
-                const imageUrl = buildPollinationsImageUrl(payload.prompt);
-                console.log('[ImageEngine] Image URL generated (fallback):', imageUrl);
-            
+            // PRIORITY: Try Puter.js first (client-side, free)
+            try {
+              const { generateImageWithPuter, isPuterAvailable } = await import('./puterImageService');
+              const puterAvailable = await isPuterAvailable();
+              
+              if (puterAvailable) {
+                console.log('[ImageEngine] Using Puter.js');
+                const needsText = payload.prompt.toLowerCase().match(/text|word|letter|sign|banner|poster|quote|caption|title/);
+                
+                const imageUrl = await generateImageWithPuter(payload.prompt, {
+                  model: needsText ? 'qwen-image' : 'flux-dev',
+                  quality: 'high',
+                });
+                
                 return {
                   imageUrl,
-                  provider: 'pollinations',
-                  model: 'flux',
+                  provider: 'puter',
+                  model: needsText ? 'qwen-image' : 'flux',
                   latencyMs: Date.now() - startTime,
                 };
+              }
+            } catch (puterErr) {
+              console.warn('[ImageEngine] Puter.js failed:', puterErr);
+            }
+            
+            // FALLBACK: Use backend canonical image generation endpoint
+            try {
+              const resp = await fetch('/api/v1/image/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: payload.prompt }),
+                signal: AbortSignal.timeout(120000),
+              });
+
+              if (!resp.ok) {
+                try {
+                  const errBody = await resp.json();
+                  if (errBody && errBody.provider === 'comfyui' && errBody.success === false) {
+                    return { imageUrl: '', provider: 'comfyui', model: 'none', latencyMs: Date.now() - startTime };
+                  }
+                } catch (e) {
+                  // ignore parse errors
+                }
+                console.warn('[ImageEngine] backend /api/v1/image/generate returned non-OK:', resp.status);
+              } else {
+                const data = await resp.json();
+                if (data.imageUrl) {
+                  return { imageUrl: data.imageUrl, provider: data.provider || 'backend', model: data.model || data.provider, latencyMs: Date.now() - startTime };
+                }
+                if (data.generationId) {
+                  return { imageUrl: `/api/images/status/${data.generationId}`, provider: data.provider || 'backend', model: data.model || data.provider || 'unknown', latencyMs: Date.now() - startTime };
+                }
+              }
+            } catch (err) {
+              console.warn('[ImageEngine] Backend generation failed, falling back to Pollinations');
+            }
+
+            // Final Fallback: Pollinations
+            const imageUrl = buildPollinationsImageUrl(payload.prompt);
+            console.log('[ImageEngine] Image URL generated (Pollinations fallback):', imageUrl);
+        
+            return {
+              imageUrl,
+              provider: 'pollinations',
+              model: 'flux',
+              latencyMs: Date.now() - startTime,
+            };
           },
         },
         vision: {
@@ -352,10 +374,40 @@ export async function getOrchestratedChatResponse(messages: ProxyChatMessage[], 
   }
 }
 
-// Image generation — calls Gemini backend directly, reads correct response shape
+// Image generation — Uses Puter.js first (Chinese app approach), then backend fallback
 export async function generateImageViaOrchestrator(prompt: string): Promise<OrchestratedImageResult> {
   const startTime = Date.now();
 
+  // PRIORITY 1: Try Puter.js (client-side, free, unlimited)
+  try {
+    const { generateImageWithPuter, isPuterAvailable } = await import('./puterImageService');
+    const puterAvailable = await isPuterAvailable();
+    
+    if (puterAvailable) {
+      console.log('[ImageGen] Using Puter.js (free unlimited)');
+      
+      // Detect if prompt needs text rendering
+      const needsText = prompt.toLowerCase().match(/text|word|letter|sign|banner|poster|quote|caption|title/);
+      
+      const imageUrl = await generateImageWithPuter(prompt, {
+        model: needsText ? 'qwen-image' : 'flux-dev',
+        quality: 'high',
+        width: 1024,
+        height: 1024,
+      });
+      
+      return {
+        imageUrl,
+        provider: 'puter',
+        model: needsText ? 'qwen-image-2.0-pro' : 'flux-2-dev',
+        latencyMs: Date.now() - startTime,
+      };
+    }
+  } catch (puterErr) {
+    console.warn('[ImageGen] Puter.js failed, trying backend:', puterErr);
+  }
+
+  // FALLBACK 1: Try backend API
   try {
     const resp = await fetch('/api/v1/image/generate', {
       method: 'POST',
@@ -382,8 +434,9 @@ export async function generateImageViaOrchestrator(prompt: string): Promise<Orch
     console.warn('[ImageGen] Backend failed, using Pollinations fallback');
   }
 
-  // Fallback: Pollinations
+  // FALLBACK 2: Pollinations (last resort)
   const imageUrl = buildPollinationsImageUrl(prompt);
+  console.log('[ImageGen] Using Pollinations fallback');
   return { imageUrl, provider: 'pollinations', model: 'flux', latencyMs: Date.now() - startTime };
 }
 
