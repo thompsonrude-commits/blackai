@@ -42,7 +42,7 @@ module.exports = async (req, res) => {
 
     console.log('Making Groq API request:', {
       url: 'https://api.groq.com/openai/v1/chat/completions',
-      model: 'llama-3.3-70b-versatile',
+      model: 'llama-3.1-70b-versatile',
       messageCount: messages.length,
       hasApiKey: !!GROQ_KEY
     });
@@ -54,7 +54,7 @@ module.exports = async (req, res) => {
         'Authorization': `Bearer ${GROQ_KEY}`
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: 'llama-3.1-70b-versatile',
         messages: messages,
         temperature: temperature,
         max_tokens: maxTokens,
@@ -103,7 +103,7 @@ module.exports = async (req, res) => {
         }
       }],
       provider: 'groq',
-      model: 'llama-3.3-70b-versatile',
+      model: 'llama-3.1-70b-versatile',
       latencyMs: 0,
       cached: false,
       tokensUsed: data.usage?.total_tokens
