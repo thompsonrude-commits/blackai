@@ -238,7 +238,9 @@ export async function* unifiedChatStream(messages: ChatMessageLike[], temperatur
 
     if (lastUserMessage) {
       const researchResponse = await routeResearchRequest(lastUserMessage.content);
-      if (researchResponse) {
+      // Only use research response if it has actual content
+      // Medical queries should go through main AI with proper system prompts
+      if (researchResponse && researchResponse.response) {
         const text = sanitizeUserFacingText(researchResponse.response);
         recoveryService.recordSuccess('local-research', 0, 0.8, 'research');
         yield* wordStream(text);

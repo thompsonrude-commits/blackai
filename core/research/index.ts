@@ -122,8 +122,12 @@ export class MedicalProblemSolver {
     ];
 
     const plan = await defaultCognitiveBrain.plan(problem, 'research-medical');
-    const summary = `This looks like a medical reasoning request in ${language}. The system should maintain the original health context, avoid pretending to diagnose, and focus on a cautious differential plus red-flag screening.`;
-    const response = `${summary}\n\n${hypotheses.map((h, index) => `${index + 1}. ${h.title}: ${h.rationale}`).join('\n')}\n\nSafety note: do not treat this as a diagnosis. Seek in-person clinical assessment for severe symptoms, worsening conditions, or signs of emergency.`;
+    
+    // DISABLED: This interceptor was blocking practical medical advice
+    // Instead, let the main AI system prompts handle medical queries with proper balance of helpfulness + safety
+    // The system prompts already include Nigerian medicine recommendations with appropriate disclaimers
+    const summary = `Medical query detected in ${language}. Routing to main AI for practical guidance.`;
+    const response = null; // Let main AI handle with full context and proper prompts
 
     return {
       domain: ['medical'],
