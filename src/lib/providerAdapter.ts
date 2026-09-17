@@ -13,7 +13,14 @@ export type Capability =
   | 'image'
   | 'document'
   | 'music'
-  | 'visual';
+  | 'visual'
+  | 'spreadsheet'
+  | 'chart'
+  | 'presentation'
+  | 'audio'
+  | 'summary'
+  | 'translate'
+  | 'transcribe';
 
 export type EngineRoute = 'browser' | 'local' | 'external' | 'fallback';
 
@@ -97,11 +104,11 @@ export function classifyUserIntent(input: string): ClassifiedIntent {
   }
 
   const detected: Capability[] = [];
-  const translationMatch = /(translate|translation|translat(e|ion)|into\s+(?:edo|yoruba|igbo|hausa|pidgin|english))/i.exec(lower);
+  const translationMatch = /(translate|translation|translat(e|ion)|into\s+(?:edo|yoruba|igbo|hausa|pidgin|english)|(?:s[ụu]ghar[iị]a|tum[ọo]|traduce)\s+(?:ya|to|into))/i.exec(lower);
   if (translationMatch) {
     detected.push('language');
   }
-  const imageMatch = /(generate|create|make|draw|paint|design|render|illustrate|logo|poster|banner|picture|image|photo|artwork|visual|diagram|chart|graph|infographic)/i.exec(lower);
+  const imageMatch = /(?:\b(?:logo|poster|banner|picture|image|photo|artwork|visual|diagram|chart|graph|infographic|aworan|hoto|foto)\b|\b(?:generate|create|make|draw|paint|design|render|illustrate|ṣe|yi)\s+(?:an?\s+)?(?:logo|poster|banner|picture|image|photo|artwork|visual|diagram|chart|graph|infographic|aworan|hoto|foto)\b)/i.exec(lower);
   if (imageMatch) {
     detected.push('image');
   }
@@ -134,8 +141,12 @@ export function classifyUserIntent(input: string): ClassifiedIntent {
   if (weatherMatch) {
     detected.push('weather');
   }
+  const researchMatch = /(medical|diagnosis|diagnostic|disease|symptom|symptoms|treatment|therapy|doctor|clinic|patient|health|fever|cough|coughing|body ache|body aches|illness|sick|infectious|one health|zoonotic|veterinary|livestock|goat|goats|cow|cattle|poultry|crop|plant health|environmental health|food safety|antimicrobial resistance)/i.exec(lower);
+  if (researchMatch) {
+    detected.push('research');
+  }
 
-  const priority: Capability[] = ['language', 'image', 'music', 'search', 'document', 'ocr', 'tts', 'vision', 'weather', 'chat'];
+  const priority: Capability[] = ['language', 'research', 'image', 'music', 'search', 'document', 'ocr', 'tts', 'vision', 'weather', 'chat'];
   const primary = priority.find((capability) => detected.includes(capability)) ?? 'chat';
 
   const baseResult: ClassifiedIntent = {
@@ -180,6 +191,10 @@ export function classifyUserIntent(input: string): ClassifiedIntent {
 
   if (primary === 'weather') {
     return { ...baseResult, confidence: 0.74 };
+  }
+
+  if (primary === 'research') {
+    return { ...baseResult, confidence: 0.9 };
   }
 
   return baseResult;

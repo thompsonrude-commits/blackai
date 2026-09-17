@@ -3,9 +3,14 @@ import { schedulerEvents } from '../events';
 
 async function basicQueueTest() {
   const events: string[] = [];
+  let completed!: () => void;
+  const completion = new Promise<void>((resolve) => { completed = resolve; });
   schedulerEvents.on('JobQueued', (e: any) => events.push('q:' + e.job.id));
   schedulerEvents.on('JobStarted', (e: any) => events.push('s:' + e.job.id));
-  schedulerEvents.on('JobCompleted', (e: any) => events.push('c:' + e.job.id));
+  schedulerEvents.on('JobCompleted', (e: any) => {
+    events.push('c:' + e.job.id);
+    if (e.job.id === 'j1') completed();
+  });
 
   const scheduler = new InferenceScheduler(async (job) => {
     // simulate work and progress
@@ -18,8 +23,10 @@ async function basicQueueTest() {
 
   scheduler.start();
   scheduler.submit({ id: 'j1', type: 'chat', priority: 50 });
-  // wait for processing
-  await new Promise((r) => setTimeout(r, 200));
+  await Promise.race([
+    completion,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error('job did not complete')), 2000)),
+  ]);
   scheduler.stop();
 
   if (!events.some((x) => x.startsWith('c:j1'))) throw new Error('job did not complete');

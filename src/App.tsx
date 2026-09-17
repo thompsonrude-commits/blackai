@@ -29,6 +29,8 @@ import MinimalSidebar from './components/MinimalSidebar';
 import { PlatformStatus } from './components/PlatformStatus';
 import { NIGERIAN_LANGUAGES } from './lib/nigerianLanguages';
 import { trackUserLogin } from './lib/analyticsService';
+import LoginPage from './components/LoginPage';
+import { migrateAnonymousAccountData, saveAccountProfile } from './lib/accountPersistence';
 
 const ADMIN_EMAIL = 'obosathompsons@gmail.com';
 
@@ -126,6 +128,17 @@ export default function App() {
       }
       setUser(u);
       setLoading(false);
+      if (u && !u.isAnonymous) {
+        void saveAccountProfile({
+          uid: u.uid,
+          email: u.email,
+          displayName: u.displayName,
+          photoURL: u.photoURL,
+          providerIds: u.providerData.map((provider) => provider.providerId),
+          createdAt: u.metadata.creationTime ? Date.parse(u.metadata.creationTime) : undefined,
+        });
+        void migrateAnonymousAccountData(u.uid);
+      }
     });
     return unsubscribe;
   }, []);
@@ -165,6 +178,7 @@ export default function App() {
   // Shared routes available to everyone
   const sharedRoutes = (
     <>
+      <Route path="/login" element={<LoginPage onLoginSuccess={() => navigate('/')} />} />
       <Route path="/" element={<GeneralAssistant user={user} isAdmin={isAdmin} currentSessionId={currentSessionId} onOpenLibrary={() => setShowLibrary(true)} />} />
       <Route path="/chat" element={<GeneralAssistant user={user} isAdmin={isAdmin} currentSessionId={currentSessionId} onOpenLibrary={() => setShowLibrary(true)} />} />
       <Route path="/assistant" element={<GeneralAssistant user={user} isAdmin={isAdmin} currentSessionId={currentSessionId} onOpenLibrary={() => setShowLibrary(true)} />} />

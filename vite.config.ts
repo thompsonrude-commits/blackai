@@ -11,7 +11,12 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
+        // Provide browser polyfill for Node.js events module
+        'events': 'events',
       },
+    },
+    optimizeDeps: {
+      include: ['events'],
     },
     server: {
       hmr: process.env.DISABLE_HMR !== 'true',

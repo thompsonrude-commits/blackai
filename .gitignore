@@ -19,3 +19,6 @@ push*.bat
 push*.txt
 push*.log
 PUSH_TO_GITHUB.bat
+
+.vercel
+.env*

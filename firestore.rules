@@ -24,14 +24,6 @@ service cloud.firestore {
       allow read, write: if isOwner(userId);
     }
 
-    // ── Chat History (conversations saved to Firestore) ────────────────────
-    match /chat_sessions/{sessionId} {
-      allow read, write: if isSignedIn() &&
-        request.auth.uid == resource.data.userId;
-      allow create: if isSignedIn() &&
-        request.auth.uid == request.resource.data.userId;
-    }
-
     // ── AI Feedback (ratings on AI responses) ─────────────────────────────
     match /ai_feedback/{feedbackId} {
       allow create: if isSignedIn() &&
@@ -53,6 +45,32 @@ service cloud.firestore {
     // ── Personal Vocabulary (language learning per user) ──────────────────
     match /users/{userId}/personalVocab/{vocabId} {
       allow read, write: if isOwner(userId);
+    }
+
+    // Private learner profile and progress records.
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    match /chat_sessions/{sessionId} {
+      allow read, update, delete: if isSignedIn() &&
+        request.auth.uid == resource.data.userId;
+      allow create: if isSignedIn() &&
+        request.auth.uid == request.resource.data.userId;
+    }
+
+    match /teaching_sessions/{sessionId} {
+      allow read, update, delete: if isSignedIn() &&
+        request.auth.uid == resource.data.userId;
+      allow create: if isSignedIn() &&
+        request.auth.uid == request.resource.data.userId;
+    }
+
+    match /usage_events/{eventId} {
+      allow create: if isSignedIn() &&
+        request.auth.uid == request.resource.data.userId;
+      allow read: if isMasterAdmin();
+      allow update, delete: if false;
     }
 
     // ── Languages Repository ───────────────────────────────────────────────
@@ -105,7 +123,7 @@ service cloud.firestore {
 
     // ── User Knowledge (personal knowledge entries) ────────────────────────
     match /user_knowledge/{entryId} {
-      allow read, write: if isSignedIn() &&
+      allow read, update, delete: if isSignedIn() &&
         request.auth.uid == resource.data.userId;
       allow create: if isSignedIn() &&
         request.auth.uid == request.resource.data.userId;
@@ -113,8 +131,21 @@ service cloud.firestore {
 
     // ── Analytics Events (server writes, admin reads) ──────────────────────
     match /analytics_events/{eventId} {
-      allow create: if isSignedIn(); // users can log their own events
+      allow create: if isSignedIn() &&
+        request.auth.uid == request.resource.data.userId; // users can log their own events
       allow read: if isMasterAdmin(); // only admin can read analytics
+    }
+
+    match /user_analytics/{userId} {
+      allow read, write: if isOwner(userId);
+      allow read: if isMasterAdmin();
+    }
+
+    match /session_analytics/{sessionId} {
+      allow read, update: if isSignedIn() &&
+        resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() &&
+        request.auth.uid == request.resource.data.userId;
     }
 
     // ── Generated Images (user-owned records written by server admin SDK) ──

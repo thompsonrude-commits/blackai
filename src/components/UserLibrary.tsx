@@ -3,6 +3,7 @@ import { Trash2, Download, Share2, Calendar, MessageSquare, Clock, X } from 'luc
 import { motion, AnimatePresence } from 'motion/react';
 import { getUserSessions, deleteSession, exportSessionAsText } from '../lib/sessionManager';
 import { User } from 'firebase/auth';
+import { loadAccountChatSessions } from '../lib/accountPersistence';
 
 interface UserLibraryProps {
   user: User | null;
@@ -17,11 +18,20 @@ export default function UserLibrary({ user, onClose, onSelectSession }: UserLibr
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    if (user?.uid) {
-      const userSessions = getUserSessions(user.uid);
-      setSessions(userSessions.sort((a, b) => b.updatedAt - a.updatedAt));
+    if (!user?.uid) {
+      setSessions([]);
+      setSelectedSession(null);
       setLoading(false);
+      return;
     }
+    const userSessions = getUserSessions(user.uid);
+    setSessions(userSessions.sort((a, b) => b.updatedAt - a.updatedAt));
+    setLoading(false);
+    void loadAccountChatSessions(user.uid).then((remoteSessions) => {
+      if (remoteSessions.length > 0) {
+        setSessions(remoteSessions.sort((a, b) => b.updatedAt - a.updatedAt));
+      }
+    });
   }, [user]);
 
   const filteredSessions = sessions.filter(session =>

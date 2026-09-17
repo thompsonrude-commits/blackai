@@ -270,7 +270,7 @@ Content:\n${toTranslate}`;
     if (primary === 'music') {
       // Use creative content generator to produce lyrics and suno prompt
       try {
-        const { extractCreativeParameters } = await import('./creativeIntegration');
+        const { extractCreativeParameters } = await import('./creativeContentGenerator');
         const { generateCreativeContent } = await import('./creativeContentGenerator');
         const params = extractCreativeParameters(userMessage);
         const prompt = {

@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { User as FirebaseUser } from 'firebase/auth';
 import { getUserSessions, deleteSession } from '../lib/sessionManager';
+import { loadAccountChatSessions } from '../lib/accountPersistence';
 import { signOut } from '../lib/firebase';
 import { useNavigate } from 'react-router-dom';
 
@@ -86,6 +87,16 @@ export default function MinimalSidebar({
         messageCount: session.messages.length,
       })); // Last 20 sessions
       setSessions(userSessions);
+      const remoteSessions = await loadAccountChatSessions(user.uid);
+      if (remoteSessions.length > 0) {
+        setSessions(remoteSessions.slice(0, 20).map((session) => ({
+          id: session.id,
+          title: session.title,
+          lastMessage: session.messages[session.messages.length - 1]?.content || '',
+          timestamp: session.updatedAt,
+          messageCount: session.messages.length,
+        })));
+      }
     } catch (error) {
       console.error('Failed to load sessions:', error);
       setSessions([]);

@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut as firebaseSignOut, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
@@ -8,6 +8,14 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth();
 export const storage = getStorage(app);
+
+// Keep the Firebase identity across reloads and devices. Firestore remains the
+// source of truth for account data; this only controls the local auth session.
+if (typeof window !== 'undefined') {
+  void setPersistence(auth, browserLocalPersistence).catch((error) => {
+    console.error('Unable to persist Firebase authentication state:', error);
+  });
+}
 
 export const uploadAudio = async (path: string, blob: Blob): Promise<string> => {
   // Try Firebase Storage first with a generous timeout

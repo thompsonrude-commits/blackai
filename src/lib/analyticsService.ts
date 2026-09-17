@@ -4,7 +4,7 @@
  */
 
 import { db, isFirebaseUnavailableError } from './firebase';
-import { collection, addDoc, query, where, getDocs, updateDoc, doc, getDoc, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs, updateDoc, doc, getDoc, setDoc } from 'firebase/firestore';
 
 export interface UserAnalytics {
   userId: string;
@@ -35,6 +35,28 @@ export interface SessionAnalytics {
 const ANALYTICS_COLLECTION = 'user_analytics';
 const SESSION_ANALYTICS_COLLECTION = 'session_analytics';
 
+export async function recordUsageEvent(
+  userId: string | undefined,
+  eventType: 'chat' | 'teaching' | 'research' | 'image' | 'audio',
+  metadata: Record<string, string | number | boolean> = {},
+): Promise<void> {
+  if (!userId) return;
+  try {
+    await addDoc(collection(db, 'usage_events'), {
+      userId,
+      eventType,
+      feature: eventType,
+      success: true,
+      metadata,
+      timestamp: Date.now(),
+    });
+  } catch (error) {
+    if (!isFirebaseUnavailableError(error)) {
+      console.error('Error recording usage event:', error);
+    }
+  }
+}
+
 /**
  * Track user login
  */
@@ -42,15 +64,14 @@ export async function trackUserLogin(userId: string | undefined, email: string |
   if (!userId || !email) return;
 
   try {
-    const analyticsRef = collection(db, ANALYTICS_COLLECTION);
-    const q = query(analyticsRef, where('userId', '==', userId));
-    const snapshot = await getDocs(q);
+    const analyticsDoc = doc(db, ANALYTICS_COLLECTION, userId);
+    const snapshot = await getDoc(analyticsDoc);
 
     const now = Date.now();
 
-    if (snapshot.empty) {
+    if (!snapshot.exists()) {
       // New user - create analytics record
-      await addDoc(analyticsRef, {
+      await setDoc(analyticsDoc, {
         userId,
         email,
         firstLoginAt: now,
@@ -64,10 +85,9 @@ export async function trackUserLogin(userId: string | undefined, email: string |
       });
     } else {
       // Existing user - update last login
-      const docId = snapshot.docs[0].id;
-      await updateDoc(doc(db, ANALYTICS_COLLECTION, docId), {
+      await updateDoc(analyticsDoc, {
         lastLoginAt: now,
-        totalSessions: (snapshot.docs[0].data().totalSessions || 0) + 1,
+        totalSessions: (snapshot.data().totalSessions || 0) + 1,
         updatedAt: now,
       });
     }
@@ -138,20 +158,18 @@ export async function trackMessage(
     }
 
     // Update user analytics
-    const analyticsRef = collection(db, ANALYTICS_COLLECTION);
-    const q = query(analyticsRef, where('userId', '==', userId));
-    const snapshot = await getDocs(q);
+    const analyticsDoc = doc(db, ANALYTICS_COLLECTION, userId);
+    const snapshot = await getDoc(analyticsDoc);
 
-    if (!snapshot.empty) {
-      const docId = snapshot.docs[0].id;
-      const userData = snapshot.docs[0].data();
+    if (snapshot.exists()) {
+      const userData = snapshot.data();
       const languagesUsed = userData.languagesUsed || [];
 
       if (!languagesUsed.includes(languageId)) {
         languagesUsed.push(languageId);
       }
 
-      await updateDoc(doc(db, ANALYTICS_COLLECTION, docId), {
+      await updateDoc(analyticsDoc, {
         totalMessages: (userData.totalMessages || 0) + 1,
         languagesUsed,
         updatedAt: Date.now(),
@@ -196,12 +214,9 @@ export async function trackSessionEnd(sessionId: string): Promise<void> {
  */
 export async function getUserAnalytics(userId: string): Promise<UserAnalytics | null> {
   try {
-    const analyticsRef = collection(db, ANALYTICS_COLLECTION);
-    const q = query(analyticsRef, where('userId', '==', userId));
-    const snapshot = await getDocs(q);
-
-    if (snapshot.empty) return null;
-    return snapshot.docs[0].data() as UserAnalytics;
+    const snapshot = await getDoc(doc(db, ANALYTICS_COLLECTION, userId));
+    if (!snapshot.exists()) return null;
+    return snapshot.data() as UserAnalytics;
   } catch (error) {
     if (!isFirebaseUnavailableError(error)) {
       console.error('Error getting user analytics:', error);

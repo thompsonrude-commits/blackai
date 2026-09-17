@@ -7,7 +7,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { MessageSquare, Sparkles, Globe, Zap, Shield, Users } from 'lucide-react';
-import RotatingLogo from './RotatingLogo';
+import { RotatingLogoHero } from './RotatingLogo';
 
 interface HomePageProps {
   user: any;
@@ -63,7 +63,7 @@ export default function HomePage({ user, isAdmin }: HomePageProps) {
         >
           {/* Logo */}
           <div className="mb-8 flex justify-center">
-            <RotatingLogo size="large" />
+            <RotatingLogoHero />
           </div>
 
           {/* Tagline */}

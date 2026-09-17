@@ -75,6 +75,13 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
                 ? 'Sign up to start learning Nigerian languages'
                 : 'Sign in to continue learning'}
             </p>
+            <div className="mb-8 rounded-lg border border-[#008751]/20 bg-[#008751]/5 p-4 text-sm text-gray-700">
+              <p className="font-semibold text-gray-900">Keep your learning connected</p>
+              <p className="mt-2">
+                Save conversations, Personal Professor lessons, mastery and progress,
+                then resume them across sessions and devices.
+              </p>
+            </div>
 
             {/* Error Message */}
             {error && (
@@ -199,10 +206,10 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
               </p>
             </div>
 
-            {/* Demo Info */}
+            {/* Local provider note */}
             <div className="mt-8 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
               <p className="text-sm text-blue-700">
-                <span className="font-semibold">Demo Account:</span> Use any email and password (minimum 6 characters) to create an account.
+                Email/password sign-in is also available when that provider is enabled for this Firebase project.
               </p>
             </div>
           </div>

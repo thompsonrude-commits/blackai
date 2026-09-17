@@ -3,22 +3,72 @@
  * Integrates: NLIE, Knowledge, Agent System into the main chat flow
  */
 
-import { NlieEngine } from '../../core/nlie/NlieEngine';
 import { DefaultKnowledgeEngine } from '../../core/knowledge/KnowledgeEngine';
 import { AgentRegistry } from '../../core/agent/registry';
 import { AgentPlanner } from '../../core/agent/planner';
-import { AgentExecutor } from '../../core/agent/executor';
 import { WorkflowManager } from '../../core/agent/WorkflowManager';
-import type { AIOrchestrator } from '../../core/orchestrator/index';
-import type { CapabilityRegistry } from '../../core/capabilities/CapabilityRegistry';
-import type { ModelRuntime } from '../../core/runtime/ModelRuntime';
+
+// Note: We're not directly importing NlieEngine to avoid Node.js EventEmitter dependency
+// Instead, we'll create a lightweight browser-compatible version
+
+/**
+ * Browser-compatible Nigerian Language Intelligence Engine
+ */
+class BrowserNlieEngine {
+  async detectLanguage(text: string): Promise<{
+    language: string;
+    confidence: number;
+    isCodeSwitched: boolean;
+  }> {
+    const lower = text.toLowerCase();
+    
+    // Comprehensive Nigerian language patterns
+    const patterns = {
+      pcm: /\b(abeg|wetin|dey|don|go|no|wahala|ehen|na|am|fit|chop|waka|abi)\b/i,
+      yo: /\b(ẹ|ọ|ṣ|ẹwa|owó|ilé|baba|mama|ọmọ|bawo|daadaa)\b/i,
+      ig: /\b(ị|ụ|ọ|nnọọ|kedu|daalụ|biko|ọ\s+dị\s+mma)\b/i,
+      ha: /\b(sannu|yaya|ina|gobe|don|allah|barawo|wahala)\b/i,
+      edo: /\b(kọyọ|vbèè|ọbowi|lahọ|ọbahvan|obiluu)\b/i,
+    };
+    
+    for (const [lang, pattern] of Object.entries(patterns)) {
+      if (pattern.test(lower)) {
+        const matches = (lower.match(pattern) || []).length;
+        const confidence = Math.min(0.95, 0.7 + (matches * 0.05));
+        return {
+          language: lang,
+          confidence,
+          isCodeSwitched: /\b(the|is|are|was|were|and|but|for)\b/i.test(text),
+        };
+      }
+    }
+    
+    // Fallback to English
+    return {
+      language: 'en',
+      confidence: 0.6,
+      isCodeSwitched: false,
+    };
+  }
+  
+  async translate(text: string, target: string): Promise<{
+    translated: string;
+    confidence: number;
+  }> {
+    // Placeholder - actual translation would use the AI model
+    return {
+      translated: text,
+      confidence: 0.6,
+    };
+  }
+}
 
 /**
  * Singleton engine instances
  */
 class EngineManager {
-  // Nigerian Language Intelligence Engine
-  private _nlieEngine: NlieEngine | null = null;
+  // Nigerian Language Intelligence Engine (browser-compatible)
+  private _nlieEngine: BrowserNlieEngine | null = null;
   
   // Knowledge Engine for document retrieval
   private _knowledgeEngine: DefaultKnowledgeEngine | null = null;
@@ -26,7 +76,6 @@ class EngineManager {
   // Agent System components
   private _agentRegistry: AgentRegistry | null = null;
   private _agentPlanner: AgentPlanner | null = null;
-  private _agentExecutor: AgentExecutor | null = null;
   private _workflowManager: WorkflowManager | null = null;
   
   // Initialization flags
@@ -35,11 +84,7 @@ class EngineManager {
   /**
    * Initialize all engines
    */
-  async initialize(options?: {
-    orchestrator?: AIOrchestrator;
-    capabilityRegistry?: CapabilityRegistry;
-    modelRuntime?: ModelRuntime;
-  }) {
+  async initialize() {
     if (this._initialized) {
       console.log('[EngineManager] Already initialized');
       return;
@@ -48,13 +93,8 @@ class EngineManager {
     console.log('[EngineManager] Initializing all engines...');
 
     try {
-      // Initialize NLIE Engine
-      this._nlieEngine = new NlieEngine(
-        { id: 'blackai.nlie', name: 'BLACK AI Nigerian Language Intelligence' },
-        options?.capabilityRegistry,
-        options?.orchestrator,
-        options?.modelRuntime
-      );
+      // Initialize browser-compatible NLIE Engine
+      this._nlieEngine = new BrowserNlieEngine();
       console.log('[EngineManager] ✓ NlieEngine initialized');
 
       // Initialize Knowledge Engine
@@ -65,18 +105,7 @@ class EngineManager {
       this._agentRegistry = new AgentRegistry();
       this._agentPlanner = new AgentPlanner(this._agentRegistry);
       this._workflowManager = new WorkflowManager();
-      
-      // Agent executor needs orchestrator - will be set when available
-      if (options?.orchestrator) {
-        this._agentExecutor = new AgentExecutor(
-          options.orchestrator,
-          this._workflowManager,
-          this._agentRegistry
-        );
-        console.log('[EngineManager] ✓ Agent System initialized with orchestrator');
-      } else {
-        console.log('[EngineManager] ⚠ Agent System initialized without orchestrator (limited functionality)');
-      }
+      console.log('[EngineManager] ✓ Agent System initialized');
 
       // Register default agents
       this._registerDefaultAgents();
@@ -164,7 +193,7 @@ class EngineManager {
   /**
    * Get NLIE Engine instance
    */
-  get nlieEngine(): NlieEngine {
+  get nlieEngine(): BrowserNlieEngine {
     if (!this._nlieEngine) {
       throw new Error('[EngineManager] NLIE Engine not initialized. Call initialize() first.');
     }
@@ -209,13 +238,6 @@ class EngineManager {
       throw new Error('[EngineManager] Workflow Manager not initialized. Call initialize() first.');
     }
     return this._workflowManager;
-  }
-
-  /**
-   * Get Agent Executor instance (may be null if no orchestrator)
-   */
-  get agentExecutor(): AgentExecutor | null {
-    return this._agentExecutor;
   }
 
   /**

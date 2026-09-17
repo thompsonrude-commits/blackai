@@ -15,6 +15,7 @@ import { NIGERIAN_LANGUAGES } from "../lib/nigerianLanguages";
 import { useLexicon, LexiconEntry } from "../lib/useLexicon";
 import { extractTrainingEntries } from "../lib/trainingExtraction";
 import { repairMojibake } from "../lib/textEncoding";
+import { defaultLanguageCoordinationEngine, ingestTrainingEntries } from "../../core/language-intelligence";
 
 type TrainingType = "conversation" | "correction" | "vocabulary" | "grammar" | "culture" | "spelling" | "phonetics" | "terminology";
 
@@ -1005,6 +1006,16 @@ Be thorough - extract as many useful training items as possible.`
         };
 
         await addDoc(collection(db, "aiTraining"), trainingEntry);
+        ingestTrainingEntries([{
+          nativeText: entry.nativeText,
+          englishText: entry.englishText,
+          phonetics: entry.phonetics || '',
+          context: entry.context || '',
+          type: entry.type === 'culture' ? 'culture' : entry.type === 'conversation' ? 'conversation' : 'vocabulary',
+        }], selectedLanguage.id, defaultLanguageCoordinationEngine.knowledge, {
+          createdBy: auth.currentUser?.uid,
+          sourceReference: 'admin-training',
+        });
         successCount++;
       }
 
@@ -1433,6 +1444,16 @@ function AddTrainingForm({ onDone, defaultLanguage }: { onDone: () => void; defa
       if (correction.trim()) entry.correction = correction.trim();
       if (audioUrl) entry.audioUrl = audioUrl;
       await addDoc(collection(db, "aiTraining"), entry);
+      ingestTrainingEntries([{
+        nativeText: nativeText.trim(),
+        englishText: englishText.trim(),
+        phonetics: phonetics.trim(),
+        context: context.trim(),
+        type: type === 'culture' ? 'culture' : type === 'conversation' ? 'conversation' : 'vocabulary',
+      }], selectedLanguage.id, defaultLanguageCoordinationEngine.knowledge, {
+        createdBy: auth.currentUser?.uid,
+        sourceReference: 'admin-training',
+      });
       onDone();
     } catch (err) {
       alert("Failed to save: " + (err instanceof Error ? err.message : String(err)));

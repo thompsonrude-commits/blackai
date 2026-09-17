@@ -5,6 +5,14 @@ import { Database, Search, ChevronRight, Globe, Clock, User, MapPin } from 'luci
 import { motion } from 'motion/react';
 import { NIGERIAN_LANGUAGES } from '../lib/nigerianLanguages';
 
+interface RepositoryLanguage {
+  id: string;
+  name: string;
+  location?: string;
+  isRegional: boolean;
+  createdAt: { seconds: number };
+}
+
 const BUILT_IN_LANGUAGES = Array.from(new Map(
   NIGERIAN_LANGUAGES.flatMap(region =>
     region.languages.map(language => [
@@ -18,10 +26,10 @@ const BUILT_IN_LANGUAGES = Array.from(new Map(
       },
     ] as const)
   )
-).values()).sort((a, b) => a.name.localeCompare(b.name));
+).values()).sort((a, b) => a.name.localeCompare(b.name)) as RepositoryLanguage[];
 
 export default function AdminRepository({ onSelectLanguage }: { onSelectLanguage: (name: string) => void }) {
-  const [languages, setLanguages] = useState<any[]>([]);
+  const [languages, setLanguages] = useState<RepositoryLanguage[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -32,7 +40,18 @@ export default function AdminRepository({ onSelectLanguage }: { onSelectLanguage
     }, 1500);
     const q = query(collection(db, 'languages'), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const liveLanguages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const liveLanguages: RepositoryLanguage[] = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          name: typeof data.name === 'string' ? data.name : doc.id,
+          location: typeof data.location === 'string' ? data.location : undefined,
+          isRegional: data.isRegional === true,
+          createdAt: data.createdAt && typeof data.createdAt.seconds === 'number'
+            ? { seconds: data.createdAt.seconds }
+            : { seconds: 0 },
+        };
+      });
       const liveNames = new Set(liveLanguages.map(language => String(language.name).toLowerCase()));
       setLanguages([
         ...liveLanguages,
