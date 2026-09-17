@@ -56,6 +56,7 @@ import {
   clearUserKnowledge,
   autoIndexFromConversation 
 } from '../lib/knowledgeHelper';
+import LoginBanner from './LoginBanner';
 import { saveChatSession, getSessionById } from '../lib/sessionManager';
 import { buildSelfAwarePrompt, detectUnavailableFeatureRequest } from '../lib/selfAwarePrompt';
 import { processFile } from '../lib/multimodalProcessor';
@@ -785,6 +786,7 @@ export default function GeneralAssistant({ user, isAdmin, currentSessionId, onOp
   const [messages, setMessages] = useState<(ChatMessage & { isNew?: boolean; imagePrompt?: string; imgType?: 'map'|'flag'|'ai'|'video'; imgLabel?: string; mapPlace?: string; isNigeriaMap?: boolean; mapFrom?: string; mapTo?: string; mapMode?: 'search'|'directions' })[]>([]);
   const [theme, setTheme] = useState(loadSavedTheme());
   const [isBusy, setIsBusy] = useState(false);
+  const [showLoginBanner, setShowLoginBanner] = useState(true);
   const [streamingContent, setStreamingContent] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [speakerEnabled, setSpeakerEnabled] = useState(false);
@@ -1644,6 +1646,14 @@ Use these meanings when the source contains these Edo phrases.`;
 
   return (
     <div ref={containerRef} className="relative flex flex-col h-screen max-h-screen bg-gradient-to-br from-[#000000] to-[#0d0d0d] text-white overflow-hidden">
+      
+      {/* Login Banner for guest users */}
+      {!user && showLoginBanner && (
+        <LoginBanner 
+          messageCount={messages.filter(m => m.role === 'user' || m.role === 'model').length}
+          onDismiss={() => setShowLoginBanner(false)}
+        />
+      )}
       
       {/* Speaker Cube — fullscreen animated visualizer when speaker is ON */}
       <SpeakerCube
