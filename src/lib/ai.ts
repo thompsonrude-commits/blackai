@@ -115,36 +115,43 @@ export async function* unifiedChatStream(messages: ChatMessageLike[], temperatur
             .slice(0, 2200);
         }
         
-        // DISABLED: Core knowledge engine - was not adding value
-        // if (engineManager.isInitialized) {
-        //   const coreKnowledgeResults = await engineManager.queryKnowledge(
-        //     lastUserMessage.content,
-        //     { maxResults: 3, language: conversationLanguage }
-        //   );
-        //   
-        //   if (coreKnowledgeResults.length > 0) {
-        //     const coreContext = coreKnowledgeResults
-        //       .map((doc) => `- ${doc.title}: ${doc.content.slice(0, 500)}${doc.tags ? ` [Tags: ${doc.tags.join(', ')}]` : ''}`)
-        //       .join('\n');
-        //     knowledgeContext += knowledgeContext ? '\n' + coreContext : '\n\n[Relevant Knowledge]:\n' + coreContext;
-        //   }
-        // }
+        // KNOWLEDGE ENGINE: Add as background context enhancement (non-blocking)
+        if (engineManager.isInitialized) {
+          try {
+            const coreKnowledgeResults = await engineManager.queryKnowledge(
+              lastUserMessage.content,
+              { maxResults: 2, language: conversationLanguage }
+            );
+            
+            if (coreKnowledgeResults.length > 0) {
+              const coreContext = coreKnowledgeResults
+                .slice(0, 2)
+                .map((doc) => `- ${doc.title}: ${doc.content.slice(0, 400)}`)
+                .join('\n');
+              knowledgeContext += knowledgeContext ? '\n' + coreContext : '\n\n[Relevant Knowledge]:\n' + coreContext;
+              console.log(`[AI] Knowledge engine added ${coreKnowledgeResults.length} docs as background context`);
+            }
+          } catch (err) {
+            console.warn('[AI] Knowledge engine query failed (non-blocking):', err);
+          }
+        }
       } catch (err) {
         console.warn('[AI] Knowledge search failed:', err);
       }
     }
 
-    // DISABLED: NLIE Engine - was causing issues
-    // DISABLED: NLIE engine - was causing issues with language detection
-    // let nlieDetection;
-    // try {
-    //   if (lastUserMessage && engineManager.isInitialized) {
-    //     nlieDetection = await engineManager.detectLanguage(lastUserMessage.content);
-    //     console.log('[AI] NLIE detection result:', nlieDetection);
-    //   }
-    // } catch (err) {
-    //   console.warn('[AI] NLIE detection failed, falling back to default:', err);
-    // }
+    // NLIE ENGINE: Enhanced language detection as background info (non-blocking)
+    let nlieDetection;
+    try {
+      if (lastUserMessage && engineManager.isInitialized) {
+        nlieDetection = await engineManager.detectLanguage(lastUserMessage.content);
+        if (nlieDetection && nlieDetection.confidence > 0.7) {
+          console.log(`[AI] NLIE detected: ${nlieDetection.language} (${(nlieDetection.confidence * 100).toFixed(0)}% confidence, code-switching: ${nlieDetection.isCodeSwitched})`);
+        }
+      }
+    } catch (err) {
+      console.warn('[AI] NLIE detection failed (non-blocking, using default):', err);
+    }
 
     const detectedLanguage = lastUserMessage
       ? defaultLanguageCoordinationEngine.detectLanguage(lastUserMessage.content)
@@ -156,11 +163,11 @@ export async function* unifiedChatStream(messages: ChatMessageLike[], temperatur
         })))
       : undefined;
     
-    // Build language context (NLIE disabled - using only default detection)
+    // Build language context (uses both default detection + NLIE as enhancement)
     const languageContext = detectedLanguage?.reliable
       ? {
           role: 'system' as const,
-          content: `Language coordination: preserve the user's original expression and respond in or appropriately explain ${detectedLanguage?.languageId}. Code-switching: ${detectedLanguage?.codeSwitching ? 'present' : 'not detected'}. Capability: ${cognitivePlan?.capability ?? 'chat'}. Verification: ${cognitivePlan?.verification.passed ? 'passed' : 'uncertain'}. Do not claim a translation is verified unless supported by supplied knowledge.`,
+          content: `Language coordination: preserve the user's original expression and respond in or appropriately explain ${detectedLanguage?.languageId}. ${nlieDetection && nlieDetection.confidence > 0.7 ? `Enhanced detection (NLIE): ${nlieDetection.language}, code-switching: ${nlieDetection.isCodeSwitched ? 'detected' : 'none'}.` : ''} Code-switching: ${detectedLanguage?.codeSwitching ? 'present' : 'not detected'}. Capability: ${cognitivePlan?.capability ?? 'chat'}. Verification: ${cognitivePlan?.verification.passed ? 'passed' : 'uncertain'}. Do not claim a translation is verified unless supported by supplied knowledge.`,
         }
       : undefined;
     const enrichedMessages = lastUserMessage
@@ -221,38 +228,43 @@ export async function* unifiedChatStream(messages: ChatMessageLike[], temperatur
     // DISABLED: Auto-triggered agent system was breaking normal responses
     // Complex queries now go directly to main AI 
     // if (lastUserMessage && shouldUseAgentSystem(lastUserMessage.content)) {
-    //   console.log('[AI] Request requires agent system, routing to workflow orchestration');
-    //   const explanation = explainWorkflow(lastUserMessage.content);
-    //   
-    //   try {
-    //     yield* wordStream(explanation + '\n\n');
-    //     const workflowResult = await executeAgentWorkflow(
-    //       lastUserMessage.content,
-    //       messages,
-    //       'user-session'
-    //     );
-    //     
-    //     if (workflowResult.success) {
-    //       recoveryService.recordSuccess('agent-workflow', 0, 0.9, 'workflow');
-    //       yield* wordStream(workflowResult.finalResponse);
-    //       return;
-    //     }
-    //   } catch (err) {
-    //     console.error('[AI] Agent workflow error:', err);
-    //   }
+    //   ...
     // }
 
-    // DISABLED: Research engine was breaking normal responses
-    // Medical/training queries now go directly to main AI with proper system prompts
-    // if (lastUserMessage) {
-    //   const researchResponse = await routeResearchRequest(lastUserMessage.content);
-    //   if (researchResponse && researchResponse.response) {
-    //     const text = sanitizeUserFacingText(researchResponse.response);
-    //     recoveryService.recordSuccess('local-research', 0, 0.8, 'research');
-    //     yield* wordStream(text);
-    //     return;
-    //   }
-    // }
+    // RESEARCH ENGINE: Only for serious medical/health queries (not training, not simple questions)
+    // This provides differential diagnosis and safety screening for health concerns
+    if (lastUserMessage) {
+      try {
+        const isSeriousMedicalQuery = /\b(?:symptom|diagnosis|disease|illness|infection|treatment|therapy|pain|fever|sick|cough|bleeding|injury)\b/i.test(lastUserMessage.content)
+          && !/\b(?:train|teach|learn|course|study|explain|what is)\b/i.test(lastUserMessage.content);
+        
+        if (isSeriousMedicalQuery) {
+          const researchResponse = await routeResearchRequest(lastUserMessage.content);
+          
+          // Only use research response if it provides actual diagnostic value
+          // Must have domain and reasonable response (not just weather data)
+          if (researchResponse && 
+              researchResponse.response && 
+              researchResponse.domain && 
+              researchResponse.response.length > 100 &&
+              !/weather|temperature|humidity/i.test(researchResponse.response)) {
+            
+            const text = sanitizeUserFacingText(researchResponse.response);
+            console.log('[AI] Research engine provided medical analysis');
+            recoveryService.recordSuccess('research-medical', 0, 0.8, 'research');
+            yield* wordStream(text);
+            return;
+          } else {
+            console.log('[AI] Research engine skipped (no valuable output or training request)');
+          }
+        }
+      } catch (err) {
+        console.warn('[AI] Research engine failed (non-blocking):', err);
+      }
+    }
+
+    // DISABLED: Previously this was intercepting all medical queries including training
+    // Now training requests go through professionalTraining.ts opt-in system
 
     const result = await _proxyChat({
       messages: messagesForChat,
