@@ -5,6 +5,7 @@
 // ── Provider identifiers ───────────────────────────────────────────────────
 
 export type ProviderId =
+  | 'puter'
   | 'native-gpu'
   | 'openrouter'
   | 'grok'
