@@ -204,7 +204,21 @@ export async function* unifiedChatStream(messages: ChatMessageLike[], temperatur
 
     const requestPlan = buildRequestPlan(lastUserMessage?.content ?? '', conversationLanguage);
 
-    // DISABLED: Agent system was breaking normal responses
+    // OPT-IN PROFESSIONAL TRAINING: Only activates on explicit "train me" commands
+    // Check if user explicitly requested professional training
+    if (lastUserMessage) {
+      const { detectTrainingRequest, getTrainingIntroduction } = await import('./professionalTraining');
+      const trainingRequest = detectTrainingRequest(lastUserMessage.content);
+      
+      if (trainingRequest.shouldStartTraining && trainingRequest.trainingType) {
+        console.log(`[AI] Professional training requested: ${trainingRequest.trainingType}`);
+        const intro = getTrainingIntroduction(trainingRequest.trainingType);
+        yield* wordStream(intro);
+        return;
+      }
+    }
+
+    // DISABLED: Auto-triggered agent system was breaking normal responses
     // Complex queries now go directly to main AI 
     // if (lastUserMessage && shouldUseAgentSystem(lastUserMessage.content)) {
     //   console.log('[AI] Request requires agent system, routing to workflow orchestration');

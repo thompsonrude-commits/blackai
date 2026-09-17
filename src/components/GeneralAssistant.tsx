@@ -787,6 +787,7 @@ export default function GeneralAssistant({ user, isAdmin, currentSessionId, onOp
   const [theme, setTheme] = useState(loadSavedTheme());
   const [isBusy, setIsBusy] = useState(false);
   const [showLoginBanner, setShowLoginBanner] = useState(true);
+  const [trainingMode, setTrainingMode] = useState<{ active: boolean; type?: string }>({ active: false });
   const [streamingContent, setStreamingContent] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [speakerEnabled, setSpeakerEnabled] = useState(false);
@@ -1001,6 +1002,22 @@ export default function GeneralAssistant({ user, isAdmin, currentSessionId, onOp
     if ((!text.trim() && pendingFiles.length === 0) || isBusy) return;
     const userMessage = text.trim();
     setInput(''); setIsBusy(true); stoppedRef.current = false; setLogoState('processing');
+
+    // Check for training mode exit
+    const { isExitTraining } = await import('../lib/professionalTraining');
+    if (trainingMode.active && isExitTraining(userMessage)) {
+      setTrainingMode({ active: false });
+      const response = `✓ Exited ${trainingMode.type || 'training'} mode. Back to normal chat!`;
+      setMessages(prev => [...prev, 
+        { role: 'user', content: userMessage, timestamp: Date.now() }, 
+        { role: 'model', content: response, timestamp: Date.now(), isNew: true }
+      ]);
+      historyRef.current.push({ role: 'user', content: userMessage }, { role: 'assistant', content: response });
+      setIsBusy(false);
+      setLogoState('success');
+      setTimeout(() => setLogoState('idle'), 2000);
+      return;
+    }
 
     // Check for knowledge management commands first
     const knowledgeCmd = parseKnowledgeCommand(userMessage);
@@ -1547,6 +1564,14 @@ Use these meanings when the source contains these Edo phrases.`;
           );
         }
         
+        // Check if response indicates training mode activation
+        const { detectTrainingRequest } = await import('../lib/professionalTraining');
+        const trainingCheck = detectTrainingRequest(userMessage);
+        if (trainingCheck.shouldStartTraining && trainingCheck.trainingType) {
+          setTrainingMode({ active: true, type: trainingCheck.trainingType });
+          console.log(`[Training] Activated ${trainingCheck.trainingType} mode`);
+        }
+        
         // isNew: false — streaming bubble already showed this content, just persist it
         setMessages(prev => {
           // Replace the streaming bubble slot — don't add a second message
@@ -1653,6 +1678,37 @@ Use these meanings when the source contains these Edo phrases.`;
           messageCount={messages.filter(m => m.role === 'user' || m.role === 'model').length}
           onDismiss={() => setShowLoginBanner(false)}
         />
+      )}
+      
+      {/* Training Mode Indicator */}
+      {trainingMode.active && (
+        <div className="w-full bg-gradient-to-r from-blue-600/30 to-purple-600/30 border-b border-blue-500/40 px-4 py-2">
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">
+                {trainingMode.type === 'medical' ? '🏥' : 
+                 trainingMode.type === 'engineering' ? '🔧' :
+                 trainingMode.type === 'law' ? '⚖️' :
+                 trainingMode.type === 'agriculture' ? '🌾' :
+                 trainingMode.type === 'technology' ? '💻' : '📚'}
+              </span>
+              <div>
+                <p className="text-sm font-medium text-white">
+                  Professional Training Mode Active
+                </p>
+                <p className="text-xs text-gray-300">
+                  {trainingMode.type && trainingMode.type.charAt(0).toUpperCase() + trainingMode.type.slice(1)} • Say "exit training" to return to normal chat
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setTrainingMode({ active: false })}
+              className="px-3 py-1 rounded-lg text-xs font-medium bg-white/10 hover:bg-white/20 transition-colors"
+            >
+              Exit Training
+            </button>
+          </div>
+        </div>
       )}
       
       {/* Speaker Cube — fullscreen animated visualizer when speaker is ON */}
