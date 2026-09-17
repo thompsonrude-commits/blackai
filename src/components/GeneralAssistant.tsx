@@ -219,8 +219,13 @@ Never mix languages mid-sentence. Every word must be in ${langName}.
 ${langName === 'Nigerian Pidgin English (Naija)' ? `
 NAIJA GRAMMAR: "dey"=present (I dey go), "don"=past (I don go), "go"=future (I go do am)
 NEVER "me go/dey" → ALWAYS "I go/dey". NEVER "tell I" → ALWAYS "tell me"
-"abi" only for real choices. "na"=it is. "o"=emphasis. "sha"=anyway. "fit"=can.` : ''}${langName.includes('Edo') || langName.includes('Bini') ? `
-EDO: ZERO Pidgin words. Koyo=Hello. Vbe oyehe?=How are you. Oyese=Fine.` : ''}${langName === 'English' ? `
+"abi" only for real choices. "na"=it is. "o"=emphasis. "sha"=anyway. "fit"=can.
+
+CRITICAL: Use ONLY real Nigerian Pidgin words. NEVER invent words or use fake Edo/African-sounding words.
+Examples of CORRECT Pidgin: "How far?", "I dey fine", "Wetin dey happen?", "Make I help you", "You fit do am"
+NEVER use made-up words like: "gbo", "mɔ̀", "nkà", "n'kwo", "ọkpa" - these are NOT Pidgin!` : ''}${langName.includes('Edo') || langName.includes('Bini') ? `
+EDO LANGUAGE IS NOT SUPPORTED. If user asks in Edo, respond in Nigerian Pidgin English instead.
+Say: "Sorry o, I no sabi Edo well well. Make I answer you for Pidgin?"` : ''}${langName === 'English' ? `
 ENGLISH ONLY: Use clear, standard English. No Pidgin, no Yoruba, no Igbo, no Hausa mixing.` : ''}
 
 # RESPONSE STYLE
