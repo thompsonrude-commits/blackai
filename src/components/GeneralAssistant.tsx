@@ -1457,7 +1457,7 @@ Use these meanings when the source contains these Edo phrases.`;
 
       {/* ── Messages ──────────────────────────────────────────────────── */}
       <div ref={scrollRef} className="relative z-10 flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-4">
-        {messages.length === 0 && !isStreaming ? (
+        {messages.length === 0 && !isStreaming && !isBusy ? (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center justify-center h-full text-center px-4 pb-32">
             <div className="mb-8"><NineJALogo state={logoState} size={200} /></div>
             <h2 className="text-3xl font-normal text-white mb-2">
@@ -1621,7 +1621,7 @@ Use these meanings when the source contains these Edo phrases.`;
                 <span className="w-2 h-2 rounded-full bg-[#00ff88] animate-dot-bounce inline-block" style={{ animationDelay: '400ms' }} />
               </div>
               <div className="flex-1">
-                <div className="text-sm text-[#00ff88] font-medium">BLACK AI is thinking…</div>
+                <div className="text-sm text-[#00ff88] font-medium">BLACK AI Reasoning...</div>
               </div>
             </div>
           </motion.div>
