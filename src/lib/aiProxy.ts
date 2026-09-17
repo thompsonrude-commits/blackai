@@ -6,7 +6,6 @@
 
 import { auth } from './firebase';
 import { getLocalFallbackResponse } from './fallbackResponses';
-import { buildPollinationsImageUrl } from './imageService';
 import { detectTextInImage } from './ocr';
 
 export interface ProxyChatMessage {
@@ -74,7 +73,10 @@ export async function proxyChat(options: ProxyChatOptions): Promise<ProxyChatRes
   
   // The deployed application runs its provider proxy as a Vercel function.
   try {
-    const response = await fetch('/api/v1/chat', {
+    // Use absolute URL for better mobile compatibility
+    const apiUrl = window.location.origin + '/api/v1/chat';
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -86,11 +88,18 @@ export async function proxyChat(options: ProxyChatOptions): Promise<ProxyChatRes
         sessionId: options.sessionId,
         targetLanguage: options.targetLanguage,
       }),
-      signal: AbortSignal.timeout(120000),
+      signal: AbortSignal.timeout(180000), // Increased timeout for mobile (3 minutes)
+      cache: 'no-store', // Prevent mobile browser caching issues
     });
 
     if (!response.ok) {
       const errText = await response.text().catch(() => '');
+      console.error('[AIProxy] API Error:', {
+        status: response.status,
+        statusText: response.statusText,
+        url: apiUrl,
+        error: errText.substring(0, 200)
+      });
       throw new Error(`Chat proxy ${response.status}: ${errText.slice(0, 100)}`);
     }
 
@@ -106,7 +115,12 @@ export async function proxyChat(options: ProxyChatOptions): Promise<ProxyChatRes
     if (isFallbackResult(data)) return buildLocalChatResult(options.messages);
     return data;
   } catch (err: any) {
-    console.warn('[AIProxy] Vercel AI endpoint failed, using local fallback:', err?.message);
+    console.error('[AIProxy] Vercel AI endpoint failed:', {
+      error: err?.message,
+      name: err?.name,
+      stack: err?.stack?.split('\n')[0]
+    });
+    console.warn('[AIProxy] Using local fallback');
     return buildLocalChatResult(options.messages);
   }
 }
@@ -148,12 +162,10 @@ export async function proxyImage(prompt: string, preferredProviders?: string[]):
       if (data && data.imageUrl) return { imageUrl: data.imageUrl, provider: data.provider || 'unknown', model: data.model || 'unknown', latencyMs: data.latencyMs || 0 };
     }
   } catch (err) {
-    // swallow and fall back to local
-    console.warn('[AIProxy] proxyImage backend failed, falling back to local image generator:', err?.message || err);
-  }
+      console.warn('[AIProxy] proxyImage backend failed:', err?.message || err);
+    }
 
-  const remote = buildPollinationsImageUrl(prompt || '3D concept art illustration');
-  return { imageUrl: remote, provider: 'pollinations', model: 'flux', latencyMs: 0 };
+    throw new Error('Image generation is unavailable: no configured image provider responded.');
 }
 
 export async function proxyVideo(prompt: string, imageDataUrl?: string): Promise<{ outputUrl: string; videoUrl?: string; provider: string; model: string; latencyMs: number }> {
