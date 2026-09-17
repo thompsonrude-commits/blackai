@@ -43,20 +43,43 @@ import {
 } from '../lib/adaptiveLearning';
 import { proxyImage, proxySearch, proxyVision, proxyVisualOrchestrator } from '../lib/aiProxy';
 import VisionEngine from './VisionEngine';
-import { db } from '../lib/firebase';
-import { collection, addDoc, query, where, orderBy, getDocs, serverTimestamp } from 'firebase/firestore';
+import {
+  loadAccountTeachingSession,
+  saveAccountChatSession,
+  saveAccountTeachingSession,
+} from '../lib/accountPersistence';
+import { engineManager } from '../lib/engineManager';
+import { 
+  parseKnowledgeCommand, 
+  parseForgetCommand, 
+  addUserKnowledge, 
+  clearUserKnowledge,
+  autoIndexFromConversation 
+} from '../lib/knowledgeHelper';
 import { saveChatSession, getSessionById } from '../lib/sessionManager';
 import { buildSelfAwarePrompt, detectUnavailableFeatureRequest } from '../lib/selfAwarePrompt';
 import { processFile } from '../lib/multimodalProcessor';
 import { initializeDefaultProviders } from '../lib/providerHealth';
 import { getLocalFallbackResponse } from '../lib/fallbackResponses';
 import { useAutoLearning } from './AutoLearning';
+import { recordUsageEvent, trackMessage } from '../lib/analyticsService';
 import { detectImageType } from '../lib/imageTypeDetector';
 import type { ImageGenerationRequest } from '../lib/newImageEngine';
 import SpeakerCube from './SpeakerCube';
 import NewImageBubble from './NewImageBubble';
 import DocumentViewer from './DocumentViewer';
 import GoogleAd from './GoogleAd';
+import {
+  createLearnerState,
+  createTeachingSession,
+  evaluateTeachingAnswer,
+  loadTeachingSession,
+  renderTeachingResponse,
+  saveTeachingSession,
+  setTeachingDeliveryMode,
+  type TeachingDeliveryMode,
+  type TeachingSession,
+} from '../../core/teaching';
 
 // ── Video Bubble ──────────────────────────────────────────────────────────
 function VideoBubble({ prompt }: { prompt: string }) {
@@ -103,6 +126,17 @@ function getTranslationTarget(text: string): { code: string; label: string } | n
   const label = match[1].toLowerCase();
   const code = TRANSLATION_TARGETS[label];
   return code ? { code, label } : null;
+}
+
+function parseTeachingDeliveryMode(text: string): TeachingDeliveryMode | null {
+  if (/\b(audio[\s+&-]*text|text[\s+&-]*audio|both)\b/i.test(text)) return 'audio_text';
+  if (/\b(audio|spoken|listen)\s+(?:mode|lecture|lesson)?\b/i.test(text)) return 'audio';
+  if (/\b(text|written|reading)\s+(?:mode|lecture|lesson)?\b/i.test(text)) return 'text';
+  return null;
+}
+
+function isTeachingRequest(text: string): boolean {
+  return /\b(?:teach me|give me a lecture|lecture on|lesson on|teach me about|professor mode|start a lesson|continue (?:my|the) lesson)\b/i.test(text);
 }
 
 function getLocalizedGreeting(displayName: string, languageCode: string): string {
@@ -757,6 +791,31 @@ export default function GeneralAssistant({ user, isAdmin, currentSessionId, onOp
   const [isSpeakingNow, setIsSpeakingNow] = useState(false);
   const [currentSpokenText, setCurrentSpokenText] = useState('');
   const [selectedAssistantId, setSelectedAssistantId] = useState('nosa');
+  const [teachingDeliveryMode, setTeachingDeliveryModeState] = useState<TeachingDeliveryMode>(() => {
+    try {
+      const stored = localStorage.getItem('teaching_delivery_mode');
+      return stored === 'audio' || stored === 'audio_text' ? stored : 'text';
+    } catch {
+      return 'text';
+    }
+  });
+  const [teachingSession, setTeachingSession] = useState<TeachingSession | null>(() => loadTeachingSession(user?.uid ?? 'anonymous'));
+  const teachingAwaitingAnswerRef = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const restore = async () => {
+      const learnerId = user?.uid ?? 'anonymous';
+      const local = loadTeachingSession(learnerId);
+      const remote = user?.uid ? await loadAccountTeachingSession(user.uid) : null;
+      if (cancelled) return;
+      const restored = remote || local;
+      setTeachingSession(restored);
+      teachingAwaitingAnswerRef.current = Boolean(restored);
+    };
+    void restore();
+    return () => { cancelled = true; };
+  }, [user?.uid]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('chat');
   const [showVision, setShowVision] = useState(false);
@@ -773,24 +832,6 @@ export default function GeneralAssistant({ user, isAdmin, currentSessionId, onOp
   speakerEnabledRef.current = speakerEnabled;
   isSpeakingNowRef.current  = isSpeakingNow;
 
-  // ── Save message to Firestore ────────────────────────────────────────────
-  const saveToFirestore = useCallback(async (userMsg: string, aiMsg: string) => {
-    if (!user?.uid) return;
-    try {
-      await addDoc(collection(db, 'chat_history'), {
-        userId: user.uid,
-        userEmail: user.email || '',
-        sessionId: sessionIdRef.current,
-        userMessage: userMsg,
-        aiResponse: aiMsg,
-        language: getConversationLanguageContext() || 'pcm',
-        timestamp: serverTimestamp(),
-        createdAt: Date.now(),
-      });
-    } catch (e) {
-      // Silently ignore — localStorage is the fallback
-    }
-  }, [user]);
   const processedPromptRef = useRef<string | null>(null);
   const [pendingFiles, setPendingFiles] = useState<{ name: string; type: string; preview?: string; content?: string }[]>([]);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
@@ -857,7 +898,12 @@ export default function GeneralAssistant({ user, isAdmin, currentSessionId, onOp
     }
 
     const session = getSessionById(user.uid, currentSessionId);
-    if (!session) return;
+    if (!session) {
+      setMessages([]);
+      historyRef.current = [];
+      rebuildSystemPrompt();
+      return;
+    }
     sessionIdRef.current = session.id;
     const restoredMessages = session.messages
       .filter((message) => message.role === 'user' || message.role === 'assistant')
@@ -954,6 +1000,56 @@ export default function GeneralAssistant({ user, isAdmin, currentSessionId, onOp
     const userMessage = text.trim();
     setInput(''); setIsBusy(true); stoppedRef.current = false; setLogoState('processing');
 
+    // Check for knowledge management commands first
+    const knowledgeCmd = parseKnowledgeCommand(userMessage);
+    if (knowledgeCmd.isKnowledgeCommand && knowledgeCmd.content) {
+      const success = await addUserKnowledge(
+        knowledgeCmd.content,
+        user?.uid || 'anonymous',
+        { title: knowledgeCmd.title }
+      );
+      
+      const response = success
+        ? `✓ Saved to knowledge base: "${knowledgeCmd.title}". I'll remember this for future conversations.`
+        : `I had trouble saving that to my knowledge base. Please try again.`;
+      
+      setMessages(prev => [...prev, 
+        { role: 'user', content: userMessage, timestamp: Date.now() }, 
+        { role: 'model', content: response, timestamp: Date.now(), isNew: true }
+      ]);
+      historyRef.current.push({ role: 'user', content: userMessage }, { role: 'assistant', content: response });
+      setIsBusy(false);
+      setLogoState(success ? 'success' : 'idle');
+      setTimeout(() => setLogoState('idle'), 2000);
+      return;
+    }
+    
+    const forgetCmd = parseForgetCommand(userMessage);
+    if (forgetCmd.isForgetCommand) {
+      if (forgetCmd.clearAll) {
+        const success = await clearUserKnowledge();
+        const response = success
+          ? `✓ All knowledge cleared. I've forgotten everything in my knowledge base. We can start fresh.`
+          : `I had trouble clearing the knowledge base. Please try again.`;
+        
+        setMessages(prev => [...prev, 
+          { role: 'user', content: userMessage, timestamp: Date.now() }, 
+          { role: 'model', content: response, timestamp: Date.now(), isNew: true }
+        ]);
+        historyRef.current.push({ role: 'user', content: userMessage }, { role: 'assistant', content: response });
+      } else {
+        const response = `To clear my knowledge base, say "forget everything" or "clear all knowledge".`;
+        setMessages(prev => [...prev, 
+          { role: 'user', content: userMessage, timestamp: Date.now() }, 
+          { role: 'model', content: response, timestamp: Date.now(), isNew: true }
+        ]);
+        historyRef.current.push({ role: 'user', content: userMessage }, { role: 'assistant', content: response });
+      }
+      setIsBusy(false);
+      setLogoState('idle');
+      return;
+    }
+
     const timeQuery = /\b(current\s+time|what\s+time|time\s+now|what\s+time\s+is\s+it|time\s+be\s+am|clock)\b/i.test(userMessage);
     const weatherQuery = /\b(weather|forecast|rain|temperature|sunny|humid|storm|cloudy|cold|hot)\b/i.test(userMessage) && !/\b(generate|image|photo|logo|draw)\b/i.test(userMessage);
 
@@ -970,12 +1066,75 @@ export default function GeneralAssistant({ user, isAdmin, currentSessionId, onOp
       setMessages(prev => [...prev, { role: 'user', content: userMessage, timestamp: Date.now() }, { role: 'model', content: response, timestamp: Date.now(), isNew: true }]);
       historyRef.current.push({ role: 'user', content: userMessage });
       historyRef.current.push({ role: 'assistant', content: response });
+      void recordUsageEvent(user?.uid, 'research', { queryType: 'search' });
       setIsBusy(false);
       setLogoState('idle');
       return;
     }
 
     const classifiedIntent = classifyUserIntent(userMessage);
+
+    const requestedDeliveryMode = parseTeachingDeliveryMode(userMessage);
+    if (requestedDeliveryMode && /\b(?:mode|lecture|lesson|teach|switch|use)\b/i.test(userMessage)) {
+      setTeachingDeliveryModeState(requestedDeliveryMode);
+      try { localStorage.setItem('teaching_delivery_mode', requestedDeliveryMode); } catch { /* local preference is optional */ }
+      const label = requestedDeliveryMode === 'audio_text' ? 'audio plus text' : requestedDeliveryMode;
+      const response = `Teaching delivery is now set to ${label}. Your learner state and lesson progress remain unchanged.`;
+      setMessages(prev => [...prev, { role: 'user', content: userMessage, timestamp: Date.now() }, { role: 'model', content: response, timestamp: Date.now(), isNew: true }]);
+      historyRef.current.push({ role: 'user', content: userMessage }, { role: 'assistant', content: response });
+      setIsBusy(false);
+      setLogoState('idle');
+      return;
+    }
+
+    const learnerId = user?.uid ?? 'anonymous';
+    if (teachingAwaitingAnswerRef.current && teachingSession && !isTeachingRequest(userMessage)) {
+      const evaluated = evaluateTeachingAnswer(teachingSession, userMessage);
+      const response = evaluated.correct
+        ? evaluated.feedback
+        : `${evaluated.feedback}\n\n${teachingSession.lessonSegments.find((item) => item.kind === 'explanation')?.text ?? ''}`;
+      const updatedSession = setTeachingDeliveryMode(evaluated.session, teachingDeliveryMode);
+      setTeachingSession(updatedSession);
+      saveTeachingSession(updatedSession);
+      if (user?.uid) void saveAccountTeachingSession(user.uid, updatedSession);
+      teachingAwaitingAnswerRef.current = false;
+      setMessages(prev => [...prev, { role: 'user', content: userMessage, timestamp: Date.now() }, { role: 'model', content: response, timestamp: Date.now(), isNew: true }]);
+      historyRef.current.push({ role: 'user', content: userMessage }, { role: 'assistant', content: response });
+      if (teachingDeliveryMode !== 'text') {
+        speakNigerian(response, selectedAssistantId);
+        speakNigerian('', selectedAssistantId);
+      }
+      void recordUsageEvent(user?.uid, 'teaching', {
+        topic: teachingSession.topic,
+        correct: evaluated.correct,
+      });
+      setIsBusy(false);
+      setLogoState(evaluated.correct ? 'success' : 'processing');
+      return;
+    }
+
+    if (isTeachingRequest(userMessage)) {
+      const continuing = /\bcontinue\b/i.test(userMessage) && teachingSession;
+      const session = continuing
+        ? setTeachingDeliveryMode(teachingSession, teachingDeliveryMode)
+        : createTeachingSession(userMessage, createLearnerState(learnerId), teachingDeliveryMode);
+      const response = renderTeachingResponse(session);
+      setTeachingSession(session);
+      saveTeachingSession(session);
+      if (user?.uid) void saveAccountTeachingSession(user.uid, session);
+      teachingAwaitingAnswerRef.current = true;
+      setMessages(prev => [...prev, { role: 'user', content: userMessage, timestamp: Date.now() }, { role: 'model', content: response.text, timestamp: Date.now(), isNew: true }]);
+      historyRef.current.push({ role: 'user', content: userMessage }, { role: 'assistant', content: response.text });
+      void recordUsageEvent(user?.uid, 'teaching', { topic: session.topic });
+      if (teachingDeliveryMode !== 'text') {
+        for (const speechSegment of response.speechSegments) speakNigerian(speechSegment, selectedAssistantId);
+        speakNigerian('', selectedAssistantId);
+      }
+      setIsBusy(false);
+      setLogoState(teachingDeliveryMode === 'text' ? 'success' : 'speaking');
+      setTimeout(() => setLogoState('idle'), 2000);
+      return;
+    }
 
     // If multi-intent detected, attempt to execute the multi-step workflow
     if ((classifiedIntent.secondaryCapabilities && classifiedIntent.secondaryCapabilities.length > 0) || (pendingFiles && pendingFiles.length > 0)) {
@@ -1040,6 +1199,7 @@ export default function GeneralAssistant({ user, isAdmin, currentSessionId, onOp
           setMessages(prev => [...prev, { role: 'user', content: userMessage, timestamp: Date.now() }, { role: 'model', content: imageResponse, timestamp: Date.now(), isNew: true }]);
           historyRef.current.push({ role: 'user', content: userMessage });
           historyRef.current.push({ role: 'assistant', content: imageResponse });
+          void recordUsageEvent(user?.uid, 'image', { generated: true });
           setIsBusy(false);
           setLogoState('success');
           setTimeout(() => setLogoState('idle'), 2000);
@@ -1375,6 +1535,16 @@ Use these meanings when the source contains these Edo phrases.`;
         } catch (e) { /* ignore normalization errors */ }
         historyRef.current.push({ role: 'assistant', content: finalTextNormalized });
         lastAIResponseRef.current = finalTextNormalized;
+        
+        // Auto-index factual conversation snippets to knowledge base
+        if (userMessage && finalTextNormalized) {
+          void autoIndexFromConversation(
+            userMessage,
+            finalTextNormalized,
+            user?.uid || 'anonymous'
+          );
+        }
+        
         // isNew: false — streaming bubble already showed this content, just persist it
         setMessages(prev => {
           // Replace the streaming bubble slot — don't add a second message
@@ -1384,7 +1554,6 @@ Use these meanings when the source contains these Edo phrases.`;
         // Scroll immediately after adding message
         setTimeout(scrollToBottom, 0);
         setTimeout(scrollToBottom, 100);
-        saveToFirestore(userMessage, cleanFullText);
         if (user?.uid) {
           saveChatSession(user.uid, {
             id: sessionIdRef.current,
@@ -1395,6 +1564,23 @@ Use these meanings when the source contains these Edo phrases.`;
             updatedAt: Date.now(),
             title: userMessage.slice(0, 40) || 'Chat',
           });
+          void saveAccountChatSession(user.uid, {
+            id: sessionIdRef.current,
+            languageId: getConversationLanguageContext() || 'pcm',
+            languageName: mapCodeToName(getConversationLanguageContext() || 'pcm'),
+            messages: [...historyRef.current.filter(m => m.role !== 'system')],
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            title: userMessage.slice(0, 40) || 'Chat',
+          });
+          void recordUsageEvent(user.uid, 'chat', {
+            language: getConversationLanguageContext() || 'pcm',
+          });
+          void trackMessage(
+            user.uid,
+            sessionIdRef.current,
+            getConversationLanguageContext() || 'pcm',
+          );
         }
       }
     } catch (err: any) {
@@ -1409,7 +1595,7 @@ Use these meanings when the source contains these Edo phrases.`;
       // Mark speaking as done — cube stays visible until speaker is turned off
       setTimeout(() => { setIsSpeakingNow(false); }, 1500);
     }
-  }, [isBusy, pendingFiles, scrollToBottom, speakerEnabled, selectedAssistantId, rebuildSystemPrompt, navigate, user?.uid]);
+  }, [isBusy, pendingFiles, scrollToBottom, speakerEnabled, selectedAssistantId, rebuildSystemPrompt, navigate, user?.uid, teachingDeliveryMode, teachingSession]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -1439,11 +1625,21 @@ Use these meanings when the source contains these Edo phrases.`;
     else if (id === 'translate') { setLogoState('translation'); setInput('translate to yoruba: '); setTimeout(() => inputRef.current?.focus(), 100); }
     else if (id === 'search') { setInput('search for '); setTimeout(() => inputRef.current?.focus(), 100); }
     else if (id === 'documents') { setLogoState('document'); setMessages(prev => [...prev, { role: 'model', content: '📄 Document mode: Upload a PDF or text file using the 📎 attach button and I will analyze it for you.', timestamp: Date.now(), isNew: true }]); setTimeout(() => setLogoState('idle'), 3000); }
-    else if (id === 'memory') { setMessages(prev => [...prev, { role: 'model', content: '🧠 Memory: I remember your preferences and corrections from previous conversations. You can say "forget everything" to clear my memory.', timestamp: Date.now(), isNew: true }]); }
+    else if (id === 'memory') { 
+      const statusMsg = engineManager.isInitialized 
+        ? '🧠 Memory & Knowledge Base Active\n\n✓ NLIE Engine: Nigerian language detection\n✓ Knowledge Engine: Document retrieval\n✓ Agent System: Multi-step workflows\n\nCommands:\n• "remember: [fact]" - Save to knowledge\n• "forget everything" - Clear knowledge\n\nI remember your preferences and learn from corrections.'
+        : '🧠 Memory: I remember your preferences and corrections from previous conversations. You can say "forget everything" to clear my memory.';
+      setMessages(prev => [...prev, { role: 'model', content: statusMsg, timestamp: Date.now(), isNew: true }]); 
+    }
     else if (id === 'languages') { navigate('/languages'); }
     else if (id === 'utilities') { navigate('/utilities'); }
     else if (id === 'settings') { setMessages(prev => [...prev, { role: 'model', content: '⚙️ Settings: Say "change theme dark", "change theme light", "speak yoruba", "speak english", or "speak pidgin" to customize the app.', timestamp: Date.now(), isNew: true }]); }
-    else if (id === 'about') { setMessages(prev => [...prev, { role: 'model', content: '🇳🇬 BLACK AI — Africa\'s smartest AI assistant\n\nBuilt by Tomega Technology Limited\n© 2026 · Thompson Obosa\n\nFeatures: Chat · Image Generation · Video · Vision · OCR · Translation · Voice · Nigerian Languages · Web Search · Documents · Memory', timestamp: Date.now(), isNew: true }]); }
+    else if (id === 'about') { 
+      const engineStatus = engineManager.isInitialized 
+        ? '\n\n🔧 Advanced Engines Active:\n• Nigerian Language Intelligence (NLIE)\n• Knowledge Base & Retrieval\n• Multi-Agent Orchestration'
+        : '';
+      setMessages(prev => [...prev, { role: 'model', content: `🇳🇬 BLACK AI — Africa's smartest AI assistant\n\nBuilt by Tomega Technology Limited\n© 2026 · Thompson Obosa\n\nFeatures: Chat · Image Generation · Video · Vision · OCR · Translation · Voice · Nigerian Languages · Web Search · Documents · Memory${engineStatus}`, timestamp: Date.now(), isNew: true }]); 
+    }
   };
 
   return (
@@ -1674,7 +1870,13 @@ Use these meanings when the source contains these Edo phrases.`;
           <button type="button" onClick={() => { setVisionMode('vision'); setShowVision(true); }} className="shrink-0 p-1.5 sm:p-2 rounded-full text-[#00ff88]/50 hover:text-[#00ff88] transition-all" title="Vision Camera"><Camera size={20} className="sm:w-[22px] sm:h-[22px]" /></button>
           <button type="button" onClick={() => { setVisionMode('ocr'); setShowVision(true); }} className="shrink-0 p-1.5 sm:p-2 rounded-full text-[#00ff88]/50 hover:text-[#00ff88] transition-all" title="OCR - Extract Text"><ScanText size={20} className="sm:w-[22px] sm:h-[22px]" /></button>
           <textarea ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder={placeholderText} rows={1} className="flex-1 bg-transparent outline-none text-sm sm:text-base placeholder-[#00ff88]/30 text-white resize-none max-h-20 sm:max-h-24 overflow-y-auto caret-[#00ff88]" />
-          <div className="shrink-0"><VoiceAssistantDropdown onVoiceInput={(text) => sendMessage(text)} onSpeakerToggle={(enabled) => { setSpeakerEnabled(enabled); if (!enabled) { setIsSpeakingNow(false); setCurrentSpokenText(''); stopNigerianSpeech(); } }} onAssistantChange={(id) => setSelectedAssistantId(id)} /></div>
+          <div className="shrink-0"><VoiceAssistantDropdown onVoiceInput={(text) => sendMessage(text)} onSpeakerToggle={(enabled) => {
+            setSpeakerEnabled(enabled);
+            const nextMode: TeachingDeliveryMode = enabled ? 'audio_text' : 'text';
+            setTeachingDeliveryModeState(nextMode);
+            try { localStorage.setItem('teaching_delivery_mode', nextMode); } catch { /* local preference is optional */ }
+            if (!enabled) { setIsSpeakingNow(false); setCurrentSpokenText(''); stopNigerianSpeech(); }
+          }} onAssistantChange={(id) => setSelectedAssistantId(id)} /></div>
           {isBusy ? (
             <button type="button" onClick={handleStop} className="shrink-0 p-1.5 sm:p-2 bg-red-500/80 text-white rounded-full active:scale-95"><Square size={14} className="sm:w-4 sm:h-4" fill="white" /></button>
           ) : (

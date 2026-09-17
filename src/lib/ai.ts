@@ -11,6 +11,10 @@ import { trackChatRequest } from './platform/analytics';
 import { recoveryService, QueuedRequest } from './platform/recoveryService';
 import { hasBrowserCapability } from './inHouseEngine';
 import { getEngineRouteOrder, sanitizeUserFacingText } from './providerAdapter';
+import { defaultCognitiveBrain, defaultLanguageCoordinationEngine } from '../../core/language-intelligence';
+import { routeResearchRequest } from '../../core/research';
+import { engineManager } from './engineManager';
+import { shouldUseAgentSystem, executeAgentWorkflow, explainWorkflow } from './agentOrchestrator';
 
 export interface ChatMessageLike {
   role: 'system' | 'user' | 'assistant';
@@ -97,6 +101,7 @@ export async function* unifiedChatStream(messages: ChatMessageLike[], temperatur
 
     if (lastUserMessage) {
       try {
+        // Use both platform knowledge engine and new core knowledge engine
         const knowledgeResults = await knowledgeEngine.search(lastUserMessage.content, {
           topK: 3,
           minSimilarity: 0.6,
@@ -109,16 +114,66 @@ export async function* unifiedChatStream(messages: ChatMessageLike[], temperatur
             .join('\n')
             .slice(0, 2200);
         }
+        
+        // Also query the new core knowledge engine
+        if (engineManager.isInitialized) {
+          const coreKnowledgeResults = await engineManager.queryKnowledge(
+            lastUserMessage.content,
+            { maxResults: 3, language: conversationLanguage }
+          );
+          
+          if (coreKnowledgeResults.length > 0) {
+            const coreContext = coreKnowledgeResults
+              .map((doc) => `- ${doc.title}: ${doc.content.slice(0, 500)}${doc.tags ? ` [Tags: ${doc.tags.join(', ')}]` : ''}`)
+              .join('\n');
+            knowledgeContext += knowledgeContext ? '\n' + coreContext : '\n\n[Relevant Knowledge]:\n' + coreContext;
+            console.log(`[AI] Core knowledge engine added ${coreKnowledgeResults.length} documents to context`);
+          }
+        }
       } catch (err) {
         console.warn('[AI] Knowledge search failed:', err);
       }
     }
 
-    const enrichedMessages = knowledgeContext
-      ? [...messages.slice(0, -1), {
-          role: 'user' as const,
-          content: messages[messages.length - 1].content.slice(0, 4000) + knowledgeContext,
-        }]
+    // Use NLIE Engine for Nigerian language detection (enhanced detection)
+    let nlieDetection;
+    try {
+      if (lastUserMessage && engineManager.isInitialized) {
+        nlieDetection = await engineManager.detectLanguage(lastUserMessage.content);
+        console.log('[AI] NLIE detection result:', nlieDetection);
+      }
+    } catch (err) {
+      console.warn('[AI] NLIE detection failed, falling back to default:', err);
+    }
+
+    const detectedLanguage = lastUserMessage
+      ? defaultLanguageCoordinationEngine.detectLanguage(lastUserMessage.content)
+      : undefined;
+    const cognitivePlan = lastUserMessage
+      ? await defaultCognitiveBrain.plan(lastUserMessage.content, 'default', messages.map((message) => ({
+          role: message.role,
+          content: message.content,
+        })))
+      : undefined;
+    
+    // Build language context with NLIE detection if available
+    const languageContext = detectedLanguage?.reliable || nlieDetection
+      ? {
+          role: 'system' as const,
+          content: `Language coordination: preserve the user's original expression and respond in or appropriately explain ${nlieDetection?.language || detectedLanguage?.languageId}. ${nlieDetection ? `NLIE detection: ${nlieDetection.language} (confidence: ${nlieDetection.confidence.toFixed(2)}, code-switching: ${nlieDetection.isCodeSwitched ? 'detected' : 'none'}).` : ''} Code-switching: ${detectedLanguage?.codeSwitching || nlieDetection?.isCodeSwitched ? 'present' : 'not detected'}. Capability: ${cognitivePlan?.capability ?? 'chat'}. Verification: ${cognitivePlan?.verification.passed ? 'passed' : 'uncertain'}. Do not claim a translation is verified unless supported by supplied knowledge.`,
+        }
+      : undefined;
+    const enrichedMessages = lastUserMessage
+      ? [
+          ...messages.slice(0, -1),
+          ...(languageContext ? [languageContext] : []),
+          ...(knowledgeContext
+            ? [{
+                role: 'user' as const,
+                content: lastUserMessage.content.slice(0, 4000) + knowledgeContext,
+              }]
+            : [lastUserMessage]),
+        ]
       : messages;
 
     const boundedMessages = buildBoundedContext(enrichedMessages);
@@ -148,6 +203,49 @@ export async function* unifiedChatStream(messages: ChatMessageLike[], temperatur
     }
 
     const requestPlan = buildRequestPlan(lastUserMessage?.content ?? '', conversationLanguage);
+
+    // Check if request requires agent system (multi-step complex workflow)
+    if (lastUserMessage && shouldUseAgentSystem(lastUserMessage.content)) {
+      console.log('[AI] Request requires agent system, routing to workflow orchestration');
+      const explanation = explainWorkflow(lastUserMessage.content);
+      
+      try {
+        // Yield explanation first
+        yield* wordStream(explanation + '\n\n');
+        
+        // Execute workflow
+        const workflowResult = await executeAgentWorkflow(
+          lastUserMessage.content,
+          messages,
+          'user-session'
+        );
+        
+        if (workflowResult.success) {
+          recoveryService.recordSuccess('agent-workflow', 0, 0.9, 'workflow');
+          yield* wordStream(workflowResult.finalResponse);
+          return;
+        } else {
+          console.warn('[AI] Agent workflow failed, falling back to standard processing');
+          yield* wordStream('The multi-step workflow encountered issues. Let me try a simpler approach...\n\n');
+          // Fall through to standard processing
+        }
+      } catch (err) {
+        console.error('[AI] Agent workflow error:', err);
+        yield* wordStream('I had trouble with the multi-step processing. Let me handle this in a simpler way...\n\n');
+        // Fall through to standard processing
+      }
+    }
+
+    if (lastUserMessage) {
+      const researchResponse = await routeResearchRequest(lastUserMessage.content);
+      if (researchResponse) {
+        const text = sanitizeUserFacingText(researchResponse.response);
+        recoveryService.recordSuccess('local-research', 0, 0.8, 'research');
+        yield* wordStream(text);
+        return;
+      }
+    }
+
     const result = await _proxyChat({
       messages: messagesForChat,
       temperature,
@@ -162,21 +260,7 @@ export async function* unifiedChatStream(messages: ChatMessageLike[], temperatur
       recoveryService.evaluateOfflineMode('chat');
       trackChatRequest(result.provider, true, latency);
 
-      if (lastUserMessage && result.text.length < 500) {
-        try {
-          await knowledgeEngine.addEntry(
-            `Q: ${lastUserMessage.content}\nA: ${result.text.slice(0, 200)}`,
-            {
-              type: 'conversation',
-              language: conversationLanguage,
-              confidence: 0.7,
-              timestamp: Date.now(),
-            }
-          );
-        } catch (err) {
-          console.warn('[AI] Failed to save to knowledge engine:', err);
-        }
-      }
+      if (lastUserMessage) defaultCognitiveBrain.rememberResponse('default', result.text);
 
       yield* wordStream(result.text);
       return;
