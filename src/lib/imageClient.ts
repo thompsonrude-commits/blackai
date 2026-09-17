@@ -1,10 +1,47 @@
 import { GenerationStage, GeneratedImage, buildFinalImagePrompt } from './imageService';
+import { generateImageWithPuter, isPuterAvailable } from './puterImageService';
 
 export async function generateImage(prompt: string, options?: { preferredProviders?: string[]; allowFallback?: boolean }, onStage?: (stage: GenerationStage) => void): Promise<GeneratedImage> {
   onStage?.('analyzing');
   await new Promise((r) => setTimeout(r, 120));
   onStage?.('expanding');
 
+  // PRIORITY: Try Puter.js first (Chinese app approach - truly free, client-side)
+  try {
+    onStage?.('planning');
+    
+    const puterAvailable = await isPuterAvailable();
+    if (puterAvailable) {
+      console.log('[ImageClient] Using Puter.js (free unlimited)');
+      onStage?.('generating_candidates');
+      
+      // Detect if prompt needs text rendering
+      const needsText = prompt.toLowerCase().match(/text|word|letter|sign|banner|poster|quote|caption|title/);
+      
+      const imageUrl = await generateImageWithPuter(prompt, {
+        model: needsText ? 'qwen-image' : 'flux-dev',
+        quality: 'high',
+        width: 1024,
+        height: 1024,
+      });
+
+      onStage?.('rendering');
+      
+      return {
+        id: `puter_${Date.now()}`,
+        prompt,
+        imageUrl,
+        generatedAt: Date.now(),
+        model: needsText ? 'qwen-image-2.0-pro' : 'flux-2-dev',
+        provider: 'puter',
+        metadata: { source: 'puter.js', free: true, unlimited: true },
+      };
+    }
+  } catch (puterErr: any) {
+    console.warn('[ImageClient] Puter.js failed, falling back:', puterErr?.message);
+  }
+
+  // FALLBACK: Try backend API
   try {
     onStage?.('planning');
 
@@ -16,7 +53,7 @@ export async function generateImage(prompt: string, options?: { preferredProvide
         if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
       }
     } catch (e) {
-      // ignore token acquisition errors — backend will enforce auth where required
+      // ignore token acquisition errors
     }
 
     const bodyPayload: any = { prompt };
@@ -63,7 +100,6 @@ export async function generateImage(prompt: string, options?: { preferredProvide
     throw new Error('Image generation returned no mediaUrl or generationId');
   } catch (err: any) {
     console.warn('[imageClient] generateImage failed:', err?.message || err);
-    // Propagate errors so UI can show honest failure/provenance
     throw err;
   }
 }
