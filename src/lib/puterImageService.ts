@@ -56,14 +56,15 @@ async function loadPuter(): Promise<void> {
 }
 
 export interface PuterImageOptions {
-  model?: 'qwen-image' | 'flux-pro' | 'flux-dev' | 'stable-diffusion' | 'grok-imagine' | 'gpt-image' | 'gemini-image';
+  model?: 'qwen-image' | 'flux-pro' | 'flux-dev' | 'stable-diffusion' | 'grok-imagine' | 'gpt-image' | 'gemini-image' | 'ideogram';
   quality?: 'low' | 'medium' | 'high';
   width?: number;
   height?: number;
 }
 
 const MODEL_MAP: Record<string, string> = {
-  'qwen-image': 'qwen/qwen-image-2.0-pro',
+  'qwen-image': 'qwen/qwen-image-2.0-pro', // Best for text rendering (English & Chinese)
+  'ideogram': 'ideogram/ideogram-3.0', // Excellent for text on images
   'flux-pro': 'black-forest-labs/flux-2-pro',
   'flux-dev': 'black-forest-labs/flux-2-dev',
   'stable-diffusion': 'stabilityai/stable-diffusion-3-medium',
@@ -75,6 +76,7 @@ const MODEL_MAP: Record<string, string> = {
 /**
  * Generate image using Puter.js (free, unlimited)
  * This is the same approach Chinese AI apps use for free generation
+ * Automatically selects best model for text rendering
  */
 export async function generateImageWithPuter(
   prompt: string,
@@ -88,13 +90,20 @@ export async function generateImageWithPuter(
       throw new Error('Puter.js not available');
     }
 
-    // Use Qwen Image by default (Chinese AI model, fast and free)
-    const model = MODEL_MAP[options.model || 'qwen-image'];
+    // Use Qwen Image by default for text-heavy prompts, otherwise use FLUX
+    const hasText = prompt.toLowerCase().match(/text|word|letter|sign|banner|poster|quote|caption|title/);
+    const model = MODEL_MAP[options.model || (hasText ? 'qwen-image' : 'flux-dev')];
+    
+    // Enhance prompt for text rendering if needed
+    let enhancedPrompt = prompt;
+    if (hasText && !options.model) {
+      enhancedPrompt = `${prompt}, clear readable text, sharp typography, professional design`;
+    }
     
     // Generate image
-    const imageElement = await window.puter.ai.txt2img(prompt, {
+    const imageElement = await window.puter.ai.txt2img(enhancedPrompt, {
       model,
-      quality: options.quality || 'medium',
+      quality: options.quality || 'high', // Use high quality for text
       width: options.width || 1024,
       height: options.height || 1024,
     });
@@ -147,42 +156,55 @@ export async function isPuterAvailable(): Promise<boolean> {
 /**
  * Get list of available models
  */
-export function getAvailableModels(): { id: string; name: string; description: string }[] {
+export function getAvailableModels(): { id: string; name: string; description: string; supportsText: boolean }[] {
   return [
     {
       id: 'qwen-image',
       name: 'Qwen Image 2.0 Pro',
-      description: 'Alibaba\'s flagship model - fast, high quality, supports text rendering'
+      description: 'Alibaba\'s flagship model - BEST for text rendering (English & Chinese)',
+      supportsText: true
+    },
+    {
+      id: 'ideogram',
+      name: 'Ideogram 3.0',
+      description: 'EXCELLENT for text on images - posters, banners, quotes',
+      supportsText: true
     },
     {
       id: 'flux-pro',
       name: 'FLUX.2 Pro',
-      description: 'Premium quality, best for detailed artwork'
+      description: 'Premium quality, best for detailed artwork',
+      supportsText: false
     },
     {
       id: 'flux-dev',
       name: 'FLUX.2 Dev',
-      description: 'Good balance of speed and quality'
+      description: 'Good balance of speed and quality',
+      supportsText: false
     },
     {
       id: 'gpt-image',
       name: 'GPT Image 2',
-      description: 'OpenAI\'s image model, great for realistic photos'
+      description: 'OpenAI\'s image model, great for realistic photos',
+      supportsText: false
     },
     {
       id: 'gemini-image',
       name: 'Gemini 3 Pro Image',
-      description: 'Google\'s model, excellent for creative concepts'
+      description: 'Google\'s model, excellent for creative concepts',
+      supportsText: false
     },
     {
       id: 'grok-imagine',
       name: 'Grok Imagine',
-      description: 'X AI\'s model, good for diverse styles'
+      description: 'X AI\'s model, good for diverse styles',
+      supportsText: false
     },
     {
       id: 'stable-diffusion',
       name: 'Stable Diffusion 3',
-      description: 'Classic open-source model, reliable quality'
+      description: 'Classic open-source model, reliable quality',
+      supportsText: false
     },
   ];
 }

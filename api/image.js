@@ -19,7 +19,46 @@ module.exports = async (req, res) => {
   // Strategy: Use truly free APIs (no key needed, no watermark)
   // These work just like Chinese AI apps - 100% free for users
   
-  // Option 1: Prodia (free, fast, no watermark, no API key required)
+  // Check if prompt needs text rendering
+  const needsTextRendering = prompt.toLowerCase().match(/text|word|letter|sign|banner|poster|quote|caption|title/);
+  
+  // Option 1: Ideogram (best for text rendering - posters, banners, quotes)
+  if (needsTextRendering) {
+    try {
+      // Ideogram has a generous free tier and excels at text rendering
+      const ideogramResponse = await fetch('https://api.ideogram.ai/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image_request: {
+            prompt: prompt,
+            aspect_ratio: 'ASPECT_1_1',
+            model: 'V_2',
+            magic_prompt_option: 'AUTO',
+          }
+        }),
+      });
+
+      if (ideogramResponse.ok) {
+        const ideogramData = await ideogramResponse.json();
+        if (ideogramData.data && ideogramData.data[0] && ideogramData.data[0].url) {
+          return res.status(200).json({
+            imageUrl: ideogramData.data[0].url,
+            provider: 'ideogram',
+            model: 'ideogram-v2',
+            latencyMs: 0,
+            hasWatermark: false,
+            supportsText: true
+          });
+        }
+      }
+    } catch (err) {
+      console.log('[Image] Ideogram unavailable, trying next...');
+    }
+  }
+
+  // Option 2: Prodia (free, fast, no watermark, no API key required)
+  // Option 2: Prodia (free, fast, no watermark, no API key required)
   try {
     const prodiaResponse = await fetch('https://api.prodia.com/generate', {
       method: 'POST',
@@ -63,6 +102,37 @@ module.exports = async (req, res) => {
     }
   } catch (err) {
     console.log('[Image] Prodia unavailable, trying next...');
+  }
+
+  // Option 3: Cloudflare Workers AI (free tier, good for text)
+  if (needsTextRendering) {
+    try {
+      const cfResponse = await fetch('https://api.cloudflare.com/client/v4/accounts/demo/ai/run/@cf/black-forest-labs/flux-1-schnell', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: prompt,
+          num_steps: 4,
+        }),
+      });
+
+      if (cfResponse.ok) {
+        const blob = await cfResponse.blob();
+        if (blob.size > 0) {
+          const base64 = Buffer.from(await blob.arrayBuffer()).toString('base64');
+          return res.status(200).json({
+            imageUrl: `data:image/png;base64,${base64}`,
+            provider: 'cloudflare',
+            model: 'flux-schnell',
+            latencyMs: 0,
+            hasWatermark: false,
+            supportsText: true
+          });
+        }
+      }
+    } catch (err) {
+      console.log('[Image] Cloudflare unavailable, trying next...');
+    }
   }
 
   // Option 2: Vyro.ai (free, no key, works well)
