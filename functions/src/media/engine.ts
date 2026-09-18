@@ -1,5 +1,6 @@
 import type { ProviderId } from '../types';
-import { huggingfaceVideo } from '../providers/huggingface';
+// Lazy-load to avoid initialization timeout:
+// import { huggingfaceVideo } from '../providers/huggingface';
 import { generateImageNative, checkNativeAIAvailable, classifyImageType, enhancePromptForQuality } from './nativeAIEngine';
 
 export interface MediaGenerationRequest {
@@ -188,6 +189,7 @@ export async function generateMedia(request: MediaGenerationRequest): Promise<Me
       // Fallback to HuggingFace if Kling fails
       try {
         console.log('[MediaEngine] Trying HuggingFace for video generation');
+        const { huggingfaceVideo } = await import('../providers/huggingface');
         const result = await huggingfaceVideo(request.prompt);
         const latencyMs = Date.now() - startTime;
         console.log(`[MediaEngine] Success with HuggingFace in ${latencyMs}ms`);

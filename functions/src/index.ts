@@ -32,10 +32,11 @@ if (fs.existsSync(envPath) && process.env.NODE_ENV !== 'production' && !process.
 // All heavy modules lazy-loaded inside handlers to avoid startup timeout
 // import { routeChat, routeImage, routeTranscribe, routeSearch } from './router';
 import type { ProviderVerificationReport } from './media/providerRegistry';
-import { getAllHealthSnapshots, logRequest } from './logger';
-import { getMemCacheStats } from './cache';
-import { AIRequest, ProviderHealth } from './types';
-import { getStatus as getGenStatus } from './media/generationStatus';
+// Lazy-load these to avoid initialization timeout:
+// import { getAllHealthSnapshots, logRequest } from './logger';
+// import { getMemCacheStats } from './cache';
+// import { getStatus as getGenStatus } from './media/generationStatus';
+import type { AIRequest, ProviderHealth } from './types';
 
 function repairMojibake(text: string): string {
   const replacements: Array<[string, string]> = [
@@ -328,6 +329,7 @@ export const v1ImageGenerate = onRequest(
       const latencyMs = Date.now() - startTime;
 
       // Log request
+      const { logRequest } = await import('./logger');
       logRequest({
         requestId,
         task: 'image',
@@ -644,6 +646,7 @@ export const aiChat = onRequest(
       });
 
       // Log async
+      const { logRequest } = await import('./logger');
       logRequest({
         requestId,
         userId,
@@ -747,6 +750,7 @@ export const aiStream = onRequest(
       });
 
       // Log async
+      const { logRequest } = await import('./logger');
       logRequest({
         requestId,
         userId,
@@ -818,6 +822,7 @@ export const aiImage = onRequest(
       const result = await jimengImage(prompt);
       const latencyMs = Date.now() - startTime;
 
+      const { logRequest } = await import('./logger');
       logRequest({
         requestId,
         task: 'image',
@@ -966,6 +971,7 @@ export const imagesStatus = onRequest({ cors: true }, async (req, res) => {
       return;
     }
 
+    const { getStatus: getGenStatus } = await import('./media/generationStatus');
     const status = await getGenStatus(id);
     if (!status) {
       res.status(404).json({ error: 'generation not found' });
@@ -1073,6 +1079,7 @@ export const aiVideo = onRequest(
         preferredProviders: intelligence.preferredProviders,
       });
 
+      const { logRequest } = await import('./logger');
       logRequest({
         requestId,
         task: 'video',
@@ -1508,6 +1515,7 @@ export const aiTranscribe = onRequest(
       const { routeTranscribe } = await import('./router');
       const result = await routeTranscribe(audioBuffer, resolvedMimeType, language);
 
+      const { logRequest } = await import('./logger');
       logRequest({
         requestId,
         task: 'transcribe',
@@ -1604,6 +1612,8 @@ export const aiHealth = onRequest(
   async (req, res) => {
     if (setCorsHeaders(req, res)) return;
 
+    const { getAllHealthSnapshots } = await import('./logger');
+    const { getMemCacheStats } = await import('./cache');
     const snapshots = getAllHealthSnapshots();
     const cacheStats = getMemCacheStats();
     // Lazy-load monitoring and intelligence modules to avoid startup cost

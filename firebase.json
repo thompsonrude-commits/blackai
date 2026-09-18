@@ -22,7 +22,8 @@
         "firebase-debug.log",
         "firebase-debug.*.log",
         "*.local"
-      ]
+      ],
+      "initializeTimeout": 60000
     }
   ],
   "hosting": {
