@@ -248,24 +248,11 @@ function wrapText(text: string, maxCharsPerLine: number): string[] {
 }
 
 /**
- * Generate image URL from Pollinations
+ * DEPRECATED: Pollinations removed - use Jimeng or Puter instead
  */
 function generatePollinationsUrl(prompt: string, dimensions: { width: number; height: number }): string {
-  const { width, height } = dimensions;
-  const seed = Date.now() + Math.floor(Math.random() * 1000000);
-  const timestamp = Date.now();
-  
-  // Clean and encode prompt
-  const safePrompt = prompt
-    .trim()
-    .replace(/\s+/g, ' ')
-    .replace(/[<>"']/g, '')
-    .slice(0, 180);
-  
-  const encodedPrompt = encodeURIComponent(safePrompt);
-  
-  // Use format that works: /prompt/ instead of just /
-  return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&nologo=true&seed=${seed}&model=flux&_=${timestamp}`;
+  console.warn('[NewImageEngine] Pollinations is deprecated. Use Jimeng or Puter instead.');
+  throw new Error('Pollinations provider removed. Use Jimeng or Puter for image generation.');
 }
 
 /**

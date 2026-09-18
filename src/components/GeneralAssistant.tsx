@@ -716,11 +716,10 @@ function ImageBubble({ url, originalContent, prompt, imgType, label, onImageRead
           const next = retryCount + 1;
           setRetryCount(next);
           
-          // Try simpler URL format
-          const simpleUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(rawPrompt)}?width=1024&height=1024&seed=${Date.now()}`;
-          console.log('[ImageBubble] Simple URL:', simpleUrl);
-          setImgSrc(simpleUrl);
-          setStatus('loading');
+          // No more retries - show error
+          setStatus('error');
+          setErrorMsg('Image generation failed. Please try again.');
+          console.error('[ImageBubble] All generation attempts failed');
           return;
         }
       }

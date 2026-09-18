@@ -47,7 +47,8 @@ export async function initLocationContext(): Promise<DeviceLocationContext> {
     };
 
     try {
-      const reverseUrl = `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${position.coords.latitude}&longitude=${position.coords.longitude}&language=en&format=json`;
+      // Use CORS proxy to avoid CORS errors
+      const reverseUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://geocoding-api.open-meteo.com/v1/reverse?latitude=${position.coords.latitude}&longitude=${position.coords.longitude}&language=en&format=json`)}`;
       const reverseRes = await fetch(reverseUrl);
       if (reverseRes.ok) {
         const data = await reverseRes.json();
