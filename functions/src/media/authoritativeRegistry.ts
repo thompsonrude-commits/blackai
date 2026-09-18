@@ -13,9 +13,13 @@ export type ProviderDefinition = {
 };
 
 export const PROVIDER_DEFINITIONS: ProviderDefinition[] = [
-  // ===== TRULY FREE IMAGE PROVIDERS (No user charges) =====
-  { providerId: 'jimeng', displayName: 'Jimeng AI (ByteDance)', capability: 'IMAGE', local: false, models: ['jimeng-4.5'], routingPriority: 1, fallbackEligible: true, adapterPath: '../providers/jimeng' },
-  { providerId: 'zimage', displayName: 'Z-Image Turbo (Alibaba)', capability: 'IMAGE', local: false, models: ['z-image-turbo'], routingPriority: 2, fallbackEligible: true, adapterPath: '../providers/zimage' },
+  // ===== TRULY UNLIMITED IMAGE PROVIDERS (Community-powered & Ad-supported) =====
+  { providerId: 'stablehorde', displayName: 'Stable Horde (Community Unlimited)', capability: 'IMAGE', local: false, models: ['stable-diffusion'], routingPriority: 1, fallbackEligible: true, adapterPath: '../providers/stablehorde' },
+  { providerId: 'craiyon', displayName: 'Craiyon (Ad-supported Unlimited)', capability: 'IMAGE', local: false, models: ['dall-e-mini'], routingPriority: 2, fallbackEligible: true, adapterPath: '../providers/craiyon' },
+  
+  // ===== RATE-LIMITED FREE IMAGE PROVIDERS (High quality fallbacks) =====
+  { providerId: 'zimage', displayName: 'Z-Image Turbo (Alibaba 2K/day)', capability: 'IMAGE', local: false, models: ['z-image-turbo'], routingPriority: 3, fallbackEligible: true, adapterPath: '../providers/zimage' },
+  { providerId: 'jimeng', displayName: 'Jimeng AI (ByteDance 80-100/day)', capability: 'IMAGE', local: false, models: ['jimeng-4.5'], routingPriority: 4, fallbackEligible: true, adapterPath: '../providers/jimeng' },
   
   // ===== USER-PAYS PROVIDERS (Users charged per generation) =====
   { providerId: 'puter', displayName: 'Puter.js (User-Pays $0.03-0.10)', capability: 'IMAGE', local: false, models: ['qwen-image-2.0-pro', 'flux-2-dev'], routingPriority: 50, fallbackEligible: true, adapterPath: '../providers/puter' },

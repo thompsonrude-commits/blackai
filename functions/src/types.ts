@@ -8,6 +8,8 @@ export type ProviderId =
   | 'puter'
   | 'jimeng'
   | 'zimage'
+  | 'stablehorde'
+  | 'craiyon'
   | 'kling'
   | 'native-gpu'
   | 'openrouter'

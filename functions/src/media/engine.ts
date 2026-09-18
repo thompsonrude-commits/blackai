@@ -90,38 +90,73 @@ export async function generateMedia(request: MediaGenerationRequest): Promise<Me
       }
     }
 
+    // PRIORITY 1: Stable Horde (unlimited, community-powered)
     try {
-      console.log('[MediaEngine] Trying Jimeng AI (ByteDance - FREE, no auth)');
-      const { jimengImage } = await import('../providers/jimeng');
-      const result = await jimengImage(promptToUse);
+      console.log('[MediaEngine] Priority 1: Stable Horde (unlimited, may take 1-3 minutes)');
+      const { generateImage: stableHordeGenerate } = await import('../providers/stablehorde');
+      const imageBase64 = await stableHordeGenerate({ prompt: promptToUse });
       return {
         kind: 'image',
-        provider: 'jimeng',
-        model: result.model,
+        provider: 'stablehorde',
+        model: 'stable-diffusion',
         latencyMs: Date.now() - startTime,
-        imageBase64: undefined,
-        mediaUrl: result.url,
+        imageBase64,
+        mediaUrl: undefined,
       };
-    } catch (jimengError: any) {
-      console.warn('[MediaEngine] Jimeng failed, trying Z-Image:', jimengError.message);
+    } catch (stableHordeError: any) {
+      console.warn('[MediaEngine] Stable Horde failed, trying Craiyon:', stableHordeError.message);
       
-      // Try Z-Image (Alibaba) as fallback
+      // PRIORITY 2: Craiyon (unlimited, fast but lower quality)
       try {
-        console.log('[MediaEngine] Trying Z-Image Turbo (Alibaba - FREE, no auth)');
-        const { generateImage: zImageGenerate } = await import('../providers/zimage');
-        const imageBase64 = await zImageGenerate({ prompt: promptToUse });
+        console.log('[MediaEngine] Priority 2: Craiyon (unlimited fallback)');
+        const { generateImage: craiyonGenerate } = await import('../providers/craiyon');
+        const imageBase64 = await craiyonGenerate({ prompt: promptToUse });
         return {
           kind: 'image',
-          provider: 'zimage',
-          model: 'z-image-turbo',
+          provider: 'craiyon',
+          model: 'dall-e-mini',
           latencyMs: Date.now() - startTime,
           imageBase64,
           mediaUrl: undefined,
         };
-      } catch (zimageError: any) {
-        const reason = zimageError instanceof Error ? zimageError.message : String(zimageError);
-        console.error('[MediaEngine] All free image providers unavailable:', reason);
-        throw new Error(`Image provider unavailable: Jimeng and Z-Image both failed`);
+      } catch (craiyonError: any) {
+        console.warn('[MediaEngine] Craiyon failed, trying Z-Image:', craiyonError.message);
+        
+        // PRIORITY 3: Z-Image (2,000/day, high quality, fast)
+        try {
+          console.log('[MediaEngine] Priority 3: Z-Image Turbo (Alibaba - 2K/day)');
+          const { generateImage: zImageGenerate } = await import('../providers/zimage');
+          const imageBase64 = await zImageGenerate({ prompt: promptToUse });
+          return {
+            kind: 'image',
+            provider: 'zimage',
+            model: 'z-image-turbo',
+            latencyMs: Date.now() - startTime,
+            imageBase64,
+            mediaUrl: undefined,
+          };
+        } catch (zimageError: any) {
+          console.warn('[MediaEngine] Z-Image failed, trying Jimeng:', zimageError.message);
+          
+          // PRIORITY 4: Jimeng (80-100/day, good quality, fast)
+          try {
+            console.log('[MediaEngine] Priority 4: Jimeng AI (ByteDance - 80-100/day)');
+            const { jimengImage } = await import('../providers/jimeng');
+            const result = await jimengImage(promptToUse);
+            return {
+              kind: 'image',
+              provider: 'jimeng',
+              model: result.model,
+              latencyMs: Date.now() - startTime,
+              imageBase64: undefined,
+              mediaUrl: result.url,
+            };
+          } catch (jimengError: any) {
+            const reason = jimengError instanceof Error ? jimengError.message : String(jimengError);
+            console.error('[MediaEngine] All image providers failed:', reason);
+            throw new Error(`Image generation unavailable: All providers failed`);
+          }
+        }
       }
     }
   }
