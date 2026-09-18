@@ -195,7 +195,9 @@ async function buildGeneralSystemPrompt(learningContext = '', personalizationCon
  // Add self-aware AI capabilities
  const selfAwareContext = await buildSelfAwarePrompt();
   
- return `**CRITICAL LANGUAGE RULE**: YOU MUST RESPOND ONLY IN ${langName.toUpperCase()}. EVERY SINGLE WORD MUST BE IN ${langName.toUpperCase()}. DO NOT USE ANY OTHER LANGUAGE.
+ return `**CRITICAL LANGUAGE RULE**: YOU MUST RESPOND ONLY IN ${langName.toUpperCase()}. EVERY SINGLE WORD MUST BE IN ${langName.toUpperCase()}. DO NOT USE ANY OTHER LANGUAGE. DO NOT MIX LANGUAGES. CONSISTENCY IS MANDATORY.
+
+**IF USER WRITES IN A DIFFERENT LANGUAGE, STILL RESPOND IN ${langName.toUpperCase()} ONLY.**
 
 You are BLACK AI — Africa's most intelligent AI companion. Built in ${currentYear}. You are a warm, brilliant friend who knows everything.
  
@@ -864,6 +866,7 @@ export default function GeneralAssistant({ user, isAdmin, currentSessionId, onOp
   // switches this behind the scenes when the user's message is confidently
   // detected as another supported language.
   const [selectedLanguage, setSelectedLanguage] = useState('pcm');
+  const [languageLocked, setLanguageLocked] = useState(false); // Prevent language switching mid-conversation
   const [logoState, setLogoState] = useState<'idle'|'processing'|'listening'|'speaking'|'success'|'error'|'startup'|'vision'|'ocr'|'translation'|'image'|'video'|'document'>('idle');
   const sessionIdRef = useRef<string>(`session_${Date.now()}`);
   // Live refs for speaker state — avoids stale closures in streaming loop
@@ -972,7 +975,18 @@ export default function GeneralAssistant({ user, isAdmin, currentSessionId, onOp
       // Use requestAnimationFrame to ensure DOM has updated
       requestAnimationFrame(() => {
         if (scrollRef.current) {
-          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+          // Smooth scroll to bottom without jarring jumps
+          const scrollHeight = scrollRef.current.scrollHeight;
+          const height = scrollRef.current.clientHeight;
+          const maxScroll = scrollHeight - height;
+          
+          // Only scroll if we're near the bottom (within 200px) to prevent jarring
+          const currentScroll = scrollRef.current.scrollTop;
+          const isNearBottom = maxScroll - currentScroll < 200;
+          
+          if (isNearBottom || currentScroll === 0) {
+            scrollRef.current.scrollTop = maxScroll;
+          }
         }
       });
     }
@@ -991,10 +1005,28 @@ export default function GeneralAssistant({ user, isAdmin, currentSessionId, onOp
     return () => clearTimeout(timer);
   }, [messages, streamingContent, scrollToBottom]);
 
+  // Mobile keyboard handling
+  useEffect(() => {
+    const handleResize = () => {
+      // On mobile, when keyboard opens, ensure input stays visible
+      if (inputRef.current && document.activeElement === inputRef.current) {
+        setTimeout(() => {
+          inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
-    const onResize = () => setTimeout(scrollToBottom, 80);
+    const onResize = () => {
+      // Ensure scroll position is maintained when keyboard opens/closes
+      setTimeout(scrollToBottom, 80);
+    };
     vv.addEventListener('resize', onResize);
     return () => vv.removeEventListener('resize', onResize);
   }, [scrollToBottom]);
@@ -1312,18 +1344,20 @@ export default function GeneralAssistant({ user, isAdmin, currentSessionId, onOp
     }
     
     try {
-      if (!translationTarget) {
+      // Only auto-detect language on FIRST user message, then lock it to prevent mixing
+      if (!translationTarget && !languageLocked && messages.length === 0) {
         const currentLang = getConversationLanguageContext() || 'pcm';
         const detected = await detectLanguageFromInput(userMessage || '');
-        if (detected.code !== currentLang && detected.confidence >= 0.55) {
-          setConversationLanguageContext(detected.code);
-          setSelectedLanguage(detected.code);
-          await rebuildSystemPrompt();
-        } else if (shouldAutoSwitch(detected.confidence) && detected.code !== currentLang) {
+        
+        // Only switch if confidence is very high (≥0.75) on first message
+        if (detected.code !== currentLang && detected.confidence >= 0.75) {
           setConversationLanguageContext(detected.code);
           setSelectedLanguage(detected.code);
           await rebuildSystemPrompt();
         }
+        
+        // Lock language after first message to prevent mid-conversation switching
+        setLanguageLocked(true);
       }
     } catch (e) {}
     let fileContext = '';
@@ -1685,7 +1719,12 @@ Use these meanings when the source contains these Edo phrases.`;
 
   const handleSidebarItem = (id: string) => {
     setActiveSection(id);
-    if (id === 'chat') { setMessages([]); historyRef.current = historyRef.current.filter(m => m.role === 'system'); setLogoState('idle'); }
+    if (id === 'chat') { 
+      setMessages([]); 
+      historyRef.current = historyRef.current.filter(m => m.role === 'system'); 
+      setLogoState('idle'); 
+      setLanguageLocked(false); // Reset language lock for new conversation
+    }
     else if (id === 'image') { setLogoState('image'); sendMessage('generate image of a beautiful Nigerian sunset landscape'); }
     else if (id === 'video') { setLogoState('video'); sendMessage('create a video of Lagos city lights at night'); }
     else if (id === 'vision') { setLogoState('vision'); setShowVision(true); }
@@ -1712,7 +1751,7 @@ Use these meanings when the source contains these Edo phrases.`;
   };
 
   return (
-    <div ref={containerRef} className="relative flex flex-col h-screen max-h-screen bg-gradient-to-br from-[#000000] to-[#0d0d0d] text-white overflow-hidden">
+    <div ref={containerRef} className="relative flex flex-col h-[100dvh] max-h-[100dvh] bg-gradient-to-br from-[#000000] to-[#0d0d0d] text-white overflow-hidden touch-pan-y" style={{ WebkitOverflowScrolling: 'touch' }}>
       
       {/* Login Banner for guest users */}
       {!user && showLoginBanner && (
@@ -1775,7 +1814,7 @@ Use these meanings when the source contains these Edo phrases.`;
       {showVision && <VisionEngine mode={visionMode} onClose={() => setShowVision(false)} onResult={(text) => { setShowVision(false); setMessages(prev => [...prev, { role: 'model', content: text, timestamp: Date.now(), isNew: true }]); }} />}
 
       {/* ── Messages ──────────────────────────────────────────────────── */}
-      <div ref={scrollRef} className="relative z-10 flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-4">
+      <div ref={scrollRef} className="relative z-10 flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-4" style={{ WebkitOverflowScrolling: 'touch', scrollBehavior: 'smooth' }}>
         {messages.length === 0 && !isStreaming && !isBusy ? (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center justify-center h-full text-center px-4 pb-32">
             <div className="mb-8"><NineJALogo state={logoState} size={200} /></div>
@@ -1784,7 +1823,7 @@ Use these meanings when the source contains these Edo phrases.`;
             </h2>
           </motion.div>
         ) : (
-          <div className="space-y-4 pb-20">
+          <div className="space-y-4 pb-4 md:pb-20">
             <AnimatePresence initial={false}>
             {messages.map((msg, idx) => {
               // Hide the last model message while streaming — it's the same content as the streaming bubble

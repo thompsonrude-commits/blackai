@@ -53,25 +53,21 @@ export async function generateMedia(request: MediaGenerationRequest): Promise<Me
   }
 
   // Handle image generation
-  // ARCHITECTURE: Native GPU (PRIMARY) → OpenRouter DALL-E 3 (Fallback 1) → Pollinations (Fallback 2)
+  // Start with the newest free providers, then fall back to Pollinations when needed.
   if (request.kind === 'image' && request.prompt) {
-    // Improve prompt understanding: classify and enhance prompt for the best model selection and quality modifiers
     const imageType = classifyImageType(request.prompt!);
     let promptToUse = request.prompt!;
     try {
       promptToUse = enhancePromptForQuality(request.prompt!, imageType);
-      console.log('[MediaEngine] Enhanced prompt for quality:', promptToUse.slice(0,200));
+      console.log('[MediaEngine] Enhanced prompt for quality:', promptToUse.slice(0, 200));
     } catch (e) {
       console.warn('[MediaEngine] Prompt enhancement failed, using original prompt');
     }
 
-    // Respect configuration: when ComfyUI is explicitly enabled and configured as the image provider,
-    // do NOT fall back to other providers. Fail honestly if ComfyUI is unavailable.
     const comfyMode = (process.env.COMFYUI_ENABLED === 'true') || (process.env.IMAGE_PROVIDER === 'comfyui');
 
     if (comfyMode) {
       try {
-        // Only attempt native generation and return an explicit failure if it is unavailable
         console.log('[MediaEngine] COMFYUI mode enabled — using ComfyUI as authoritative provider');
         const available = await checkNativeAIAvailable();
         if (!available) {
@@ -81,7 +77,6 @@ export async function generateMedia(request: MediaGenerationRequest): Promise<Me
         const result = await generateImageNative({ prompt: promptToUse, width: 1024, height: 1024 });
         const latencyMs = Date.now() - startTime;
 
-        // Return canonical result
         return {
           kind: 'image',
           provider: 'native-gpu',
@@ -92,44 +87,84 @@ export async function generateMedia(request: MediaGenerationRequest): Promise<Me
         } as any;
       } catch (err: any) {
         console.error('[MediaEngine] ComfyUI (authoritative) failed:', err?.message || err);
-        // Per requirements, do not fall back — surface an error to caller
         throw new Error('ComfyUI image generation is currently unavailable.');
       }
     }
 
-    // SIMPLIFIED ARCHITECTURE: Puter.js (client-side) + Jimeng (backend only)
-    // Frontend tries Puter.js first, backend only provides Jimeng fallback
-    console.log('[MediaEngine] Using Jimeng (free Chinese AI, no auth needed)');
-    
-    try {
-      const { jimengImage } = await import('../providers/jimeng');
-      const result = await jimengImage(promptToUse);
-      const latencyMs = Date.now() - startTime;
-      
-      return {
-        kind: 'image',
-        provider: 'jimeng',
-        model: result.model,
-        latencyMs,
-        imageBase64: undefined,
-        mediaUrl: result.url,
-      };
-    } catch (err: any) {
-      console.error('[MediaEngine] Jimeng failed:', err?.message || err);
-      throw new Error('Image generation failed - Jimeng unavailable');
+    const attempts = [
+      {
+        name: 'jimeng',
+        fn: async () => {
+          const { jimengImage } = await import('../providers/jimeng');
+          const result = await jimengImage(promptToUse);
+          return { provider: 'jimeng' as ProviderId, model: result.model, mediaUrl: result.url };
+        },
+      },
+      {
+        name: 'pollinations',
+        fn: async () => {
+          const { pollinationsImage } = await import('../providers/pollinations');
+          const result = await pollinationsImage(promptToUse);
+          return { provider: 'pollinations' as ProviderId, model: result.model, mediaUrl: result.url };
+        },
+      },
+    ];
+
+    let lastError: Error | null = null;
+    for (const attempt of attempts) {
+      try {
+        console.log(`[MediaEngine] Trying ${attempt.name} image provider`);
+        const result = await attempt.fn();
+        const latencyMs = Date.now() - startTime;
+        return {
+          kind: 'image',
+          provider: result.provider,
+          model: result.model,
+          latencyMs,
+          imageBase64: undefined,
+          mediaUrl: result.mediaUrl,
+        };
+      } catch (err: any) {
+        lastError = err instanceof Error ? err : new Error(String(err));
+        console.warn(`[MediaEngine] ${attempt.name} failed:`, lastError.message);
+      }
     }
+
+    throw new Error(`Image generation failed - ${lastError?.message || 'all free providers unavailable'}`);
   }
 
   // Handle video generation (text-to-video)
   if (request.kind === 'text-to-video' && request.prompt) {
-    // Video generation requires HuggingFace (no free alternatives available)
+    // Try Kling AI first (Chinese free provider with cookie auth)
     try {
-      console.log('[MediaEngine] Trying HuggingFace for video generation');
-      const result = await huggingfaceVideo(request.prompt);
+      console.log('[MediaEngine] Trying Kling AI for video generation (FREE with cookie)');
+      const { klingVideo } = await import('../providers/kling');
+      const result = await klingVideo(request.prompt, {
+        highQuality: false, // Use standard quality for speed
+        duration: 5,
+        aspectRatio: '16:9',
+      });
       const latencyMs = Date.now() - startTime;
-      console.log(`[MediaEngine] Success with HuggingFace in ${latencyMs}ms`);
-      
+      console.log(`[MediaEngine] Success with Kling AI in ${latencyMs}ms`);
+
       return {
+        kind: 'text-to-video',
+        provider: 'kling',
+        model: result.model,
+        latencyMs,
+        mediaUrl: result.videoUrl,
+      };
+    } catch (klingErr: any) {
+      console.warn('[MediaEngine] Kling AI video failed:', klingErr.message);
+      
+      // Fallback to HuggingFace if Kling fails
+      try {
+        console.log('[MediaEngine] Trying HuggingFace for video generation');
+        const result = await huggingfaceVideo(request.prompt);
+        const latencyMs = Date.now() - startTime;
+        console.log(`[MediaEngine] Success with HuggingFace in ${latencyMs}ms`);
+
+        return {
           kind: 'text-to-video',
           provider: 'huggingface',
           model: result.model,
@@ -138,7 +173,7 @@ export async function generateMedia(request: MediaGenerationRequest): Promise<Me
         };
       } catch (hfErr: any) {
         console.error('[MediaEngine] HuggingFace video failed:', hfErr.message);
-        throw new Error(`Video generation failed: ${hfErr.message}`);
+        throw new Error(`Video generation failed: Both Kling and HuggingFace unavailable`);
       }
     }
   }

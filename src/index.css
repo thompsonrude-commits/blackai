@@ -7,6 +7,17 @@ html, body, #root {
   overflow: hidden;
   margin: 0;
   padding: 0;
+  /* Mobile viewport fix - use dynamic viewport height */
+  height: 100dvh;
+  /* Handle safe areas on mobile (notch, dynamic island, etc) */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  /* Prevent bounce/rubber-band scrolling on iOS */
+  overscroll-behavior: none;
+  /* Smooth scrolling for better UX */
+  -webkit-overflow-scrolling: touch;
 }
 
 :root {
@@ -221,4 +232,56 @@ body.theme-sunset {
 
 .animate-dot-bounce {
   animation: dotBounce 1.4s infinite ease-in-out;
+}
+
+/* Mobile-specific fixes */
+@supports (-webkit-touch-callout: none) {
+  /* iOS-specific fixes */
+  body {
+    position: fixed;
+    width: 100%;
+    height: 100dvh;
+  }
+  
+  #root {
+    height: 100dvh;
+    overflow: hidden;
+  }
+}
+
+/* Prevent text selection during scroll on mobile */
+.touch-pan-y {
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.touch-pan-y textarea,
+.touch-pan-y input {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Smooth scrolling without bounce */
+.scroll-smooth-mobile {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/* Fix for disappearing content on mobile */
+@media (max-width: 768px) {
+  .messages-container {
+    /* Ensure messages don't disappear */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    will-change: scroll-position;
+  }
+  
+  /* Prevent layout shift when keyboard opens */
+  .input-container {
+    position: sticky;
+    bottom: 0;
+    z-index: 50;
+  }
 }

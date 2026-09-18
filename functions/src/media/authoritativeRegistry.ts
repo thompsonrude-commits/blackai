@@ -15,6 +15,7 @@ export type ProviderDefinition = {
 export const PROVIDER_DEFINITIONS: ProviderDefinition[] = [
   { providerId: 'puter', displayName: 'Puter.js (Client-Side Free)', capability: 'IMAGE', local: false, models: ['qwen-image-2.0-pro', 'flux-2-dev'], routingPriority: 1, fallbackEligible: true, adapterPath: '../providers/puter' },
   { providerId: 'jimeng', displayName: 'Jimeng AI (ByteDance Free)', capability: 'IMAGE', local: false, models: ['jimeng-4.5'], routingPriority: 2, fallbackEligible: true, adapterPath: '../providers/jimeng' },
+  { providerId: 'kling', displayName: 'Kling AI (Kuaishou Free)', capability: 'VIDEO', secretName: 'KLING_COOKIE', local: false, models: ['kling-1.5-std', 'kling-1.5-pro'], routingPriority: 1, fallbackEligible: true, adapterPath: '../providers/kling' },
   { providerId: 'native-gpu', displayName: 'ComfyUI (native GPU)', capability: 'IMAGE', secretName: 'COMFYUI_ENDPOINT', local: true, models: ['comfyui'], routingPriority: 10, fallbackEligible: false, adapterPath: './comfyAdapter' },
   { providerId: 'grok', displayName: 'Grok (xAI)', capability: 'CHAT', secretName: 'GROK_KEY', local: false, models: ['grok-1'], routingPriority: 20, fallbackEligible: true, adapterPath: '../providers/grok' },
   { providerId: 'ollama', displayName: 'Ollama (self-hosted)', capability: 'CHAT', local: true, models: ['ollama-local'], routingPriority: 15, fallbackEligible: true, adapterPath: '../providers/ollama' },
