@@ -249,11 +249,11 @@ body.theme-sunset {
   }
 }
 
-/* Prevent text selection during scroll on mobile */
+/* Allow text selection everywhere - users need to copy AI responses */
 .touch-pan-y {
   touch-action: pan-y;
-  -webkit-user-select: none;
-  user-select: none;
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 .touch-pan-y textarea,

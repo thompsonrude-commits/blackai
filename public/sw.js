@@ -3,7 +3,7 @@
  * Enables offline functionality and app installation
  */
 
-const CACHE_NAME = '9jai-v1.0.2'; // Increment this for each deploy to force update
+const CACHE_NAME = '9jai-v1.0.3-unlimited-image'; // Increment this for each deploy to force update
 const OFFLINE_URL = '/';
 
 // Assets to cache for offline use
