@@ -6,10 +6,10 @@ export async function generateImage(prompt: string, options?: { preferredProvide
   await new Promise((r) => setTimeout(r, 120));
   onStage?.('expanding');
 
-  // PRIORITY 1: Backend API (Jimeng → Z-Image, truly FREE for users)
+  // PRIORITY 1: Backend API (Stable Horde → Craiyon → Z-Image → Jimeng)
   try {
     onStage?.('planning');
-    console.log('[ImageClient] Using backend API (Jimeng/Z-Image - FREE)');
+    console.log('[ImageClient] Trying backend API (unlimited-first providers)');
 
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     try {
@@ -68,9 +68,32 @@ export async function generateImage(prompt: string, options?: { preferredProvide
     }
 
     throw new Error('Image generation returned no mediaUrl or generationId');
-  } catch (err: any) {
-    console.warn('[imageClient] generateImage failed:', err?.message || err);
-    throw err;
+  } catch (backendError: any) {
+    console.warn('[ImageClient] Backend failed:', backendError?.message);
+    
+    // FALLBACK: Try Puter.js client-side (user-pays model)
+    try {
+      console.log('[ImageClient] Falling back to Puter.js (user-pays)');
+      onStage?.('generating_candidates');
+      
+      const imageDataUrl = await generateImageWithPuter(prompt, {
+        model: 'flux-dev',
+        quality: 'medium',
+      });
+
+      return {
+        id: `puter_${Date.now()}`,
+        prompt,
+        imageUrl: imageDataUrl, // Data URL from Puter.js
+        generatedAt: Date.now(),
+        model: 'puter-flux-dev',
+        provider: 'puter',
+        metadata: { source: 'client-side', userPays: true },
+      } as GeneratedImage;
+    } catch (puterError: any) {
+      console.error('[ImageClient] Puter.js also failed:', puterError?.message);
+      throw new Error(`Image generation unavailable: Backend offline and Puter.js failed (${puterError?.message})`);
+    }
   }
 }
 
