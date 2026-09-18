@@ -357,36 +357,39 @@ export async function getOrchestratedChatResponse(messages: ProxyChatMessage[], 
   }
 }
 
-// Image generation — Uses Puter.js first (Chinese app approach), then backend fallback
+// Image generation — Vercel API backend (Stable Horde → Craiyon → Z-Image → Jimeng)
 export async function generateImageViaOrchestrator(prompt: string): Promise<OrchestratedImageResult> {
   const startTime = Date.now();
 
-  // PRIORITY 1: Backend API (Jimeng → Z-Image, truly FREE)
+  // Call Vercel API backend with unlimited-first fallback chain
   try {
-    console.log('[ImageGen] Using backend API (Jimeng/Z-Image - FREE)');
-    const resp = await fetch('/api/v1/image/generate', {
+    console.log('[ImageGen] Using Vercel API backend (unlimited-first providers)');
+    const resp = await fetch('/api/image', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt }),
-      signal: AbortSignal.timeout(60000),
+      signal: AbortSignal.timeout(180000), // 3 minutes for Stable Horde queue
     });
     
     if (resp.ok) {
       const data = await resp.json();
-      const imageUrl = data.imageBase64 || data.mediaUrl;
+      const imageUrl = data.imageUrl || data.imageBase64 || data.mediaUrl;
       if (imageUrl && data.success !== false) {
         console.log('[ImageGen] ✅ Provider:', data.provider, data.model);
         return {
           imageUrl,
-          provider: data.provider || 'jimeng',
-          model: data.model || 'jimeng-4.5',
+          provider: data.provider || 'backend',
+          model: data.model || 'unknown',
           latencyMs: Date.now() - startTime,
         };
       }
     }
-    throw new Error(`Backend returned ${resp.status}`);
+    
+    const errorText = await resp.text();
+    console.error('[ImageGen] Backend error:', resp.status, errorText);
+    throw new Error(`Backend returned ${resp.status}: ${errorText}`);
   } catch (err: any) {
-    console.error('[ImageGen] All free providers failed:', err.message);
+    console.error('[ImageGen] Image generation failed:', err.message);
     throw new Error('Image generation failed - all providers unavailable');
   }
 }
