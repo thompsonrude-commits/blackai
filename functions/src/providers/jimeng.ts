@@ -38,10 +38,10 @@ export async function jimengImage(prompt: string): Promise<JimengImageResult> {
       throw new Error(`Jimeng API returned ${response.status}`);
     }
 
-    const data = await response.json();
+    const data: any = await response.json();
     
     // Jimeng returns image URL directly
-    if (data.data && data.data[0] && data.data[0].url) {
+    if (data?.data && data.data[0] && data.data[0].url) {
       return {
         url: data.data[0].url,
         model: 'jimeng-4.5',

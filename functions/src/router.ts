@@ -4,8 +4,7 @@
  * Routing strategy:
  * 1. Ollama      — PRIMARY (local/self-hosted, no provider fee)
  * 2. HuggingFace — FREE inference fallback (subject to free-tier limits)
- * 3. Pollinations — FREE image generation
- * 4. DuckDuckGo — FREE web search
+ * 3. DuckDuckGo — FREE web search
  *
  * Routing decisions are based on:
  * - Provider health (consecutive failures, success rate)
@@ -31,9 +30,9 @@ import { aiIntelligenceLayer } from './media/aiIntelligenceLayer';
 // Ollama is preferred when self-hosted; Groq is a hosted free-tier path (FREE, no auth issues);
 // Hugging Face removed from chain due to auth failures (403).
 const CHAT_CHAIN: ProviderId[] = ['ollama', 'grok', 'groq'];
-const IMAGE_CHAIN: ProviderId[] = ['native-gpu', 'openrouter', 'pollinations'];
+const IMAGE_CHAIN: ProviderId[] = ['native-gpu', 'openrouter'];
 const TRANSCRIBE_CHAIN: ProviderId[] = [];
-const SEARCH_CHAIN: ProviderId[] = ['pollinations'];
+const SEARCH_CHAIN: ProviderId[] = [];
 
 const TASK_HINTS: Record<string, string> = {
   code: 'ollama',
@@ -498,7 +497,7 @@ export async function routeImage(req: AIRequest): Promise<{
     : (Array.isArray(intelligence.preferredProviders) ? intelligence.preferredProviders : []);
 
   const providerCandidates = providers.filter((provider): provider is ProviderId =>
-    provider === 'pollinations',
+    provider === 'jimeng' || provider === 'native-gpu' || provider === 'openrouter',
   );
 
   const result = await generateMedia({

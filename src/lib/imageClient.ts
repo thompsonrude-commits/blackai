@@ -6,44 +6,10 @@ export async function generateImage(prompt: string, options?: { preferredProvide
   await new Promise((r) => setTimeout(r, 120));
   onStage?.('expanding');
 
-  // PRIORITY: Try Puter.js first (Chinese app approach - truly free, client-side)
+  // PRIORITY 1: Backend API (Jimeng → Z-Image, truly FREE for users)
   try {
     onStage?.('planning');
-    
-    const puterAvailable = await isPuterAvailable();
-    if (puterAvailable) {
-      console.log('[ImageClient] Using Puter.js (free unlimited)');
-      onStage?.('generating_candidates');
-      
-      // Detect if prompt needs text rendering
-      const needsText = prompt.toLowerCase().match(/text|word|letter|sign|banner|poster|quote|caption|title/);
-      
-      const imageUrl = await generateImageWithPuter(prompt, {
-        model: needsText ? 'qwen-image' : 'flux-dev',
-        quality: 'high',
-        width: 1024,
-        height: 1024,
-      });
-
-      onStage?.('rendering');
-      
-      return {
-        id: `puter_${Date.now()}`,
-        prompt,
-        imageUrl,
-        generatedAt: Date.now(),
-        model: needsText ? 'qwen-image-2.0-pro' : 'flux-2-dev',
-        provider: 'puter',
-        metadata: { source: 'puter.js', free: true, unlimited: true },
-      };
-    }
-  } catch (puterErr: any) {
-    console.warn('[ImageClient] Puter.js failed, falling back:', puterErr?.message);
-  }
-
-  // FALLBACK: Try backend API
-  try {
-    onStage?.('planning');
+    console.log('[ImageClient] Using backend API (Jimeng/Z-Image - FREE)');
 
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     try {
@@ -60,7 +26,9 @@ export async function generateImage(prompt: string, options?: { preferredProvide
     if (options?.preferredProviders) bodyPayload.preferredProviders = options.preferredProviders;
     if (typeof options?.allowFallback === 'boolean') bodyPayload.allowFallback = options.allowFallback;
 
+    onStage?.('generating_candidates');
     const resp = await fetch('/api/v1/image/generate', { method: 'POST', headers, body: JSON.stringify(bodyPayload) });
+    
     if (!resp.ok) {
       let errMsg = `Generation failed: ${resp.status}`;
       try {
@@ -73,6 +41,8 @@ export async function generateImage(prompt: string, options?: { preferredProvide
     const data = await resp.json();
     if (!data) throw new Error('No response from image generation endpoint');
 
+    onStage?.('rendering');
+    
     if (data.generationId) {
       return {
         id: data.generationId,

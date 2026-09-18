@@ -7,6 +7,7 @@
 export type ProviderId =
   | 'puter'
   | 'jimeng'
+  | 'zimage'
   | 'kling'
   | 'native-gpu'
   | 'openrouter'
@@ -17,8 +18,6 @@ export type ProviderId =
   | 'mistral'
   | 'tavily'
   | 'ollama'
-  | 'pollinations'
-  | 'pollinations-fallback'
   | 'gemini'
   | 'tesseract'
   | 'google-tts'

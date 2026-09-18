@@ -63,7 +63,7 @@ export default function NewImageBubble({ request, onComplete }: NewImageBubblePr
   };
 
   const handleImageError = async () => {
-    console.error('[NewImageBubble] Image failed to load from Pollinations');
+    console.error('[NewImageBubble] Image failed to load');
     
     // Try alternative AI generation first
     try {

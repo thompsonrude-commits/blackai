@@ -506,7 +506,7 @@ export default function LanguageAssistant({ user, isAdmin, languageName, languag
         const code = Object.keys(countryToCode).find(k => country.includes(k));
         imageUrl = `https://flagcdn.com/w640/${code ? countryToCode[code] : 'ng'}.png`;
       } else {
-        // Use backend image generation instead of direct Pollinations
+        // Use backend image generation instead of direct provider access
         try {
           const response = await fetch('/api/v1/image/generate', {
             method: 'POST',

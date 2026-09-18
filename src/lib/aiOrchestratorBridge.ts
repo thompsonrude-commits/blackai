@@ -67,33 +67,9 @@ function getOrchestrator(): AIOrchestrator {
             
             console.log('[ImageEngine] Generating image with prompt:', payload.prompt);
             
-            // PRIORITY: Try Puter.js first (client-side, free)
+            // PRIORITY 1: Backend API (Jimeng → Z-Image, truly free)
             try {
-              const { generateImageWithPuter, isPuterAvailable } = await import('./puterImageService');
-              const puterAvailable = await isPuterAvailable();
-              
-              if (puterAvailable) {
-                console.log('[ImageEngine] Using Puter.js');
-                const needsText = payload.prompt.toLowerCase().match(/text|word|letter|sign|banner|poster|quote|caption|title/);
-                
-                const imageUrl = await generateImageWithPuter(payload.prompt, {
-                  model: needsText ? 'qwen-image' : 'flux-dev',
-                  quality: 'high',
-                });
-                
-                return {
-                  imageUrl,
-                  provider: 'puter',
-                  model: needsText ? 'qwen-image' : 'flux',
-                  latencyMs: Date.now() - startTime,
-                };
-              }
-            } catch (puterErr) {
-              console.warn('[ImageEngine] Puter.js failed:', puterErr);
-            }
-            
-            // FALLBACK: Use backend canonical image generation endpoint
-            try {
+              console.log('[ImageEngine] Using backend API (Jimeng/Z-Image - FREE)');
               const resp = await fetch('/api/v1/image/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -385,61 +361,33 @@ export async function getOrchestratedChatResponse(messages: ProxyChatMessage[], 
 export async function generateImageViaOrchestrator(prompt: string): Promise<OrchestratedImageResult> {
   const startTime = Date.now();
 
-  // PRIORITY 1: Try Puter.js (client-side, free, unlimited)
+  // PRIORITY 1: Backend API (Jimeng → Z-Image, truly FREE)
   try {
-    const { generateImageWithPuter, isPuterAvailable } = await import('./puterImageService');
-    const puterAvailable = await isPuterAvailable();
-    
-    if (puterAvailable) {
-      console.log('[ImageGen] Using Puter.js (free unlimited)');
-      
-      // Detect if prompt needs text rendering
-      const needsText = prompt.toLowerCase().match(/text|word|letter|sign|banner|poster|quote|caption|title/);
-      
-      const imageUrl = await generateImageWithPuter(prompt, {
-        model: needsText ? 'qwen-image' : 'flux-dev',
-        quality: 'high',
-        width: 1024,
-        height: 1024,
-      });
-      
-      return {
-        imageUrl,
-        provider: 'puter',
-        model: needsText ? 'qwen-image-2.0-pro' : 'flux-2-dev',
-        latencyMs: Date.now() - startTime,
-      };
-    }
-  } catch (puterErr) {
-    console.warn('[ImageGen] Puter.js failed, trying backend:', puterErr);
-  }
-
-  // FALLBACK 1: Try backend API
-  try {
+    console.log('[ImageGen] Using backend API (Jimeng/Z-Image - FREE)');
     const resp = await fetch('/api/v1/image/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, preferredProviders: ['gemini'] }),
+      body: JSON.stringify({ prompt }),
       signal: AbortSignal.timeout(60000),
     });
     
     if (resp.ok) {
       const data = await resp.json();
-      // Backend returns: { success, provider, model, imageBase64, mediaUrl }
       const imageUrl = data.imageBase64 || data.mediaUrl;
       if (imageUrl && data.success !== false) {
-        console.log('[ImageGen] Provider:', data.provider, data.fallbackFrom ? `fallback from ${data.fallbackFrom}` : '');
+        console.log('[ImageGen] ✅ Provider:', data.provider, data.model);
         return {
           imageUrl,
-          provider: data.provider || 'gemini',
-          model: data.model || 'gemini',
+          provider: data.provider || 'jimeng',
+          model: data.model || 'jimeng-4.5',
           latencyMs: Date.now() - startTime,
         };
       }
     }
-  } catch (err) {
-    console.warn('[ImageGen] Backend failed, no fallback available');
-    throw new Error('Image generation failed - backend unavailable');
+    throw new Error(`Backend returned ${resp.status}`);
+  } catch (err: any) {
+    console.error('[ImageGen] All free providers failed:', err.message);
+    throw new Error('Image generation failed - all providers unavailable');
   }
 }
 

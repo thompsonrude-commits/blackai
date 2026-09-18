@@ -53,7 +53,7 @@ module.exports = async (req, res) => {
   } catch (error) {
     console.error('[api/image] Jimeng failed:', error);
     
-    // Return error instead of falling back to Pollinations
+    // Return the provider failure without masking it with another provider.
     return res.status(500).json({
       error: 'Image generation failed',
       message: error.message,
@@ -61,4 +61,3 @@ module.exports = async (req, res) => {
     });
   }
 };
-

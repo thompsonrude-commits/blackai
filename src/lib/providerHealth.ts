@@ -220,9 +220,7 @@ async function checkWeatherCapability(): Promise<boolean> {
  * Check if image generation is available
  */
 async function checkImageCapability(): Promise<boolean> {
-  // Pollinations should always be available (no API key)
-  const pollinations = providerStatuses.get('pollinations');
-  return pollinations?.available ?? true; // Default true
+  return providerStatuses.get('jimeng')?.available ?? false;
 }
 
 /**
@@ -333,7 +331,7 @@ export function initializeDefaultProviders(): void {
   initializeProvider('duckduckgo', 'DuckDuckGo', 'search');
   initializeProvider('open-meteo', 'Open-Meteo', 'weather');
   initializeProvider('nodejs-time', 'Node.js Time', 'time');
-  initializeProvider('pollinations', 'Pollinations', 'image');
+  initializeProvider('jimeng', 'Jimeng', 'image');
   
   // Fallback providers
   initializeProvider('groq', 'Groq', 'chat');

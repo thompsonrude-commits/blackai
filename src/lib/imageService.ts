@@ -45,11 +45,6 @@ export async function fetchImageAsBase64(url: string): Promise<string | null> {
   }
 }
 
-export function buildPollinationsImageUrl(prompt: string, width = 1024, height = 1024): string {
-  console.warn('[ImageService] buildPollinationsImageUrl is DEPRECATED. Use Jimeng or Puter instead.');
-  throw new Error('Pollinations removed. Use /api/v1/image/generate endpoint instead.');
-}
-
 function toSvgDataUrl(label: string): string {
   const safe = (label || 'BLACK AI visual concept').replace(/[<>&"']/g, '');
   const svg = `

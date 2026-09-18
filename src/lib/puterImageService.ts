@@ -1,7 +1,22 @@
+
+
 /**
- * Puter.js Free Unlimited Image Generation
- * The same approach Chinese apps use - truly free, no API keys, no backend costs
- * User-pays model: each user covers their own AI usage through Puter account
+ * PUTER.JS IMAGE GENERATION - USER-PAYS MODEL
+ * 
+ * IMPORTANT: This is NOT free for end users!
+ * 
+ * How it works:
+ * - Developer pays $0 (no API keys, no backend costs)
+ * - Users must have Puter account and pay for their own usage
+ * - Pricing: $0.03-$0.10 per image depending on model/quality
+ * 
+ * User experience:
+ * 1. User clicks "generate image"
+ * 2. Puter prompts user to sign in (if not signed in)
+ * 3. Image generation costs are charged to user's Puter account
+ * 4. Developer never sees or pays these costs
+ * 
+ * This shifts AI costs from developer to users.
  */
 
 // Puter.js types
@@ -73,11 +88,7 @@ const MODEL_MAP: Record<string, string> = {
   'gemini-image': 'google/gemini-3-pro-image-preview',
 };
 
-/**
- * Generate image using Puter.js (free, unlimited)
- * This is the same approach Chinese AI apps use for free generation
- * Automatically selects best model for text rendering
- */
+
 export async function generateImageWithPuter(
   prompt: string,
   options: PuterImageOptions = {}

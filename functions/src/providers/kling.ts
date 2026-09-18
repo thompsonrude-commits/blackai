@@ -81,8 +81,8 @@ export async function klingVideo(
       throw new Error(`Kling API submit failed: ${submitResponse.status}`);
     }
 
-    const submitData = await submitResponse.json();
-    const taskId = submitData.data?.task_id || submitData.task_id;
+    const submitData: any = await submitResponse.json();
+    const taskId = submitData?.data?.task_id || submitData?.task_id;
 
     if (!taskId) {
       console.error('[KlingVideo] No task ID in response:', submitData);
@@ -117,9 +117,9 @@ export async function klingVideo(
         continue;
       }
 
-      const statusData = await statusResponse.json();
-      const status = statusData.data?.status || statusData.status;
-      const videoUrl = statusData.data?.video_url || statusData.video_url;
+      const statusData: any = await statusResponse.json();
+      const status = statusData?.data?.status || statusData?.status;
+      const videoUrl = statusData?.data?.video_url || statusData?.video_url;
 
       console.log(`[KlingVideo] Poll ${polls}/${maxPolls}: status=${status}`);
 
@@ -184,8 +184,8 @@ export async function klingExtendVideo(
       throw new Error(`Kling extend failed: ${extendResponse.status}`);
     }
 
-    const extendData = await extendResponse.json();
-    const newTaskId = extendData.data?.task_id || extendData.task_id;
+    const extendData: any = await extendResponse.json();
+    const newTaskId = extendData?.data?.task_id || extendData?.task_id;
 
     // Poll for extended video (similar to main generation)
     const maxPolls = 60;
@@ -209,9 +209,9 @@ export async function klingExtendVideo(
 
       if (!statusResponse.ok) continue;
 
-      const statusData = await statusResponse.json();
-      const status = statusData.data?.status || statusData.status;
-      const videoUrl = statusData.data?.video_url || statusData.video_url;
+      const statusData: any = await statusResponse.json();
+      const status = statusData?.data?.status || statusData?.status;
+      const videoUrl = statusData?.data?.video_url || statusData?.video_url;
 
       if (status === 'completed' && videoUrl) {
         return {

@@ -106,7 +106,7 @@ export async function openRouterVisionChat(
   throw lastError ?? new Error('All vision models exhausted');
 }
 
-// ── Image-to-image editing via Pollinations edit endpoint ─────────────────
+// ── Image-to-image editing via the OpenRouter vision workflow ─────────────
 
 export async function openRouterImageEdit(
   imageBase64: string,

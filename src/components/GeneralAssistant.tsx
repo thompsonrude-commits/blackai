@@ -708,21 +708,10 @@ function ImageBubble({ url, originalContent, prompt, imgType, label, onImageRead
         console.error('[ImageBubble] Proxy fetch failed:', err);
       }
       
-      // If original URL was Pollinations and failed, try without some parameters
-      if (imgSrc.includes('pollinations.ai')) {
-        const rawPrompt = url.replace('__GENERATE__', '');
-        if (rawPrompt && retryCount < 3) {
-          console.log('[ImageBubble] Retrying with simplified Pollinations URL...');
-          const next = retryCount + 1;
-          setRetryCount(next);
-          
-          // No more retries - show error
-          setStatus('error');
-          setErrorMsg('Image generation failed. Please try again.');
-          console.error('[ImageBubble] All generation attempts failed');
-          return;
-        }
-      }
+      setStatus('error');
+      setErrorMsg('Image provider unavailable. Please try again later.');
+      console.error('[ImageBubble] All image generation attempts failed');
+      return;
     }
     
     // If it's SVG fallback that failed, show error

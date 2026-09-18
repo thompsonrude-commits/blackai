@@ -270,7 +270,7 @@ export function generateDynamicSeeds(count: number = 4): number[] {
 }
 
 /**
- * Select optimal Pollinations model based on style and quality
+ * Select an optimal image model based on style and quality
  */
 function selectOptimalModel(style: string, quality: string): string {
   if (style === 'anime') return 'flux-anime';

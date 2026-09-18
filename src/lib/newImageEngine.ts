@@ -25,9 +25,8 @@ export interface ImageGenerationResult {
   error?: string;
 }
 
-// Multiple image generation providers for reliability
+// Image generation is handled by the backend provider chain.
 const PROVIDERS = {
-  pollinations: 'https://image.pollinations.ai/prompt',
   huggingface: 'https://api-inference.huggingface.co/models',
   replicate: 'https://replicate.com/api',
 };
@@ -248,14 +247,6 @@ function wrapText(text: string, maxCharsPerLine: number): string[] {
 }
 
 /**
- * DEPRECATED: Pollinations removed - use Jimeng or Puter instead
- */
-function generatePollinationsUrl(prompt: string, dimensions: { width: number; height: number }): string {
-  console.warn('[NewImageEngine] Pollinations is deprecated. Use Jimeng or Puter instead.');
-  throw new Error('Pollinations provider removed. Use Jimeng or Puter for image generation.');
-}
-
-/**
  * Try Hugging Face Image Generation API
  */
 async function tryHuggingFaceGeneration(prompt: string, dimensions: { width: number; height: number }): Promise<string | null> {
@@ -437,12 +428,8 @@ export async function generateImage(request: ImageGenerationRequest): Promise<Im
       console.warn('[NewImageEngine] Backend image generation attempt failed:', err);
     }
 
-    // If backend didn't provide an image, fall back to Pollinations (remote) as a clearly labeled fallback
     if (!baseImageUrl) {
-      baseImageUrl = generatePollinationsUrl(enhancedPrompt, dimensions);
-      provider = 'pollinations';
-      model = 'flux';
-      console.log('[NewImageEngine] Falling back to Pollinations URL:', baseImageUrl);
+      throw new Error('Image provider unavailable');
     }
 
     // Step 4: Add text overlay if requested
@@ -462,14 +449,11 @@ export async function generateImage(request: ImageGenerationRequest): Promise<Im
   } catch (error: any) {
     console.error('[NewImageEngine] Generation failed:', error);
     
-    // Return fallback on any error
-    const fallbackUrl = createFallbackImage(request);
-    
     return {
       success: false,
-      imageUrl: fallbackUrl,
-      provider: 'fallback',
-      model: 'svg-generator',
+      imageUrl: '',
+      provider: 'unavailable',
+      model: 'none',
       error: error.message || 'Unknown error',
     };
   }

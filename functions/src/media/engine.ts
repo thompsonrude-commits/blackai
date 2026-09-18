@@ -52,8 +52,7 @@ export async function generateMedia(request: MediaGenerationRequest): Promise<Me
     }
   }
 
-  // Handle image generation
-  // Start with the newest free providers, then fall back to Pollinations when needed.
+  // Handle image generation.
   if (request.kind === 'image' && request.prompt) {
     const imageType = classifyImageType(request.prompt!);
     let promptToUse = request.prompt!;
@@ -91,46 +90,40 @@ export async function generateMedia(request: MediaGenerationRequest): Promise<Me
       }
     }
 
-    const attempts = [
-      {
-        name: 'jimeng',
-        fn: async () => {
-          const { jimengImage } = await import('../providers/jimeng');
-          const result = await jimengImage(promptToUse);
-          return { provider: 'jimeng' as ProviderId, model: result.model, mediaUrl: result.url };
-        },
-      },
-      {
-        name: 'pollinations',
-        fn: async () => {
-          const { pollinationsImage } = await import('../providers/pollinations');
-          const result = await pollinationsImage(promptToUse);
-          return { provider: 'pollinations' as ProviderId, model: result.model, mediaUrl: result.url };
-        },
-      },
-    ];
-
-    let lastError: Error | null = null;
-    for (const attempt of attempts) {
+    try {
+      console.log('[MediaEngine] Trying Jimeng AI (ByteDance - FREE, no auth)');
+      const { jimengImage } = await import('../providers/jimeng');
+      const result = await jimengImage(promptToUse);
+      return {
+        kind: 'image',
+        provider: 'jimeng',
+        model: result.model,
+        latencyMs: Date.now() - startTime,
+        imageBase64: undefined,
+        mediaUrl: result.url,
+      };
+    } catch (jimengError: any) {
+      console.warn('[MediaEngine] Jimeng failed, trying Z-Image:', jimengError.message);
+      
+      // Try Z-Image (Alibaba) as fallback
       try {
-        console.log(`[MediaEngine] Trying ${attempt.name} image provider`);
-        const result = await attempt.fn();
-        const latencyMs = Date.now() - startTime;
+        console.log('[MediaEngine] Trying Z-Image Turbo (Alibaba - FREE, no auth)');
+        const { generateImage: zImageGenerate } = await import('../providers/zimage');
+        const imageBase64 = await zImageGenerate({ prompt: promptToUse });
         return {
           kind: 'image',
-          provider: result.provider,
-          model: result.model,
-          latencyMs,
-          imageBase64: undefined,
-          mediaUrl: result.mediaUrl,
+          provider: 'zimage',
+          model: 'z-image-turbo',
+          latencyMs: Date.now() - startTime,
+          imageBase64,
+          mediaUrl: undefined,
         };
-      } catch (err: any) {
-        lastError = err instanceof Error ? err : new Error(String(err));
-        console.warn(`[MediaEngine] ${attempt.name} failed:`, lastError.message);
+      } catch (zimageError: any) {
+        const reason = zimageError instanceof Error ? zimageError.message : String(zimageError);
+        console.error('[MediaEngine] All free image providers unavailable:', reason);
+        throw new Error(`Image provider unavailable: Jimeng and Z-Image both failed`);
       }
     }
-
-    throw new Error(`Image generation failed - ${lastError?.message || 'all free providers unavailable'}`);
   }
 
   // Handle video generation (text-to-video)
