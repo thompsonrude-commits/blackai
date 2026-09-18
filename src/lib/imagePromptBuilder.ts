@@ -101,8 +101,10 @@ export function enhanceImagePrompt(rawPrompt: string): string {
 export function buildEnhancedImageRequest(prompt: string): { prompt: string; apiUrl: string; model: string } {
   const enhanced = enhanceImagePrompt(prompt);
   // Use a unique seed every call to prevent caching/repeated images
-  const seed = Math.floor(Math.random() * 1000000) + Date.now() % 100000;
-  const encoded = encodeURIComponent(enhanced);
-  const apiUrl = `https://image.pollinations.ai/prompt/${encoded}?width=1024&height=1024&nologo=true&seed=${seed}&enhance=true&model=flux`;
-  return { prompt: enhanced, apiUrl, model: 'pollinations-flux' };
+  // Return prompt only - let the image service handle provider selection
+  return { 
+    prompt: enhanced, 
+    apiUrl: '', // Deprecated - use backend /api/v1/image/generate instead
+    model: 'backend-auto' 
+  };
 }

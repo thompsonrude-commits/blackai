@@ -505,10 +505,22 @@ export default function LanguageAssistant({ user, isAdmin, languageName, languag
         const country = imagePrompt.replace(/flag\s+of\s+/gi, '').trim().toLowerCase();
         const code = Object.keys(countryToCode).find(k => country.includes(k));
         imageUrl = `https://flagcdn.com/w640/${code ? countryToCode[code] : 'ng'}.png`;
-      } else if (lower.includes('food') || lower.includes('jollof') || lower.includes('suya')) {
-        imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt + ', Nigerian food photography, professional, appetizing, high resolution')}?width=768&height=512&nologo=true&enhance=true&seed=${Date.now()}`;
       } else {
-        imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt + ', high quality, detailed, realistic, professional')}?width=768&height=512&nologo=true&enhance=true&seed=${Date.now()}`;
+        // Use backend image generation instead of direct Pollinations
+        try {
+          const response = await fetch('/api/v1/image/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: imagePrompt }),
+          });
+          if (response.ok) {
+            const data = await response.json();
+            imageUrl = data.imageUrl || data.imageBase64 || '';
+          }
+        } catch (err) {
+          console.warn('[LanguageAssistant] Image generation failed:', err);
+          imageUrl = ''; // Show text-only response
+        }
       }
       setMessages(prev => [
         ...prev,

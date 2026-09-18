@@ -46,19 +46,8 @@ export async function fetchImageAsBase64(url: string): Promise<string | null> {
 }
 
 export function buildPollinationsImageUrl(prompt: string, width = 1024, height = 1024): string {
-  const normalized = (prompt || '').trim() || '3D concept art illustration';
-  const safePrompt = normalized
-    .replace(/\s+/g, ' ')
-    .replace(/[<>"']/g, '')
-    .slice(0, 180);
-  
-  // Use unique timestamp to avoid caching
-  const timestamp = Date.now();
-  const seed = Math.floor(Math.random() * 1000000);
-  
-  // Try Pollinations with nologo parameter
-  // Note: nologo may not always work, but we try
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(safePrompt)}?width=${width}&height=${height}&nologo=true&enhance=true&seed=${seed}&model=flux&_=${timestamp}`;
+  console.warn('[ImageService] buildPollinationsImageUrl is DEPRECATED. Use Jimeng or Puter instead.');
+  throw new Error('Pollinations removed. Use /api/v1/image/generate endpoint instead.');
 }
 
 function toSvgDataUrl(label: string): string {
