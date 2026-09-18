@@ -122,32 +122,14 @@ export async function generateMedia(request: MediaGenerationRequest): Promise<Me
 
   // Handle video generation (text-to-video)
   if (request.kind === 'text-to-video' && request.prompt) {
-    // Try FREE Pollinations video first
+    // Video generation requires HuggingFace (no free alternatives available)
     try {
-      console.log('[MediaEngine] Trying Pollinations for video generation (FREE)');
-      const { pollinationsVideo } = await import('../providers/pollinations');
-      const result = await pollinationsVideo(request.prompt);
+      console.log('[MediaEngine] Trying HuggingFace for video generation');
+      const result = await huggingfaceVideo(request.prompt);
       const latencyMs = Date.now() - startTime;
-      console.log(`[MediaEngine] Success with Pollinations in ${latencyMs}ms`);
+      console.log(`[MediaEngine] Success with HuggingFace in ${latencyMs}ms`);
       
       return {
-        kind: 'text-to-video',
-        provider: 'pollinations',
-        model: result.model,
-        latencyMs,
-        mediaUrl: result.videoUrl,
-      };
-    } catch (pollinationsErr: any) {
-      console.warn('[MediaEngine] Pollinations video failed:', pollinationsErr.message);
-      
-      // Fallback to HuggingFace if available
-      try {
-        console.log('[MediaEngine] Trying HuggingFace for video generation');
-        const result = await huggingfaceVideo(request.prompt);
-        const latencyMs = Date.now() - startTime;
-        console.log(`[MediaEngine] Success with HuggingFace in ${latencyMs}ms`);
-        
-        return {
           kind: 'text-to-video',
           provider: 'huggingface',
           model: result.model,

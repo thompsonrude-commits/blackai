@@ -608,18 +608,10 @@ function ImageBubble({ url, originalContent, prompt, imgType, label, onImageRead
       clearInterval(ticker);
       console.error('[ImageBubble] Generation failed:', err);
       
-      // Direct fallback to Pollinations (bypass orchestrator)
-      console.log('[ImageBubble] Using direct Pollinations fallback');
-      const { buildPollinationsImageUrl } = await import('../lib/imageService');
-      const directUrl = buildPollinationsImageUrl(rawPrompt);
-      console.log('[ImageBubble] Fallback URL:', directUrl);
-      
-      setProgress(90);
-      setImgSrc(directUrl);
-      setUpscaledSrc(null);
-      setProviderLabel('flux via pollinations (direct)'); 
-      setStatus('loading');
-      if (onImageReady && typeof msgIndex === 'number') onImageReady(msgIndex, directUrl, 'flux');
+      // No more fallbacks available
+      console.error('[ImageBubble] All image generation methods failed');
+      setStatus('error');
+      if (onImageReady && typeof msgIndex === 'number') onImageReady(msgIndex, '', 'failed');
     }
   }, [url, msgIndex, onImageReady]);
 
