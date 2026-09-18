@@ -813,15 +813,15 @@ export const aiImage = onRequest(
     const startTime = Date.now();
 
     try {
-      // Direct Pollinations call - fast and simple
-      const { pollinationsImage } = await import('./providers/pollinations');
-      const result = await pollinationsImage(prompt);
+      // Use Jimeng AI (ByteDance free service)
+      const { jimengImage } = await import('./providers/jimeng');
+      const result = await jimengImage(prompt);
       const latencyMs = Date.now() - startTime;
 
       logRequest({
         requestId,
         task: 'image',
-        provider: 'pollinations',
+        provider: 'jimeng',
         model: result.model,
         latencyMs,
         cached: false,
@@ -831,7 +831,7 @@ export const aiImage = onRequest(
 
       res.status(200).json({
         imageUrl: result.url,
-        provider: 'pollinations',
+        provider: 'jimeng',
         model: result.model,
         latencyMs,
       });
@@ -906,11 +906,11 @@ export const imagesGenerate = onRequest(
         return;
       }
 
-      // Non-Comfy mode: fall back to legacy aiImage endpoint behavior (pollinations quick path)
-      const { pollinationsImage } = await import('./providers/pollinations');
-      const result = await pollinationsImage(prompt);
+      // Non-Comfy mode: fall back to Jimeng AI (ByteDance free service)
+      const { jimengImage } = await import('./providers/jimeng');
+      const result = await jimengImage(prompt);
 
-      res.status(200).json({ success: true, provider: 'pollinations', imageUrl: result.url, model: result.model });
+      res.status(200).json({ success: true, provider: 'jimeng', imageUrl: result.url, model: result.model });
     } catch (err: any) {
       console.error('[imagesGenerate] Error:', err);
       if ((process.env.COMFYUI_ENABLED === 'true') || (process.env.IMAGE_PROVIDER === 'comfyui')) {

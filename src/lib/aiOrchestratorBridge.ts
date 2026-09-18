@@ -3,7 +3,6 @@ import { ConsoleLogger } from '../../9ja-ai/9ja-ai-core/logging/Logger.ts';
 import { LanguageEngineAdapter } from '../../9ja-ai/9ja-ai-core/engines/language/LanguageEngine.ts';
 import type { AIRequest } from '../../9ja-ai/9ja-ai-core/types.ts';
 import type { ProxyChatMessage } from './aiProxy';
-import { buildPollinationsImageUrl } from './imageService';
 
 export interface OrchestratedChatResult {
   text: string;
@@ -122,19 +121,9 @@ function getOrchestrator(): AIOrchestrator {
                 }
               }
             } catch (err) {
-              console.warn('[ImageEngine] Backend generation failed, falling back to Pollinations');
+              console.warn('[ImageEngine] Backend generation failed, no fallback available');
+              throw new Error('All image generation methods failed');
             }
-
-            // Final Fallback: Pollinations
-            const imageUrl = buildPollinationsImageUrl(payload.prompt);
-            console.log('[ImageEngine] Image URL generated (Pollinations fallback):', imageUrl);
-        
-            return {
-              imageUrl,
-              provider: 'pollinations',
-              model: 'flux',
-              latencyMs: Date.now() - startTime,
-            };
           },
         },
         vision: {
@@ -312,14 +301,32 @@ function getOrchestrator(): AIOrchestrator {
               console.warn('[VideoEngine] Backend failed');
             }
             
-            // Fallback: generate image instead
-            const imageUrl = buildPollinationsImageUrl(payload.prompt);
-            return {
-              videoUrl: imageUrl,
-              provider: 'image-fallback',
-              model: 'static-image',
-              note: 'Video generation unavailable, showing static image instead',
-            };
+            // Fallback: generate image instead (backend will use Jimeng)
+            try {
+              const response = await fetch('/api/v1/image/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: payload.prompt }),
+                signal: AbortSignal.timeout(60000),
+              });
+              
+              if (response.ok) {
+                const data = await response.json();
+                const imageUrl = data.imageBase64 || data.mediaUrl;
+                if (imageUrl) {
+                  return {
+                    videoUrl: imageUrl,
+                    provider: 'image-fallback',
+                    model: 'static-image',
+                    note: 'Video generation unavailable, showing static image instead',
+                  };
+                }
+              }
+            } catch (err) {
+              console.warn('[VideoEngine] Image fallback failed');
+            }
+            
+            throw new Error('Video generation unavailable');
           },
         },
       },
@@ -431,13 +438,9 @@ export async function generateImageViaOrchestrator(prompt: string): Promise<Orch
       }
     }
   } catch (err) {
-    console.warn('[ImageGen] Backend failed, using Pollinations fallback');
+    console.warn('[ImageGen] Backend failed, no fallback available');
+    throw new Error('Image generation failed - backend unavailable');
   }
-
-  // FALLBACK 2: Pollinations (last resort)
-  const imageUrl = buildPollinationsImageUrl(prompt);
-  console.log('[ImageGen] Using Pollinations fallback');
-  return { imageUrl, provider: 'pollinations', model: 'flux', latencyMs: Date.now() - startTime };
 }
 
 // NEW: Vision analysis via orchestrator

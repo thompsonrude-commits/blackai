@@ -1,5 +1,4 @@
 import type { ProviderId } from '../types';
-import { pollinationsWithFallback } from '../providers/pollinations';
 import { huggingfaceVideo } from '../providers/huggingface';
 import { generateImageNative, checkNativeAIAvailable, classifyImageType, enhancePromptForQuality } from './nativeAIEngine';
 
