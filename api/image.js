@@ -73,16 +73,16 @@ module.exports = async (req, res) => {
           n: 1,
           width: 512,
           height: 512,
-          steps: 40, // More steps for better quality
-          cfg_scale: 8.5, // Higher guidance for better prompt adherence
-          sampler_name: 'k_euler_a', // Better sampler
-          karras: true, // Better noise schedule
+          steps: 25, // Balanced steps for good quality + speed
+          cfg_scale: 7.5, // Balanced guidance
+          sampler_name: 'k_euler', // Fast sampler
+          karras: true,
         },
         nsfw: false,
-        trusted_workers: true, // Use more reliable workers
+        trusted_workers: true,
         slow_workers: true,
-        models: ['stable_diffusion_2.1', 'Deliberate', 'Realistic_Vision_V5.1'], // Better quality models
-        r2: true, // Use R2 storage for faster delivery
+        models: ['Deliberate'], // Single fast, quality model
+        r2: true,
         censor_nsfw: true,
         replacement_filter: true,
       }),
@@ -92,9 +92,9 @@ module.exports = async (req, res) => {
       const data = await response.json();
       const jobId = data.id;
 
-      // Poll for completion (max 3 minutes)
-      for (let i = 0; i < 36; i++) {
-        await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5s between polls
+      // Poll for completion (max 60 seconds - fail faster to try next provider)
+      for (let i = 0; i < 20; i++) {
+        await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3s between polls
         
         const statusResponse = await fetch(`https://stablehorde.net/api/v2/generate/check/${jobId}`);
         const status = await statusResponse.json();
@@ -104,6 +104,7 @@ module.exports = async (req, res) => {
           const result = await resultResponse.json();
           
           if (result.generations && result.generations[0]) {
+            console.log('[Image API] ✅ Stable Horde succeeded');
             return res.status(200).json({
               imageUrl: result.generations[0].img,
               provider: 'stablehorde',
@@ -113,14 +114,15 @@ module.exports = async (req, res) => {
           }
         }
       }
+      console.log('[Image API] Stable Horde timed out, trying next provider');
     }
   } catch (error) {
     console.log('[Image API] Stable Horde failed:', error.message);
   }
 
-  // PRIORITY 2: Craiyon (unlimited, ad-supported)
+  // PRIORITY 2: Craiyon (unlimited, ad-supported) - FASTER
   try {
-    console.log('[Image API] Trying Craiyon (unlimited fallback)');
+    console.log('[Image API] Trying Craiyon (fast, unlimited fallback)');
     const response = await fetch('https://api.craiyon.com/v3', {
       method: 'POST',
       headers: {
@@ -128,15 +130,17 @@ module.exports = async (req, res) => {
       },
       body: JSON.stringify({
         prompt: prompt,
-        model: 'photo', // Use photo model for more realistic results
+        model: 'art', // Faster than photo model
         negative_prompt: NEGATIVE_PROMPT,
         version: '35s5hfwn9n78gb06',
       }),
+      signal: AbortSignal.timeout(90000), // 90s timeout
     });
 
     if (response.ok) {
       const data = await response.json();
       if (data.images && data.images.length > 0) {
+        console.log('[Image API] ✅ Craiyon succeeded');
         return res.status(200).json({
           imageUrl: `data:image/png;base64,${data.images[0]}`,
           provider: 'craiyon',
