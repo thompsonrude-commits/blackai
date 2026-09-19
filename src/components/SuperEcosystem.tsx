@@ -300,7 +300,9 @@ function MessageBubble({
           <img
             src={msg.imageUrl}
             alt={msg.imagePrompt || 'Generated image'}
-            className="w-full h-auto block"
+            className="w-full h-auto block object-contain"
+            style={{ maxHeight: 'none' }}
+            loading="lazy"
           />
           <div className="px-3 py-2 bg-gray-50 border-t border-gray-100">
             <p className="text-[10px] text-gray-500 truncate">🎨 {msg.imagePrompt}</p>
