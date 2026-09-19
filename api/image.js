@@ -2,31 +2,93 @@
 // Priority: Stable Horde (photorealistic) → Jimeng → Craiyon → Z-Image
 // NO POLLINATIONS - per user request
 
+// Detect if prompt requests text on image (signs, posters, labels, etc.)
+function detectTextRequest(prompt) {
+  const lower = prompt.toLowerCase();
+  const textPatterns = [
+    /\b(sign|poster|banner|label|text|writing|words?|letters?|saying|reading|displaying)\b/i,
+    /\b(bearing|with|showing|that says|labeled|titled)\b.*["']/i,
+    /["'].*["']/  // Quoted text
+  ];
+  return textPatterns.some(pattern => pattern.test(lower));
+}
+
+// Extract text content from prompt
+function extractTextContent(prompt) {
+  const matches = prompt.match(/["']([^"']+)["']/g);
+  if (matches) {
+    return matches.map(m => m.replace(/["']/g, '')).join(' ');
+  }
+  
+  // Also try common patterns like "bearing X", "saying X", "reading X"
+  const bearingMatch = prompt.match(/\b(?:bearing|saying|reading|displaying|showing|with text)\s+(.+?)(?:\s+street|$)/i);
+  if (bearingMatch) {
+    return bearingMatch[1].trim();
+  }
+  
+  return null;
+}
+
+// Remove text-related phrases from prompt (AI can't generate readable text)
+function removeTextInstructions(prompt) {
+  let cleaned = prompt
+    .replace(/\b(bearing|saying|reading|displaying|showing|with text|that says|labeled|titled)\s+["']?[^"',\.]+["']?/gi, '')
+    .replace(/["'][^"']+["']/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  
+  // Clean up artifacts
+  cleaned = cleaned.replace(/\s+of\s+a\s+of/, ' of');
+  cleaned = cleaned.replace(/\s+of\s+$/, '');
+  
+  return cleaned;
+}
+
 // Intelligent prompt enhancement for photorealism
 function enhancePrompt(userPrompt) {
-  const cleaned = userPrompt.trim();
+  let cleaned = userPrompt.trim();
   const lower = cleaned.toLowerCase();
-  const hasQualityKeywords = /\b(detailed|realistic|high quality|photorealistic|professional|photograph)\b/i.test(cleaned);
-  if (hasQualityKeywords) return cleaned;
   
+  // Check if user wants text on image
+  const hasTextRequest = detectTextRequest(cleaned);
+  const textContent = hasTextRequest ? extractTextContent(cleaned) : null;
+  
+  // Remove text instructions since AI can't generate readable text
+  if (hasTextRequest) {
+    cleaned = removeTextInstructions(cleaned);
+    console.log('[Image API] Removed text request. Original:', userPrompt);
+    console.log('[Image API] Cleaned prompt:', cleaned);
+    if (textContent) {
+      console.log('[Image API] ⚠️ Text content removed (AI cannot generate readable text):', textContent);
+    }
+  }
+  
+  const hasQualityKeywords = /\b(detailed|realistic|high quality|photorealistic|professional|photograph)\b/i.test(cleaned);
+  if (hasQualityKeywords) return { prompt: cleaned, hasText: hasTextRequest, textContent };
+  
+  const isSign = /\b(sign|signage|road sign|street sign|warning sign|billboard)\b/i.test(lower);
   const isAnimal = /\b(dog|cat|horse|cow|lion|tiger|elephant|animal|bird|wildlife|pet|zebra|giraffe|bear)\b/i.test(lower);
   const isPerson = /\b(person|man|woman|people|human|portrait|face|manager|executive|professional|businessman|businesswoman)\b/i.test(lower);
   const isLandscape = /\b(landscape|scenery|forest|mountain|beach|sunset|sunrise|nature|river|ocean|savana|savanna|desert)\b/i.test(lower);
   const isBuilding = /\b(building|office|house|room|interior|desk|workspace|architecture)\b/i.test(lower);
   
-  if (isAnimal) {
-    return cleaned + ', award-winning wildlife photography, photorealistic, ultra detailed fur and skin texture, natural habitat, dramatic lighting, National Geographic quality, Canon EOS R5, 400mm lens, 8k, sharp focus, depth of field';
+  let enhanced = cleaned;
+  
+  if (isSign) {
+    enhanced = cleaned + ', professional product photography, photorealistic, clean modern design, sharp focus, studio lighting, ultra detailed, 8k resolution, clear and legible';
+  } else if (isAnimal) {
+    enhanced = cleaned + ', award-winning wildlife photography, photorealistic, ultra detailed fur and skin texture, natural habitat, dramatic lighting, National Geographic quality, Canon EOS R5, 400mm lens, 8k, sharp focus, depth of field';
+  } else if (isPerson) {
+    enhanced = cleaned + ', professional portrait photography, photorealistic, natural skin texture with visible pores, studio lighting setup, real person, ultra high detail, full body in frame, Canon EOS 5D, 85mm f/1.4 lens, 8k resolution, perfect composition';
+  } else if (isLandscape) {
+    enhanced = cleaned + ', breathtaking landscape photography, photorealistic, golden hour lighting, vivid colors, National Geographic style, ultra sharp details, wide angle, 8k resolution, professional DSLR';
+  } else if (isBuilding) {
+    enhanced = cleaned + ', professional architectural photography, photorealistic, perfect lighting, ultra detailed, sharp focus, clean composition, 8k resolution, full frame visible';
+  } else {
+    enhanced = cleaned + ', professional photography, photorealistic, ultra high detail, perfect lighting, sharp focus, 8k resolution, masterpiece';
   }
-  if (isPerson) {
-    return cleaned + ', professional portrait photography, photorealistic, natural skin texture with visible pores, studio lighting setup, real person, ultra high detail, full body in frame, Canon EOS 5D, 85mm f/1.4 lens, 8k resolution, perfect composition';
-  }
-  if (isLandscape) {
-    return cleaned + ', breathtaking landscape photography, photorealistic, golden hour lighting, vivid colors, National Geographic style, ultra sharp details, wide angle, 8k resolution, professional DSLR';
-  }
-  if (isBuilding) {
-    return cleaned + ', professional architectural photography, photorealistic, perfect lighting, ultra detailed, sharp focus, clean composition, 8k resolution, full frame visible';
-  }
-  return cleaned + ', professional photography, photorealistic, ultra high detail, perfect lighting, sharp focus, 8k resolution, masterpiece';
+  
+  return { prompt: enhanced, hasText: hasTextRequest, textContent };
 }
 
 module.exports = async (req, res) => {
@@ -43,11 +105,22 @@ module.exports = async (req, res) => {
   }
 
   const userPrompt = req.body?.prompt || 'beautiful scenery';
-  const prompt = enhancePrompt(userPrompt);
+  const promptResult = enhancePrompt(userPrompt);
+  const prompt = typeof promptResult === 'string' ? promptResult : promptResult.prompt;
+  const hasTextRequest = typeof promptResult === 'object' ? promptResult.hasText : false;
+  const textContent = typeof promptResult === 'object' ? promptResult.textContent : null;
   const startTime = Date.now();
   
   console.log('[Image API] User prompt:', userPrompt);
   console.log('[Image API] Enhanced:', prompt);
+  
+  if (hasTextRequest) {
+    console.log('[Image API] ⚠️ WARNING: User requested text on image');
+    console.log('[Image API] ⚠️ AI image generators cannot create readable text');
+    if (textContent) {
+      console.log('[Image API] ⚠️ Requested text:', textContent);
+    }
+  }
   
   // PRIORITY 1: Stable Horde (unlimited, photorealistic models)
   try {
@@ -106,6 +179,8 @@ module.exports = async (req, res) => {
               provider: 'stablehorde',
               model: 'Realistic_Vision_V5.1',
               latencyMs: Date.now() - startTime,
+              warning: hasTextRequest ? 'AI cannot generate readable text. Text was removed from prompt.' : undefined,
+              requestedText: textContent || undefined,
             });
           }
         }
@@ -137,6 +212,8 @@ module.exports = async (req, res) => {
           provider: 'jimeng',
           model: 'jimeng-4.5',
           latencyMs: Date.now() - startTime,
+          warning: hasTextRequest ? 'AI cannot generate readable text. Text was removed from prompt.' : undefined,
+          requestedText: textContent || undefined,
         });
       }
     }
@@ -190,6 +267,8 @@ module.exports = async (req, res) => {
               provider: 'stablehorde',
               model: 'stable-diffusion',
               latencyMs: Date.now() - startTime,
+              warning: hasTextRequest ? 'AI cannot generate readable text. Text was removed from prompt.' : undefined,
+              requestedText: textContent || undefined,
             });
           }
         }
@@ -223,6 +302,8 @@ module.exports = async (req, res) => {
           provider: 'craiyon',
           model: 'dall-e-mini',
           latencyMs: Date.now() - startTime,
+          warning: hasTextRequest ? 'AI cannot generate readable text. Text was removed from prompt.' : undefined,
+          requestedText: textContent || undefined,
         });
       }
     }
@@ -274,6 +355,8 @@ module.exports = async (req, res) => {
               provider: 'zimage',
               model: 'z-image-turbo',
               latencyMs: Date.now() - startTime,
+              warning: hasTextRequest ? 'AI cannot generate readable text. Text was removed from prompt.' : undefined,
+              requestedText: textContent || undefined,
             });
           }
         }
@@ -312,6 +395,8 @@ module.exports = async (req, res) => {
           provider: 'jimeng',
           model: 'jimeng-4.5',
           latencyMs: Date.now() - startTime,
+          warning: hasTextRequest ? 'AI cannot generate readable text. Text was removed from prompt.' : undefined,
+          requestedText: textContent || undefined,
         });
       }
     }
