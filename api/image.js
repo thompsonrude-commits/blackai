@@ -56,19 +56,24 @@ module.exports = async (req, res) => {
   // Jimeng AI (ByteDance) - Fast, reliable, 80-100 images/day
   try {
     console.log('[Image API] Using Jimeng (ByteDance)');
-    const response = await fetch('https://aiapi.talkface.com/jmai', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt }),
-      signal: AbortSignal.timeout(20000),
+    const encodedPrompt = encodeURIComponent(prompt);
+    const url = `https://jimeng.jianying.com/ai-platform/api/v1/text2image?prompt=${encodedPrompt}&model=jimeng-4.5&resolution=2k&ratio=1:1`;
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'application/json',
+      },
+      signal: AbortSignal.timeout(15000),
     });
 
     if (response.ok) {
       const data = await response.json();
-      if (data.imageBase64) {
+      if (data?.data && data.data[0] && data.data[0].url) {
         console.log('[Image API] ✅ Image generated successfully');
         return res.status(200).json({
-          imageUrl: data.imageBase64,
+          imageUrl: data.data[0].url,
           provider: 'jimeng',
           model: 'jimeng-4.5',
           latencyMs: Date.now() - startTime,
@@ -76,7 +81,7 @@ module.exports = async (req, res) => {
       }
     }
     
-    console.error('[Image API] Jimeng returned invalid response');
+    console.error('[Image API] Jimeng returned invalid response:', response.status);
   } catch (error) {
     console.error('[Image API] Image generation failed:', error.message);
   }
