@@ -5,19 +5,28 @@
 // Intelligent prompt enhancement for photorealism
 function enhancePrompt(userPrompt) {
   const cleaned = userPrompt.trim();
+  const lower = cleaned.toLowerCase();
   const hasQualityKeywords = /\b(detailed|realistic|high quality|photorealistic|professional|photograph)\b/i.test(cleaned);
   if (hasQualityKeywords) return cleaned;
   
-  const isAnimal = /\b(dog|cat|horse|cow|animal|bird|wildlife|pet)\b/i.test(cleaned);
-  const isPerson = /\b(person|man|woman|people|human|portrait)\b/i.test(cleaned);
+  const isAnimal = /\b(dog|cat|horse|cow|lion|tiger|elephant|animal|bird|wildlife|pet|zebra|giraffe|bear)\b/i.test(lower);
+  const isPerson = /\b(person|man|woman|people|human|portrait|face|manager|executive|professional|businessman|businesswoman)\b/i.test(lower);
+  const isLandscape = /\b(landscape|scenery|forest|mountain|beach|sunset|sunrise|nature|river|ocean|savana|savanna|desert)\b/i.test(lower);
+  const isBuilding = /\b(building|office|house|room|interior|desk|workspace|architecture)\b/i.test(lower);
   
   if (isAnimal) {
-    return cleaned + ', professional wildlife photography, photorealistic, detailed fur and textures, natural lighting, real animal, National Geographic style, 4k photograph, DSLR';
+    return cleaned + ', award-winning wildlife photography, photorealistic, ultra detailed fur and skin texture, natural habitat, dramatic lighting, National Geographic quality, Canon EOS R5, 400mm lens, 8k, sharp focus, depth of field';
   }
   if (isPerson) {
-    return cleaned + ', professional portrait photography, photorealistic, natural skin texture, studio lighting, real person, high detail, DSLR, 85mm lens';
+    return cleaned + ', professional portrait photography, photorealistic, natural skin texture with visible pores, studio lighting setup, real person, ultra high detail, full body in frame, Canon EOS 5D, 85mm f/1.4 lens, 8k resolution, perfect composition';
   }
-  return cleaned + ', professional photography, photorealistic, high detail, natural lighting, real, 4k photograph';
+  if (isLandscape) {
+    return cleaned + ', breathtaking landscape photography, photorealistic, golden hour lighting, vivid colors, National Geographic style, ultra sharp details, wide angle, 8k resolution, professional DSLR';
+  }
+  if (isBuilding) {
+    return cleaned + ', professional architectural photography, photorealistic, perfect lighting, ultra detailed, sharp focus, clean composition, 8k resolution, full frame visible';
+  }
+  return cleaned + ', professional photography, photorealistic, ultra high detail, perfect lighting, sharp focus, 8k resolution, masterpiece';
 }
 
 module.exports = async (req, res) => {
@@ -53,16 +62,19 @@ module.exports = async (req, res) => {
         prompt: prompt,
         params: {
           n: 1,
-          width: 512,
-          height: 512,
-          steps: 30,
-          cfg_scale: 8,
-          sampler_name: 'k_euler',
+          width: 768,
+          height: 768,
+          steps: 40,
+          cfg_scale: 9,
+          sampler_name: 'k_dpmpp_2m',
+          karras: true,
+          hires_fix: true,
+          clip_skip: 2,
         },
         nsfw: false,
         trusted_workers: true,
         slow_workers: true,
-        models: ['Realistic_Vision_V5.1', 'Deliberate'],
+        models: ['Realistic_Vision_V5.1', 'Deliberate', 'DreamShaper'],
         r2: true,
       }),
       signal: AbortSignal.timeout(8000),
@@ -108,7 +120,7 @@ module.exports = async (req, res) => {
   try {
     console.log('[Image API] Trying Jimeng (fast)');
     const encodedPrompt = encodeURIComponent(prompt);
-    const response = await fetch(`https://jimeng.jianying.com/ai-platform/api/v1/text2image?prompt=${encodedPrompt}&model=jimeng-4.5&resolution=2k&ratio=1:1`, {
+    const response = await fetch(`https://jimeng.jianying.com/ai-platform/api/v1/text2image?prompt=${encodedPrompt}&model=jimeng-4.5&resolution=4k&ratio=1:1`, {
       method: 'GET',
       headers: {
         'User-Agent': 'Mozilla/5.0',
