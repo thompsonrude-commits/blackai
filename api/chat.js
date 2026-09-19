@@ -92,27 +92,31 @@ module.exports = async (req, res) => {
     }
 
     const data = await response.json();
-    let text = data.choices?.[0]?.message?.content || '';
+    let text = data.choices?.[0]?.message?.content;
     
-    // Fix "No response" issue - provide fallback
-    if (!text || text.trim() === '' || text.toLowerCase() === 'no response') {
-      text = 'I apologize, but I was unable to generate a response. Please try rephrasing your question or ask something else.';
+    // Handle empty or missing response
+    if (!text || text.trim() === '') {
+      console.warn('[Chat] Empty response from AI, using fallback');
+      text = "I apologize, I couldn't process that request. Could you please rephrase or try asking something else?";
     }
     
-    // Detect if user is asking for list/table and auto-format as Excel if needed
-    const userMessage = messages[messages.length - 1]?.content || '';
-    const isListRequest = /\b(list|table|compare|comparison|vs|versus|options|alternatives|examples|items)\b/i.test(userMessage);
-    const hasMultipleItems = (text.match(/\n[-•*\d]/g) || []).length >= 3; // Has 3+ list items
-    
-    // Auto-convert to Excel format if it's a list response
-    if (isListRequest && hasMultipleItems) {
-      text = `${text}\n\n📊 **Excel Format Available**\nThis response contains structured data. You can export it to Excel format for better viewing.`;
+    // Auto-detect list/table requests for Excel format suggestion  
+    try {
+      const userMessage = messages[messages.length - 1]?.content || '';
+      const isListRequest = /\b(list|table|compare|governors|states|countries|comparison|items|all|give me)\b/i.test(userMessage);
+      const hasMultipleItems = (text.match(/\n[-•*\d]|\d\./g) || []).length >= 3;
+      
+      if (isListRequest && hasMultipleItems) {
+        text += '\n\n📊 This response contains structured data that can be exported to Excel format for better viewing.';
+      }
+    } catch (e) {
+      // Ignore Excel detection errors
     }
     
     return res.status(200).json({
       text: text,
-      content: text,  // Add this for compatibility
-      choices: [{      // Add OpenAI-compatible format
+      content: text,
+      choices: [{
         message: {
           content: text
         }
