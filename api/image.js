@@ -86,21 +86,26 @@ module.exports = async (req, res) => {
         censor_nsfw: true,
         replacement_filter: true,
       }),
+      signal: AbortSignal.timeout(10000), // 10s to submit job
     });
 
     if (response.ok) {
       const data = await response.json();
       const jobId = data.id;
 
-      // Poll for completion (max 60 seconds - fail faster to try next provider)
-      for (let i = 0; i < 20; i++) {
+      // Poll for completion (max 15 seconds, then try faster Craiyon)
+      for (let i = 0; i < 5; i++) {
         await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3s between polls
         
-        const statusResponse = await fetch(`https://stablehorde.net/api/v2/generate/check/${jobId}`);
+        const statusResponse = await fetch(`https://stablehorde.net/api/v2/generate/check/${jobId}`, {
+          signal: AbortSignal.timeout(5000),
+        });
         const status = await statusResponse.json();
 
         if (status.done) {
-          const resultResponse = await fetch(`https://stablehorde.net/api/v2/generate/status/${jobId}`);
+          const resultResponse = await fetch(`https://stablehorde.net/api/v2/generate/status/${jobId}`, {
+            signal: AbortSignal.timeout(5000),
+          });
           const result = await resultResponse.json();
           
           if (result.generations && result.generations[0]) {
