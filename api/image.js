@@ -1,5 +1,43 @@
 // Image generation with unlimited-first fallback chain
 // Priority: Stable Horde (unlimited) → Craiyon (unlimited) → Z-Image (2K/day) → Jimeng (100/day)
+
+// Intelligent prompt enhancement for better quality
+function enhancePrompt(userPrompt) {
+  const cleaned = userPrompt.trim();
+  
+  // If prompt is already detailed (has quality keywords), use as-is
+  const hasQualityKeywords = /\b(detailed|realistic|high quality|photorealistic|professional|4k|8k|hd|masterpiece)\b/i.test(cleaned);
+  if (hasQualityKeywords) {
+    return cleaned;
+  }
+  
+  // Detect subject type for appropriate enhancement
+  const isPortrait = /\b(person|man|woman|face|portrait|people|human)\b/i.test(cleaned);
+  const isAnimal = /\b(dog|cat|horse|animal|bird|wildlife|pet)\b/i.test(cleaned);
+  const isLandscape = /\b(landscape|scenery|mountain|ocean|forest|nature|sky|sunset|sunrise)\b/i.test(cleaned);
+  const isObject = /\b(car|vehicle|building|house|product|furniture|tool)\b/i.test(cleaned);
+  
+  // Add appropriate quality modifiers
+  let enhanced = cleaned;
+  
+  if (isPortrait) {
+    enhanced += ', photorealistic portrait, detailed face, professional photography, studio lighting';
+  } else if (isAnimal) {
+    enhanced += ', realistic animal photography, detailed fur/feathers, natural pose, complete anatomy, professional wildlife photography';
+  } else if (isLandscape) {
+    enhanced += ', stunning landscape photography, vivid colors, high detail, professional composition, natural lighting';
+  } else if (isObject) {
+    enhanced += ', professional product photography, detailed, clean background, studio lighting';
+  } else {
+    enhanced += ', high quality, detailed, realistic, professional';
+  }
+  
+  return enhanced;
+}
+
+// Negative prompts to avoid common AI artifacts
+const NEGATIVE_PROMPT = 'deformed, distorted, disfigured, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, mutated, ugly, blurry, bad art, beginner, amateur, low quality, watermark';
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -13,8 +51,12 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const prompt = req.body?.prompt || 'beautiful scenery';
+  const userPrompt = req.body?.prompt || 'beautiful scenery';
+  const prompt = enhancePrompt(userPrompt);
   const startTime = Date.now();
+  
+  console.log('[Image API] User prompt:', userPrompt);
+  console.log('[Image API] Enhanced prompt:', prompt);
   
   // PRIORITY 1: Stable Horde (unlimited, community-powered)
   try {
@@ -31,13 +73,18 @@ module.exports = async (req, res) => {
           n: 1,
           width: 512,
           height: 512,
-          steps: 30,
-          cfg_scale: 7.5,
+          steps: 40, // More steps for better quality
+          cfg_scale: 8.5, // Higher guidance for better prompt adherence
+          sampler_name: 'k_euler_a', // Better sampler
+          karras: true, // Better noise schedule
         },
         nsfw: false,
-        trusted_workers: false,
+        trusted_workers: true, // Use more reliable workers
         slow_workers: true,
-        models: ['stable_diffusion'],
+        models: ['stable_diffusion_2.1', 'Deliberate', 'Realistic_Vision_V5.1'], // Better quality models
+        r2: true, // Use R2 storage for faster delivery
+        censor_nsfw: true,
+        replacement_filter: true,
       }),
     });
 
@@ -81,8 +128,8 @@ module.exports = async (req, res) => {
       },
       body: JSON.stringify({
         prompt: prompt,
-        model: 'none',
-        negative_prompt: '',
+        model: 'photo', // Use photo model for more realistic results
+        negative_prompt: NEGATIVE_PROMPT,
         version: '35s5hfwn9n78gb06',
       }),
     });
