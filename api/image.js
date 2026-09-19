@@ -1,18 +1,23 @@
 // Image generation with unlimited-first fallback chain
-// Priority: Jimeng (fast) → Stable Horde (unlimited) → Craiyon (unlimited) → Z-Image (2K/day)
+// Priority: Stable Horde (photorealistic) → Jimeng → Craiyon → Z-Image
 // NO POLLINATIONS - per user request
 
-// Intelligent prompt enhancement for better quality
+// Intelligent prompt enhancement for photorealism
 function enhancePrompt(userPrompt) {
   const cleaned = userPrompt.trim();
-  const hasQualityKeywords = /\b(detailed|realistic|high quality|photorealistic|professional)\b/i.test(cleaned);
+  const hasQualityKeywords = /\b(detailed|realistic|high quality|photorealistic|professional|photograph)\b/i.test(cleaned);
   if (hasQualityKeywords) return cleaned;
   
-  const isAnimal = /\b(dog|cat|horse|animal|bird|wildlife|pet)\b/i.test(cleaned);
+  const isAnimal = /\b(dog|cat|horse|cow|animal|bird|wildlife|pet)\b/i.test(cleaned);
+  const isPerson = /\b(person|man|woman|people|human|portrait)\b/i.test(cleaned);
+  
   if (isAnimal) {
-    return cleaned + ', realistic animal photography, detailed, natural pose, complete anatomy, professional wildlife photography';
+    return cleaned + ', professional wildlife photography, photorealistic, detailed fur and textures, natural lighting, real animal, National Geographic style, 4k photograph, DSLR';
   }
-  return cleaned + ', high quality, detailed, realistic';
+  if (isPerson) {
+    return cleaned + ', professional portrait photography, photorealistic, natural skin texture, studio lighting, real person, high detail, DSLR, 85mm lens';
+  }
+  return cleaned + ', professional photography, photorealistic, high detail, natural lighting, real, 4k photograph';
 }
 
 module.exports = async (req, res) => {
@@ -35,7 +40,71 @@ module.exports = async (req, res) => {
   console.log('[Image API] User prompt:', userPrompt);
   console.log('[Image API] Enhanced:', prompt);
   
-  // PRIORITY 1: Jimeng (fast, ByteDance, reliable)
+  // PRIORITY 1: Stable Horde (unlimited, photorealistic models)
+  try {
+    console.log('[Image API] Trying Stable Horde (photorealistic)');
+    const response = await fetch('https://stablehorde.net/api/v2/generate/async', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': '0000000000',
+      },
+      body: JSON.stringify({
+        prompt: prompt,
+        params: {
+          n: 1,
+          width: 512,
+          height: 512,
+          steps: 30,
+          cfg_scale: 8,
+          sampler_name: 'k_euler',
+        },
+        nsfw: false,
+        trusted_workers: true,
+        slow_workers: true,
+        models: ['Realistic_Vision_V5.1', 'Deliberate'],
+        r2: true,
+      }),
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      const jobId = data.id;
+
+      // Poll for completion (max 15 seconds then try next)
+      for (let i = 0; i < 5; i++) {
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        const statusResponse = await fetch(`https://stablehorde.net/api/v2/generate/check/${jobId}`, {
+          signal: AbortSignal.timeout(3000),
+        });
+        const status = await statusResponse.json();
+
+        if (status.done) {
+          const resultResponse = await fetch(`https://stablehorde.net/api/v2/generate/status/${jobId}`, {
+            signal: AbortSignal.timeout(3000),
+          });
+          const result = await resultResponse.json();
+          
+          if (result.generations && result.generations[0]) {
+            console.log('[Image API] ✅ Stable Horde succeeded (photorealistic)');
+            return res.status(200).json({
+              imageUrl: result.generations[0].img,
+              provider: 'stablehorde',
+              model: 'Realistic_Vision_V5.1',
+              latencyMs: Date.now() - startTime,
+            });
+          }
+        }
+      }
+      console.log('[Image API] Stable Horde timed out, trying next provider');
+    }
+  } catch (error) {
+    console.log('[Image API] Stable Horde failed:', error.message);
+  }
+  
+  // PRIORITY 2: Jimeng (fast fallback)
   try {
     console.log('[Image API] Trying Jimeng (fast)');
     const encodedPrompt = encodeURIComponent(prompt);
