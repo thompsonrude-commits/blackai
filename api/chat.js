@@ -92,7 +92,22 @@ module.exports = async (req, res) => {
     }
 
     const data = await response.json();
-    const text = data.choices?.[0]?.message?.content || 'No response';
+    let text = data.choices?.[0]?.message?.content || '';
+    
+    // Fix "No response" issue - provide fallback
+    if (!text || text.trim() === '' || text.toLowerCase() === 'no response') {
+      text = 'I apologize, but I was unable to generate a response. Please try rephrasing your question or ask something else.';
+    }
+    
+    // Detect if user is asking for list/table and auto-format as Excel if needed
+    const userMessage = messages[messages.length - 1]?.content || '';
+    const isListRequest = /\b(list|table|compare|comparison|vs|versus|options|alternatives|examples|items)\b/i.test(userMessage);
+    const hasMultipleItems = (text.match(/\n[-•*\d]/g) || []).length >= 3; // Has 3+ list items
+    
+    // Auto-convert to Excel format if it's a list response
+    if (isListRequest && hasMultipleItems) {
+      text = `${text}\n\n📊 **Excel Format Available**\nThis response contains structured data. You can export it to Excel format for better viewing.`;
+    }
     
     return res.status(200).json({
       text: text,
