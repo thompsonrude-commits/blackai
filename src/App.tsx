@@ -241,6 +241,7 @@ export default function App() {
           <Route path="/admin" element={isAdmin ? <AdminPage /> : <Navigate to="/admin/login" replace />} />
           
           {isAdmin ? (
+            <>
               <Route path="/discover" element={<div className="flex-1 overflow-y-auto"><SearchLanguage onLanguageFound={(langName) => { let id = langName.toLowerCase().replace(/\s+/g, '-'); for (const [k, v] of Object.entries(LANGUAGE_ID_TO_NAME)) { if (v.toLowerCase() === langName.toLowerCase()) { id = k; break; } } navigate(`/language/${id}`); }} /></div>} />
               <Route path="/admin/repository" element={<AdminSubpage><AdminRepository onSelectLanguage={(langName) => { let id = langName.toLowerCase().replace(/\s+/g, '-'); for (const [k, v] of Object.entries(LANGUAGE_ID_TO_NAME)) { if (v.toLowerCase() === langName.toLowerCase()) { id = k; break; } } navigate(`/language/${id}`); }} /></AdminSubpage>} />
               <Route path="/admin/training" element={<AdminSubpage><AdminTraining /></AdminSubpage>} />
