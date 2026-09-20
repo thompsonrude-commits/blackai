@@ -31,7 +31,7 @@ module.exports = async (req, res) => {
 
     // ── 1. Detect queries needing current/real-time information ─────────────
     const userQuery = messages[messages.length - 1]?.content || '';
-    const needsSearch = /\b(governor|governors|president|minister|senator|commissioner|chairman|current|latest|recent|today|now|2024|2025|2026|news|price|rate|exchange|usd|naira|ngn|dollar|election|win|won|result|score|match|live|died|dead|born|new|update|who is|who are|what is the current|how much|when did|when was|where is|capital|headquarters)\b/i.test(userQuery);
+    const needsSearch = true; // Always search for current info
 
     // ── 2. Search functions ──────────────────────────────────────────────────
 
