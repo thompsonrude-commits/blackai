@@ -38,17 +38,31 @@ module.exports = async (req, res) => {
     // Wikipedia - completely free, no API key, very reliable
     async function searchWikipedia(query) {
       try {
-        // Build multiple targeted queries to maximise hit rate
-        const queries = [
-          query,
-          // If asking about a person/role, also search recent elections
-          query.replace(/who is (the )?current/i, '').trim() + ' 2024 election',
-          query.replace(/who is (the )?current/i, '').trim() + ' governor Nigeria',
-        ];
+        // Detect Nigeria governor queries - always look for latest election article
+        const isNigeriaGovQuery = /\b(governor|governors)\b.*\b(state|nigeria)\b|\b(state|nigeria)\b.*\bgovernor/i.test(query);
+        
+        // Build multiple targeted queries
+        const queries = [query];
+        if (isNigeriaGovQuery) {
+          // Extract state name if present
+          const stateMatch = query.match(/\b(abia|adamawa|akwa ibom|anambra|bauchi|bayelsa|benue|borno|cross river|delta|ebonyi|edo|ekiti|enugu|gombe|imo|jigawa|kaduna|kano|katsina|kebbi|kogi|kwara|lagos|nasarawa|niger|ogun|ondo|osun|oyo|plateau|rivers|sokoto|taraba|yobe|zamfara|fct|abuja)\b/i);
+          if (stateMatch) {
+            const state = stateMatch[1];
+            // Prioritise election article which has current winner
+            queries.unshift(`2024 ${state} State gubernatorial election`);
+            queries.unshift(`${state} State governor Nigeria current 2024 2025`);
+          } else {
+            queries.unshift('List of governors of Nigerian states 2024');
+            queries.unshift('Nigeria state governors current 2024');
+          }
+        } else {
+          queries.push(query + ' 2024 2025');
+        }
 
         const snippets = [];
+        const seen = new Set();
 
-        for (const q of queries.slice(0, 2)) {
+        for (const q of queries.slice(0, 3)) {
           const encoded = encodeURIComponent(q);
           const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encoded}&format=json&srlimit=5&origin=*`;
           const r = await fetch(url, { signal: AbortSignal.timeout(6000) });
@@ -56,6 +70,8 @@ module.exports = async (req, res) => {
           if (!d.query?.search?.length) continue;
 
           for (const item of d.query.search.slice(0, 3)) {
+            if (seen.has(item.title)) continue;
+            seen.add(item.title);
             try {
               const summaryUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=true&explaintext=true&titles=${encodeURIComponent(item.title)}&format=json&exsentences=6&origin=*`;
               const sr = await fetch(summaryUrl, { signal: AbortSignal.timeout(5000) });
@@ -64,13 +80,12 @@ module.exports = async (req, res) => {
               if (pages) {
                 const page = Object.values(pages)[0];
                 if (page.extract && page.extract.length > 50) {
-                  const entry = `[Wikipedia: ${page.title}]\n${page.extract.substring(0, 700)}`;
-                  if (!snippets.includes(entry)) snippets.push(entry);
+                  snippets.push(`[Wikipedia: ${page.title}]\n${page.extract.substring(0, 700)}`);
                 }
               }
             } catch (e) { /* skip */ }
           }
-          if (snippets.length >= 3) break; // Enough results
+          if (snippets.length >= 4) break;
         }
 
         return snippets.length ? snippets.join('\n\n') : null;
