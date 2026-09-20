@@ -4,7 +4,7 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Session-Id, X-User-Id');
-  
+
   if (req.method === 'OPTIONS') {
     return res.status(204).send('');
   }
@@ -30,25 +30,15 @@ module.exports = async (req, res) => {
     }
 
     const { messages, temperature = 0.7, maxTokens = 2048 } = body;
-    
+
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ error: 'messages array required' });
     }
 
-    // Direct Groq API call
     const GROQ_KEY = process.env.GROQ_API_KEY || process.env.GROQ_KEY || process.env.VITE_GROQ_KEY;
-    
-    console.log('Environment check:', {
-      hasGROQ_API_KEY: !!process.env.GROQ_API_KEY,
-      hasGROQ_KEY: !!process.env.GROQ_KEY,
-      hasVITE_GROQ_KEY: !!process.env.VITE_GROQ_KEY,
-      finalKey: !!GROQ_KEY
-    });
-    
+
     if (!GROQ_KEY) {
-      console.error('GROQ API key not found in environment variables');
-      console.error('Checked: GROQ_API_KEY, GROQ_KEY, VITE_GROQ_KEY');
-      return res.status(500).json({ 
+      return res.status(500).json({
         error: 'API key not configured',
         text: 'Backend configuration error. Please contact administrator.',
         provider: 'none',
@@ -56,125 +46,57 @@ module.exports = async (req, res) => {
       });
     }
 
-    console.log('Making Groq API request:', {
-      url: 'https://api.groq.com/openai/v1/chat/completions',
-      model: 'openai/gpt-oss-120b',
-      messageCount: messages.length,
-      hasApiKey: !!GROQ_KEY
-    });
-
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${GROQ_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'openai/gpt-oss-120b', // Confirmed available on Groq
-        messages: messages,
-        temperature: temperature,
-        max_tokens: maxTokens,
-        stream: false
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('=== GROQ API ERROR ===');
-      console.error('Status:', response.status);
-      console.error('Status Text:', response.statusText);
-      console.error('Headers:', JSON.stringify([...response.headers.entries()]));
-      console.error('Response Body:', errorText);
-      console.error('======================');
-      
-      // Try to parse error details
-      let errorDetails = errorText;
-      try {
-        const errorJson = JSON.parse(errorText);
-        errorDetails = JSON.stringify(errorJson, null, 2);
-      } catch (e) {
-        // Keep as text
-      }
-      
-      return res.status(500).json({
-        error: 'AI provider error',
-        text: 'Local fallback mode is active. Please try again.',
-        provider: 'groq',
-        model: 'error',
-        details: errorDetails.substring(0, 200),
-        httpStatus: response.status,
-        statusText: response.statusText
-      });
-    }
-
-    const data = await response.json();
-    let text = data.choices?.[0]?.message?.content;
-    
-    // Log full response for debugging
-    console.log('[Chat] Full response:', JSON.stringify({
-      model: data.model,
-      choices: data.choices?.map(c => ({ role: c.message?.role, contentLength: c.message?.content?.length, content: c.message?.content?.substring(0, 100) })),
-      usage: data.usage
-    }));
-    
-    // Handle empty or missing response - try fallback model
-    if (!text || text.trim() === '') {
-      console.warn('[Chat] Empty response from gpt-oss-120b, trying groq/compound...');
-      
-      const fallbackResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const callGroq = async (model) => {
+      const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${GROQ_KEY}`
         },
         body: JSON.stringify({
-          model: 'groq/compound',
-          messages: messages,
-          temperature: temperature,
+          model,
+          messages,
+          temperature,
           max_tokens: maxTokens,
           stream: false
         })
       });
-      
-      if (fallbackResponse.ok) {
-        const fallbackData = await fallbackResponse.json();
-        text = fallbackData.choices?.[0]?.message?.content;
-        console.log('[Chat] Fallback model response length:', text?.length);
+      if (!r.ok) {
+        const err = await r.text();
+        console.error(`[Chat] ${model} error ${r.status}:`, err);
+        return null;
       }
+      const d = await r.json();
+      return d.choices?.[0]?.message?.content || null;
+    };
+
+    // Try primary model first, then fallback
+    let text = await callGroq('openai/gpt-oss-120b');
+    if (!text || text.trim() === '') {
+      console.warn('[Chat] Primary model empty, trying groq/compound...');
+      text = await callGroq('groq/compound');
     }
-    
-    // Still empty - final fallback
     if (!text || text.trim() === '') {
       console.warn('[Chat] Both models returned empty response');
-      text = "I apologize, I couldn't process that request. Could you please rephrase or try asking something else?";
+      text = "I'm sorry, I couldn't generate a response. Please try again.";
     }
-    
-    // Auto-detect list/table requests for Excel format suggestion  
-    try {
-      const userMessage = messages[messages.length - 1]?.content || '';
-      const isListRequest = /\b(list|table|compare|governors|states|countries|comparison|items|all|give me)\b/i.test(userMessage);
-      const hasMultipleItems = (text.match(/\n[-â€¢*\d]|\d\./g) || []).length >= 3;
-      
-      if (isListRequest && hasMultipleItems) {
-        text += '\n\nðŸ“Š This response contains structured data that can be exported to Excel format for better viewing.';
-      }
-    } catch (e) {
-      // Ignore Excel detection errors
-    }
-    
+
+    // Strip internal reasoning/thinking sections the model sometimes prepends
+    // These are model-internal metadata not meant for end users
+    text = text
+      .replace(/^#+\s*Reasoning\s+Summary\b[\s\S]*?\n{2,}/im, '')
+      .replace(/^\*{0,2}Reasoning\s+Summary\*{0,2}\s*\n[\s\S]*?\n{2,}/im, '')
+      .replace(/^Reasoning\s+Summary\s*\n[\s\S]*?\n{2,}/im, '')
+      .trim();
+
     return res.status(200).json({
-      text: text,
+      text,
       content: text,
-      choices: [{
-        message: {
-          content: text
-        }
-      }],
+      choices: [{ message: { content: text } }],
       provider: 'groq',
       model: 'openai/gpt-oss-120b',
       latencyMs: 0,
-      cached: false,
-      tokensUsed: data.usage?.total_tokens
+      cached: false
     });
 
   } catch (error) {
