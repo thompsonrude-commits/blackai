@@ -1,4 +1,5 @@
 // Vercel chat endpoint with direct Groq integration
+// Disable Vercel's built-in body parser - handle manually
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -13,22 +14,19 @@ module.exports = async (req, res) => {
   }
 
   try {
-    // Parse body manually if needed (Vercel sometimes doesn't auto-parse)
-    let body = req.body;
-    if (typeof body === 'string') {
-      try { body = JSON.parse(body); } catch (e) { /* ignore */ }
-    }
-    if (!body) {
-      // Read raw body
-      const raw = await new Promise((resolve, reject) => {
-        let data = '';
-        req.on('data', chunk => { data += chunk; });
-        req.on('end', () => resolve(data));
-        req.on('error', reject);
-      });
-      try { body = JSON.parse(raw); } catch (e) {
-        return res.status(400).json({ error: 'Invalid JSON body' });
-      }
+    // Read raw body from stream (bypasses Vercel body parser entirely)
+    const raw = await new Promise((resolve, reject) => {
+      let data = '';
+      req.on('data', chunk => { data += chunk.toString(); });
+      req.on('end', () => resolve(data));
+      req.on('error', reject);
+    });
+
+    let body;
+    try {
+      body = JSON.parse(raw);
+    } catch (e) {
+      return res.status(400).json({ error: 'Invalid JSON body', details: e.message });
     }
 
     const { messages, temperature = 0.7, maxTokens = 2048 } = body;
@@ -156,4 +154,11 @@ module.exports = async (req, res) => {
       details: error.message
     });
   }
+};
+
+// Tell Vercel NOT to parse the body - we do it ourselves
+module.exports.config = {
+  api: {
+    bodyParser: false,
+  },
 };
