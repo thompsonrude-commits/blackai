@@ -110,9 +110,42 @@ module.exports = async (req, res) => {
     const data = await response.json();
     let text = data.choices?.[0]?.message?.content;
     
-    // Handle empty or missing response
+    // Log full response for debugging
+    console.log('[Chat] Full response:', JSON.stringify({
+      model: data.model,
+      choices: data.choices?.map(c => ({ role: c.message?.role, contentLength: c.message?.content?.length, content: c.message?.content?.substring(0, 100) })),
+      usage: data.usage
+    }));
+    
+    // Handle empty or missing response - try fallback model
     if (!text || text.trim() === '') {
-      console.warn('[Chat] Empty response from AI, using fallback');
+      console.warn('[Chat] Empty response from gpt-oss-120b, trying groq/compound...');
+      
+      const fallbackResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${GROQ_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'groq/compound',
+          messages: messages,
+          temperature: temperature,
+          max_tokens: maxTokens,
+          stream: false
+        })
+      });
+      
+      if (fallbackResponse.ok) {
+        const fallbackData = await fallbackResponse.json();
+        text = fallbackData.choices?.[0]?.message?.content;
+        console.log('[Chat] Fallback model response length:', text?.length);
+      }
+    }
+    
+    // Still empty - final fallback
+    if (!text || text.trim() === '') {
+      console.warn('[Chat] Both models returned empty response');
       text = "I apologize, I couldn't process that request. Could you please rephrase or try asking something else?";
     }
     
