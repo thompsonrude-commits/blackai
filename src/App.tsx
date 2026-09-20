@@ -237,9 +237,10 @@ export default function App() {
         <main className="flex-1 min-h-0 flex flex-col overflow-hidden bg-gradient-to-br from-black via-[#080808] to-[#111111] relative">
         <Routes>
           {sharedRoutes}
+          {/* Admin routes - AdminPage handles its own auth check */}
+          <Route path="/admin" element={isAdmin ? <AdminPage /> : <Navigate to="/admin/login" replace />} />
+          
           {isAdmin ? (
-            <>
-              <Route path="/admin" element={<AdminPage />} />
               <Route path="/discover" element={<div className="flex-1 overflow-y-auto"><SearchLanguage onLanguageFound={(langName) => { let id = langName.toLowerCase().replace(/\s+/g, '-'); for (const [k, v] of Object.entries(LANGUAGE_ID_TO_NAME)) { if (v.toLowerCase() === langName.toLowerCase()) { id = k; break; } } navigate(`/language/${id}`); }} /></div>} />
               <Route path="/admin/repository" element={<AdminSubpage><AdminRepository onSelectLanguage={(langName) => { let id = langName.toLowerCase().replace(/\s+/g, '-'); for (const [k, v] of Object.entries(LANGUAGE_ID_TO_NAME)) { if (v.toLowerCase() === langName.toLowerCase()) { id = k; break; } } navigate(`/language/${id}`); }} /></AdminSubpage>} />
               <Route path="/admin/training" element={<AdminSubpage><AdminTraining /></AdminSubpage>} />
@@ -249,6 +250,13 @@ export default function App() {
               <Route path="/admin/freeform-paste" element={<AdminSubpage><FreeformPaste /></AdminSubpage>} />
               <Route path="/admin/agents" element={<AdminSubpage><AgentManagement /></AdminSubpage>} />
               <Route path="/admin/team" element={<AdminSubpage><TeamManagement /></AdminSubpage>} />
+              <Route path="/admin/assistant" element={<AdminSubpage><GeneralAssistant user={user} isAdmin={isAdmin} currentSessionId={currentSessionId} onOpenLibrary={() => setShowLibrary(true)} /></AdminSubpage>} />
+              <Route path="/admin/super" element={<AdminSubpage><SuperEcosystem user={user} isAdmin={isAdmin} onOpenLibrary={() => setShowLibrary(true)} /></AdminSubpage>} />
+              <Route path="/admin/utilities" element={<AdminSubpage><Utilities /></AdminSubpage>} />
+              <Route path="/admin/languages" element={<AdminSubpage><div className="flex-1 overflow-y-auto"><LanguagesMenu /></div></AdminSubpage>} />
+              <Route path="/admin/african-languages" element={<AdminSubpage><div className="flex-1 overflow-y-auto"><AfricanLanguages /></div></AdminSubpage>} />
+              <Route path="/admin/profile" element={<AdminSubpage><div className="flex-1 overflow-y-auto"><Profile user={user} /></div></AdminSubpage>} />
+              <Route path="/admin/discover" element={<AdminSubpage><div className="flex-1 overflow-y-auto"><SearchLanguage onLanguageFound={(langName) => { let id = langName.toLowerCase().replace(/\s+/g, '-'); for (const [k, v] of Object.entries(LANGUAGE_ID_TO_NAME)) { if (v.toLowerCase() === langName.toLowerCase()) { id = k; break; } } navigate(`/language/${id}`); }} /></div></AdminSubpage>} />
             </>
           ) : (
             <>
