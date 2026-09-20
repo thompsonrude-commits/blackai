@@ -1,4 +1,4 @@
-// Vercel chat endpoint with direct Groq integration
+﻿// Vercel chat endpoint with direct Groq integration
 // Disable Vercel's built-in body parser - handle manually
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -58,7 +58,7 @@ module.exports = async (req, res) => {
 
     console.log('Making Groq API request:', {
       url: 'https://api.groq.com/openai/v1/chat/completions',
-      model: 'llama-3.3-70b-versatile',
+      model: 'llama-3.1-8b-instant',
       messageCount: messages.length,
       hasApiKey: !!GROQ_KEY
     });
@@ -70,7 +70,7 @@ module.exports = async (req, res) => {
         'Authorization': `Bearer ${GROQ_KEY}`
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile', // Confirmed working Groq model
+        model: 'llama-3.1-8b-instant', // Confirmed available on Groq
         messages: messages,
         temperature: temperature,
         max_tokens: maxTokens,
@@ -120,10 +120,10 @@ module.exports = async (req, res) => {
     try {
       const userMessage = messages[messages.length - 1]?.content || '';
       const isListRequest = /\b(list|table|compare|governors|states|countries|comparison|items|all|give me)\b/i.test(userMessage);
-      const hasMultipleItems = (text.match(/\n[-•*\d]|\d\./g) || []).length >= 3;
+      const hasMultipleItems = (text.match(/\n[-â€¢*\d]|\d\./g) || []).length >= 3;
       
       if (isListRequest && hasMultipleItems) {
-        text += '\n\n📊 This response contains structured data that can be exported to Excel format for better viewing.';
+        text += '\n\nðŸ“Š This response contains structured data that can be exported to Excel format for better viewing.';
       }
     } catch (e) {
       // Ignore Excel detection errors
@@ -138,7 +138,7 @@ module.exports = async (req, res) => {
         }
       }],
       provider: 'groq',
-      model: 'llama-3.3-70b-versatile',
+      model: 'llama-3.1-8b-instant',
       latencyMs: 0,
       cached: false,
       tokensUsed: data.usage?.total_tokens
