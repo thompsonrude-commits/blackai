@@ -8,9 +8,9 @@ You correctly pointed out that you want **only free providers, no paid services*
 
 ## ✅ What's Truly FREE
 
-### Images: Pollinations
+### Images: legacy-image-provider
 - **Cost**: 100% FREE, no API key needed
-- **URL**: https://image.pollinations.ai/
+- **URL**: https://image.legacy-image-provider.ai/
 - **How it works**: Public API, no authentication
 - **Limits**: None (community-supported)
 - **Status**: ✅ Currently implemented and working
@@ -19,7 +19,7 @@ You correctly pointed out that you want **only free providers, no paid services*
 
 ## ⚠️ The Video Generation Problem
 
-**Reality**: There are **NO truly free video generation APIs** like Pollinations for images.
+**Reality**: There are **NO truly free video generation APIs** like legacy-image-provider for images.
 
 ### Option 1: HuggingFace Inference API (Free Tier) ⚠️
 - **Cost**: FREE within rate limits
@@ -34,7 +34,7 @@ You correctly pointed out that you want **only free providers, no paid services*
 
 ### Option 2: Remove Video Generation Entirely ✅
 - **Cost**: $0
-- **Approach**: Only support image generation (Pollinations)
+- **Approach**: Only support image generation (legacy-image-provider)
 - **User message**: "Video generation coming soon"
 - **Status**: Can implement immediately
 
@@ -51,16 +51,16 @@ You correctly pointed out that you want **only free providers, no paid services*
 ### Removed Paid Fallbacks from Images
 **Before** (Had paid fallbacks):
 ```typescript
-// Pollinations (free) -> OpenRouter (PAID) -> Together (PAID)
+// legacy-image-provider (free) -> OpenRouter (PAID) -> Together (PAID)
 ```
 
 **After** (Free only):
 ```typescript
-// Pollinations (free) only - no paid fallbacks
+// legacy-image-provider (free) only - no paid fallbacks
 ```
 
 ### Current Status
-- ✅ Images: 100% free (Pollinations only)
+- ✅ Images: 100% free (legacy-image-provider only)
 - ⚠️ Video: Uses HuggingFace (free tier, requires API key)
 
 ---
@@ -69,7 +69,7 @@ You correctly pointed out that you want **only free providers, no paid services*
 
 | Provider | Type | Cost | API Key? | Truly Free? |
 |----------|------|------|----------|-------------|
-| **Pollinations** | Image | FREE | No | ✅ YES |
+| **legacy-image-provider** | Image | FREE | No | ✅ YES |
 | **HuggingFace** | Video | FREE* | Yes | ⚠️ Free tier |
 | **OpenRouter** | Image/Text | PAID | Yes | ❌ NO |
 | **Together AI** | Image/Text | PAID | Yes | ❌ NO |
@@ -93,7 +93,7 @@ Given your requirement for **no paid providers**, here are your options:
 **Cons**:
 - Requires API key
 - Has rate limits
-- Not "truly free" like Pollinations
+- Not "truly free" like legacy-image-provider
 
 **Implementation**: Already done (Tasks 1-3)
 
@@ -111,7 +111,7 @@ Given your requirement for **no paid providers**, here are your options:
 
 ### Option C: Hybrid Approach
 **Pros**:
-- Images: Free (Pollinations)
+- Images: Free (legacy-image-provider)
 - Video: Disabled with message "Coming soon"
 - Chat: Free providers only (Groq, DeepSeek)
 
@@ -158,7 +158,7 @@ Should I also review the other providers to ensure everything is truly free?
    - HuggingFace (FREE tier) ⚠️
 
 2. **Images**:
-   - Pollinations (FREE) ✅
+   - legacy-image-provider (FREE) ✅
    - OpenRouter (PAID) ❌ - Just removed
    - Together (PAID) ❌ - Just removed
 
@@ -177,7 +177,7 @@ Should I also review the other providers to ensure everything is truly free?
 If we go 100% free (no API keys), here's what would work:
 
 ```
-✅ Image Generation: Pollinations (no key)
+✅ Image Generation: legacy-image-provider (no key)
 ✅ Chat: Groq (free tier, requires key but no cost)
 ✅ Chat: DeepSeek (free tier, requires key but no cost)
 ❌ Video: Not available (no free API exists)
@@ -191,7 +191,7 @@ If we go 100% free (no API keys), here's what would work:
 
 **For a truly free, no-API-key project:**
 
-1. **Keep**: Pollinations for images (100% free)
+1. **Keep**: legacy-image-provider for images (100% free)
 2. **Keep**: Groq/DeepSeek for chat (free tier, generous)
 3. **Remove**: All paid providers (OpenRouter, Together, Mistral, Tavily)
 4. **Disable**: Video generation (show "Coming soon" message)

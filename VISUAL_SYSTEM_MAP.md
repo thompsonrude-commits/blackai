@@ -104,7 +104,7 @@ Quick visual guide to understand the entire system at a glance.
 │  │    • Requires: ollama serve + model pulled           │      │
 │  │    • Cost: $0 (local inference)                      │      │
 │  │                                                       │      │
-│  │  pollinations.ts   → Pollinations AI                │      │
+│  │  legacy-image-provider.ts   → legacy-image-provider AI                │      │
 │  │    • Image generation (multiple models)              │      │
 │  │    • Cost: $0 (public API)                          │      │
 │  │                                                       │      │
@@ -220,7 +220,7 @@ v1ImageGenerate function
   ↓
 routeImage()
   ↓
-pollinationsWithFallback() ✅ (FREE)
+legacy-image-providerWithFallback() ✅ (FREE)
   ↓
 Response: { imageBase64, provider }
   ↓
@@ -283,7 +283,7 @@ Priority 6: HuggingFace   (free tier, needs key)
 
 ### Image
 ```
-Only Option: Pollinations (FREE, no key)  ← ALWAYS WORKS
+Only Option: legacy-image-provider (FREE, no key)  ← ALWAYS WORKS
 ```
 
 ### Search

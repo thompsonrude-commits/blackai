@@ -231,7 +231,7 @@ When you return with test results, share:
 ```
 QUICK SUMMARY:
 - Chat: ✅ Working with [provider name]
-- Image: ✅ Working with Pollinations
+- Image: ✅ Working with legacy-image-provider
 - Video: ✅ Correctly shows unavailable
 - Voice: ❌ Not tested / failed
 - Vision: ❌ Not tested / failed

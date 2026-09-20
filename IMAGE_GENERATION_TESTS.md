@@ -91,7 +91,7 @@ You can add text overlays by specifying:
 
 ### Key Features
 
-1. **Multiple Providers** - Pollinations API with SVG fallback
+1. **Multiple Providers** - legacy-image-provider API with SVG fallback
 2. **Smart Prompts** - Type-specific prompt enhancement
 3. **Text Overlays** - SVG-based text on images
 4. **Download Options** - PNG and JPG export

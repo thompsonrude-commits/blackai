@@ -19,10 +19,10 @@ OR
 
 ---
 
-### ❌ If Using Pollinations (Fallback):
+### ❌ If Using legacy-image-provider (Fallback):
 ```
-[ImageGen] Backend failed, using Pollinations fallback
-[ImageEngine] Image URL generated (Pollinations fallback): https://image.pollinations.ai/...
+[ImageGen] Backend failed, using legacy-image-provider fallback
+[ImageEngine] Image URL generated (legacy-image-provider fallback): https://image.legacy-image-provider.ai/...
 ```
 
 **Result:** Has watermark, lower quality ❌
@@ -69,7 +69,7 @@ Puter.js uses user-pays model (requires account)
 4. Look for:
    - `js.puter.com/v2/` (Puter.js SDK loading)
    - `api.puter.com` (Puter.js API calls)
-   - `pollinations.ai` (fallback being used)
+   - `legacy-image-provider.ai` (fallback being used)
 
 ### Test 3: Force Puter.js
 Open console and run:
@@ -93,7 +93,7 @@ document.head.appendChild(script);
 ```
 1. User clicks "Generate"
 2. Puter.js SDK starts loading (1-2s)
-3. Meanwhile, falls back to Pollinations
+3. Meanwhile, falls back to legacy-image-provider
 4. Image shows (with watermark)
 5. Puter.js finishes loading ✅
 ```
@@ -139,7 +139,7 @@ import('./puterImageService.js').then(async (puter) => {
 
 ## Common Issues & Fixes
 
-### Issue 1: "Still seeing Pollinations watermark"
+### Issue 1: "Still seeing legacy-image-provider watermark"
 **Cause:** Puter.js not loading or failing
 **Check:**
 ```javascript
@@ -153,7 +153,7 @@ console.log(window.puter); // Should show object, not undefined
 **Fix:** Check firewall/ad blocker blocking Puter.js
 
 ### Issue 3: "Image quality still low"
-**Cause:** Using Pollinations fallback
+**Cause:** Using legacy-image-provider fallback
 **Check Console:** Should see `[ImageGen] Using Puter.js`
 **Fix:** Clear cache, reload page, try again
 
@@ -174,7 +174,7 @@ console.log(window.puter); // Should show object, not undefined
 - Text renders clearly (if text prompt)
 
 ### ❌ Fallback Mode:
-- Console shows: `Pollinations fallback`
+- Console shows: `legacy-image-provider fallback`
 - Image has small watermark at bottom
 - Image quality is medium
 - Text might be blurry
@@ -183,7 +183,7 @@ console.log(window.puter); // Should show object, not undefined
 
 ## Provider Comparison
 
-| Feature | Puter.js | Pollinations |
+| Feature | Puter.js | legacy-image-provider |
 |---------|----------|--------------|
 | **Watermark** | ❌ None | ✅ Yes |
 | **Quality** | High (1024×1024) | Medium |
@@ -194,14 +194,14 @@ console.log(window.puter); // Should show object, not undefined
 
 ---
 
-## Force Pollinations (Testing Only)
+## Force legacy-image-provider (Testing Only)
 
-If you want to test Pollinations fallback:
+If you want to test legacy-image-provider fallback:
 ```javascript
 // Disable Puter.js temporarily
 window.puter = undefined;
 
-// Now generate image - will use Pollinations
+// Now generate image - will use legacy-image-provider
 ```
 
 ---

@@ -218,7 +218,7 @@ if (success) {
 - Search: Check if DuckDuckGo is available (should always be true)
 - Time: Always available (built-in)
 - Weather: Check if Open-Meteo is available (should always be true)
-- Images: Check if Pollinations is available (should always be true)
+- Images: Check if legacy-image-provider is available (should always be true)
 - TTS: Check browser `speechSynthesis` API
 - STT: Check browser `SpeechRecognition` API
 - Translation: Same as chat capability

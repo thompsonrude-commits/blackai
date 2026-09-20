@@ -71,7 +71,7 @@ Modified to use native GPU as PRIMARY:
 **Provider Chain**:
 1. **native-gpu** (PRIMARY) - Self-hosted, FREE, REAL AI generation
 2. **openrouter** (Fallback 1) - DALL-E 3, $0.04/image, when GPU offline
-3. **pollinations** (Fallback 2) - FREE, unreliable, last resort
+3. **legacy-image-provider** (Fallback 2) - FREE, unreliable, last resort
 
 **Logging**: Extensive logs to track which provider was used and why
 
@@ -145,7 +145,7 @@ Physical testing protocol to verify REAL AI generation:
 // OLD: External API as PRIMARY
 const providers = [
   { name: 'openrouter', ... },  // $0.04/image
-  { name: 'pollinations', ... }, // Returns 403
+  { name: 'legacy-image-provider', ... }, // Returns 403
 ];
 ```
 
@@ -155,7 +155,7 @@ const providers = [
 const providers = [
   { name: 'native-gpu', ... },    // FREE, REAL AI
   { name: 'openrouter', ... },    // Fallback only
-  { name: 'pollinations', ... },  // Last resort
+  { name: 'legacy-image-provider', ... },  // Last resort
 ];
 ```
 
@@ -182,7 +182,7 @@ function validateGeneratedImage(imageBase64: string): boolean {
 
 ### Current System (BROKEN)
 - 100 users × 10 images/day × $0.04 = **$1,200/month**
-- Pollinations FREE but returns 403 errors
+- legacy-image-provider FREE but returns 403 errors
 - **Result**: Expensive AND unreliable
 
 ### New System (CORRECT)
@@ -331,7 +331,7 @@ if (openRouterAvailable) {
 }
 
 // Last resort (unreliable)
-return pollinationsWithFallback(request);
+return legacy-image-providerWithFallback(request);
 ```
 
 ### Image Type Classification

@@ -297,7 +297,7 @@ ollama pull llava
 ✅ Search (DuckDuckGo) - $0
 ✅ Time (Node.js) - $0
 ✅ Weather (Open-Meteo) - $0
-✅ Images (Pollinations) - $0
+✅ Images (legacy-image-provider) - $0
 ✅ TTS (Browser API) - $0
 ✅ STT (Browser API) - $0
 ✅ Translation (limited) - $0

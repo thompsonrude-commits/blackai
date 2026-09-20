@@ -143,7 +143,7 @@ Deployment Ready:           ✅ YES
 ┌──────────────┬──────────────────┬─────────────┬──────────────┐
 │ Feature      │ FREE Provider    │ API Key     │ Deployment   │
 ├──────────────┼──────────────────┼─────────────┼──────────────┤
-│ Images       │ Pollinations     │ ❌ NONE     │ ✅ Live      │
+│ Images       │ legacy-image-provider     │ ❌ NONE     │ ✅ Live      │
 │ Chat         │ Ollama           │ ❌ NONE     │ ⏳ Needed    │
 │ TTS          │ Browser API      │ ❌ NONE     │ ✅ Live      │
 │ STT          │ Browser API      │ ❌ NONE     │ ⏳ Integrate │
@@ -193,7 +193,7 @@ Target: 100% FREE-FIRST ✅ ACHIEVED (code-complete)
     Open-Meteo          DeepSeek             
     Node.js Date        Mistral              
     Browser APIs        Tavily               
-    Pollinations                             
+    legacy-image-provider                             
 
      $0/month            Pay-per-use         Premium
      NO KEYS             API KEYS            Enhanced
@@ -209,7 +209,7 @@ FREE-FIRST PROVIDERS:
 ├─ Node.js Date:                $0.00
 ├─ Open-Meteo:                  $0.00
 ├─ Browser APIs (TTS/STT):      $0.00
-├─ Pollinations:                $0.00
+├─ legacy-image-provider:                $0.00
 └─ React Components:            $0.00
 
 INFRASTRUCTURE:

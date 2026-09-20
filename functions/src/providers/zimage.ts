@@ -35,6 +35,7 @@ interface ZImageTaskResponse {
 
 const ZIMAGE_API_BASE = 'https://api-inference.modelscope.cn/v1';
 const MODEL_ID = 'Tongyi-MAI/Z-Image-Turbo';
+const REQUEST_TIMEOUT_MS = 12_000;
 
 /**
  * Generate image using Z-Image Turbo (Alibaba)
@@ -58,7 +59,9 @@ export async function generateImage(params: ZImageGenerationParams): Promise<str
       headers: {
         'Content-Type': 'application/json',
         'X-ModelScope-Async-Mode': 'true',
+        ...(process.env.MODELSCOPE_TOKEN ? { Authorization: `Bearer ${process.env.MODELSCOPE_TOKEN}` } : {}),
       },
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       body: JSON.stringify({
         model: MODEL_ID,
         prompt,
@@ -98,7 +101,9 @@ export async function generateImage(params: ZImageGenerationParams): Promise<str
         method: 'GET',
         headers: {
           'X-ModelScope-Task-Type': 'image_generation',
+          ...(process.env.MODELSCOPE_TOKEN ? { Authorization: `Bearer ${process.env.MODELSCOPE_TOKEN}` } : {}),
         },
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });
 
       if (!statusResponse.ok) {
@@ -113,7 +118,7 @@ export async function generateImage(params: ZImageGenerationParams): Promise<str
         console.log('[Z-Image] ✅ Generation complete');
 
         // Download image and convert to base64
-        const imageResponse = await fetch(imageUrl);
+        const imageResponse = await fetch(imageUrl, { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
         if (!imageResponse.ok) {
           throw new Error(`Failed to download image: ${imageResponse.status}`);
         }

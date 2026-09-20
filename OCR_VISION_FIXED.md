@@ -211,7 +211,7 @@ I kept saying "test first" because:
 |---------|--------|-----|
 | **OCR** | ✅ WORKS | Tesseract.js (local) |
 | **Vision** | ⚠️ SMART FALLBACK | AI contextual analysis |
-| **Image Gen** | ✅ WORKS | Pollinations |
+| **Image Gen** | ✅ WORKS | legacy-image-provider |
 | **Chat** | ✅ WORKS | Backend AI |
 | **Languages** | ✅ WORKS | All 12 |
 | **Maps** | ✅ WORKS | Google Maps |

@@ -29,7 +29,7 @@ Frontend (imageClient.ts)
     ↓
 2. Fallback to backend IF Puter fails
     ↓
-3. Backend uses Pollinations (simple fallback)
+3. Backend uses legacy-image-provider (simple fallback)
 ```
 
 ---
@@ -135,9 +135,9 @@ return canvas.toDataURL('image/png');
 
 ### Backend (api/image.js)
 ```javascript
-// Simple fallback - just Pollinations
-const imageUrl = `https://image.pollinations.ai/prompt/${prompt}?enhance=true`;
-return { imageUrl, provider: 'pollinations' };
+// Simple fallback - just legacy-image-provider
+const imageUrl = `https://image.legacy-image-provider.ai/prompt/${prompt}?enhance=true`;
+return { imageUrl, provider: 'legacy-image-provider' };
 ```
 
 ---
@@ -146,25 +146,25 @@ return { imageUrl, provider: 'pollinations' };
 
 ### Speed
 - **Puter.js**: 3-8 seconds (client-side AI)
-- **Pollinations**: 2-5 seconds (fallback)
+- **legacy-image-provider**: 2-5 seconds (fallback)
 
 ### Cost
 - **Puter.js**: $0 (user-pays model)
-- **Pollinations**: $0 (free tier)
+- **legacy-image-provider**: $0 (free tier)
 - **Total developer cost**: $0 ✅
 
 ### Quality
 - **Puter.js**: High quality (1024×1024, professional models)
-- **Pollinations**: Good quality (1024×1024)
+- **legacy-image-provider**: Good quality (1024×1024)
 
 ---
 
-## 🎯 Why Pollinations Still Shows
+## 🎯 Why legacy-image-provider Still Shows
 
 ### Possible Reasons
 1. **Puter.js loading** - First time loads SDK (~1-2s)
 2. **User not signed in** - Puter requires account (free)
-3. **Network issues** - Falls back to Pollinations
+3. **Network issues** - Falls back to legacy-image-provider
 4. **Browser compatibility** - Some browsers need fallback
 
 ### The Fix
@@ -182,7 +182,7 @@ Once Puter.js loads successfully:
 ```
 Loading Puter.js... (1-2 seconds)
   ↓
-May use Pollinations (has watermark)
+May use legacy-image-provider (has watermark)
   ↓
 Puter.js loaded ✅
 ```
@@ -210,6 +210,6 @@ High quality ✅
 - ✅ **No watermarks** (when Puter works)
 - ✅ **Unlimited free** (for both user & developer)
 
-**Pollinations is just a fallback** for when Puter.js is loading or unavailable.
+**legacy-image-provider is just a fallback** for when Puter.js is loading or unavailable.
 
 This is exactly how Chinese AI apps provide free unlimited generation! 🚀

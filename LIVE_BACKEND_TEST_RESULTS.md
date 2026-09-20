@@ -43,7 +43,7 @@ Ollama is **NOT** in the provider registry. This means:
 | DeepSeek | ✅ DEEPSEEK_KEY | 🟢 Healthy | ✅ Yes |
 | Mistral | ✅ MISTRAL_KEY | 🟢 Healthy | ✅ Yes |
 | Tavily | ✅ TAVILY_KEY | 🟢 Healthy | ✅ Yes |
-| Pollinations | ✅ Configured | 🟢 Healthy | ✅ Yes |
+| legacy-image-provider | ✅ Configured | 🟢 Healthy | ✅ Yes |
 
 **All 8 providers are configured and healthy!**
 
@@ -73,12 +73,12 @@ Ollama is **NOT** in the provider registry. This means:
 
 2. **All Providers Available**
    - 7 paid providers configured with valid API keys
-   - 1 free provider (Pollinations) working
+   - 1 free provider (legacy-image-provider) working
    - No authentication failures
 
 3. **Fallback Chain Complete**
    - Chat: Groq → OpenRouter → Together → DeepSeek → Mistral → HuggingFace
-   - Image: Pollinations (FREE)
+   - Image: legacy-image-provider (FREE)
    - Search: Tavily (paid)
 
 ### The Trade-Off 💰
@@ -90,7 +90,7 @@ Ollama is **NOT** in the provider registry. This means:
 - ✅ Cost is low (Groq has generous free tier)
 
 **FREE providers that ARE working**:
-- ✅ Pollinations (image generation) - FREE
+- ✅ legacy-image-provider (image generation) - FREE
 - ✅ Open-Meteo (weather) - FREE (not shown in health, but code shows it's used)
 - ✅ DuckDuckGo (search) - FREE (not shown in health, but code shows it's used)
 - ✅ Time API (built-in) - FREE
@@ -110,7 +110,7 @@ Based on this health check, here's what should work:
    - Cost: Low (free tier available)
 
 2. **Image Generation**
-   - Provider: Pollinations
+   - Provider: legacy-image-provider
    - Quality: Good
    - Speed: Medium
    - Cost: FREE
@@ -192,7 +192,7 @@ Now that backend is verified, test from the UI:
 2. **Test Chat**: Type "Hello, how are you?"
    - Expected: Response from Groq
 3. **Test Image**: Type "generate image of a lion"
-   - Expected: Image from Pollinations
+   - Expected: Image from legacy-image-provider
 4. **Test Video**: Type "generate video of waves"
    - Expected: Error message (correct)
 5. **Check Network Tab**: Verify API calls work
@@ -207,7 +207,7 @@ Now that backend is verified, test from the UI:
 | Providers | ✅ 8/8 Healthy | All API keys configured |
 | Ollama | ❌ Not Installed | Using paid fallbacks |
 | Chat | 🟡 Works (Paid) | Uses Groq → OpenRouter |
-| Image | ✅ Works (FREE) | Uses Pollinations |
+| Image | ✅ Works (FREE) | Uses legacy-image-provider |
 | Overall | 🟡 Ready (Not 100% FREE) | Functional but costs on chat |
 
 **Recommendation**: Accept current state and implement UI, OR install Ollama first for 100% FREE operation.

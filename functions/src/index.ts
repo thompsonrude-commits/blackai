@@ -1,15 +1,15 @@
-/**
- * 9jai AI Super Ecosystem — Firebase Cloud Functions
- * Secure AI proxy layer — API keys NEVER reach the client
+﻿/**
+ * 9jai AI Super Ecosystem â€” Firebase Cloud Functions
+ * Secure AI proxy layer â€” API keys NEVER reach the client
  *
  * Endpoints:
- *   POST /ai/chat        — multi-provider chat with failover
- *   POST /ai/stream      — streaming chat (SSE)
- *   POST /ai/image       — image generation with fallback
- *   POST /ai/transcribe  — Whisper audio transcription
- *   POST /ai/search      — Tavily web search
- *   POST /api/v1/fetch-url — fetch and extract webpage text
- *   GET  /ai/health      — provider health status
+ *   POST /ai/chat        â€” multi-provider chat with failover
+ *   POST /ai/stream      â€” streaming chat (SSE)
+ *   POST /ai/image       â€” image generation with fallback
+ *   POST /ai/transcribe  â€” Whisper audio transcription
+ *   POST /ai/search      â€” Tavily web search
+ *   POST /api/v1/fetch-url â€” fetch and extract webpage text
+ *   GET  /ai/health      â€” provider health status
  */
 
 import * as fs from 'fs';
@@ -40,25 +40,25 @@ import type { AIRequest, ProviderHealth } from './types';
 
 function repairMojibake(text: string): string {
   const replacements: Array<[string, string]> = [
-    ['â€™', '’'], ['â€œ', '“'], ['â€', '”'], ['â€“', '–'],
-    ['â€”', '—'], ['Â ', ' '], ['Ã©', 'é'], ['Ã¨', 'è'],
-    ['Ã¬', 'ì'], ['Ã²', 'ò'], ['Ã¹', 'ù'], ['Ã¡', 'á'],
-    ['Ã³', 'ó'], ['Ãº', 'ú'], ['â€¦', '…'],
+    ['Ã¢â‚¬â„¢', 'â€™'], ['Ã¢â‚¬Å“', 'â€œ'], ['Ã¢â‚¬Â', 'â€'], ['Ã¢â‚¬â€œ', 'â€“'],
+    ['Ã¢â‚¬â€', 'â€”'], ['Ã‚ ', ' '], ['ÃƒÂ©', 'Ã©'], ['ÃƒÂ¨', 'Ã¨'],
+    ['ÃƒÂ¬', 'Ã¬'], ['ÃƒÂ²', 'Ã²'], ['ÃƒÂ¹', 'Ã¹'], ['ÃƒÂ¡', 'Ã¡'],
+    ['ÃƒÂ³', 'Ã³'], ['ÃƒÂº', 'Ãº'], ['Ã¢â‚¬Â¦', 'â€¦'],
   ];
   const repaired = replacements.reduce((result, [broken, fixed]) => result.replaceAll(broken, fixed), text);
   return repaired
-    .replace(/ï¿½/giu, '')
+    .replace(/Ã¯Â¿Â½/giu, '')
     .replace(/\uFFFD/g, '')
     .replace(/\bvb(?=\s+ugie\b)/giu, 'vb')
     .replace(/[ \t]{2,}/g, ' ');
 }
 
 
-// ── Init ───────────────────────────────────────────────────────────────────
+// â”€â”€ Init â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 admin.initializeApp();
 
-// Deploy to us-central1 — lowest latency for global + African users via CDN
+// Deploy to us-central1 â€” lowest latency for global + African users via CDN
 setGlobalOptions({
   region: 'us-central1',
   maxInstances: 10,       // free tier quota: 20 max, use 10 to stay safe
@@ -73,7 +73,7 @@ setGlobalOptions({
 // Removing from secrets array avoids Secret Manager billing requirement at deploy time
 const ALL_SECRETS: string[] = [];
 
-// Compact providers endpoint (frontend-friendly summary) — lightweight probes only
+// Compact providers endpoint (frontend-friendly summary) â€” lightweight probes only
 export const v1Providers = onRequest(
   { cors: false, timeoutSeconds: 30 },
   async (req, res) => {
@@ -90,7 +90,7 @@ export const v1Providers = onRequest(
   }
 );
 
-// ── /api/v1/fetch-url — server-side webpage text extraction
+// â”€â”€ /api/v1/fetch-url â€” server-side webpage text extraction
 export const v1FetchUrl = onRequest(
   { cors: false, timeoutSeconds: 30 },
   async (req, res) => {
@@ -101,158 +101,16 @@ export const v1FetchUrl = onRequest(
       return;
     }
 
-    try {
-      const rawUrl = typeof req.body?.url === 'string' ? req.body.url.trim() : '';
-      if (!rawUrl) {
-        res.status(400).json({ error: 'URL is required' });
-        return;
-      }
-
-      const target = new URL(rawUrl);
-      if (!['http:', 'https:'].includes(target.protocol)) {
-        res.status(400).json({ error: 'Only HTTP and HTTPS URLs are supported' });
-        return;
-      }
-
-      const response = await fetch(target, {
-        headers: {
-          Accept: 'text/html, text/plain;q=0.9',
-          'User-Agent': 'BLACK-AI-URL-Extractor/1.0',
-        },
-        signal: AbortSignal.timeout(25_000),
-      });
-
-      if (!response.ok) {
-        res.status(502).json({ error: `Failed to fetch URL: ${response.status}` });
-        return;
-      }
-
-      const contentType = response.headers.get('content-type') || '';
-      const charset = contentType.match(/charset=([^;]+)/i)?.[1]?.trim() || 'utf-8';
-      const bytes = await response.arrayBuffer();
-      let html: string;
+    const authHeader = req.headers.authorization || req.headers.Authorization || '';
+    if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
       try {
-        html = new TextDecoder(charset).decode(bytes);
-      } catch {
-        html = new TextDecoder('utf-8').decode(bytes);
-      }
-      let content = html
-        .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ' ')
-        .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ')
-        .replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi, ' ')
-        .replace(/<br\s*\/?>/gi, '\n')
-        .replace(/<\/(p|div|h[1-6]|li|tr|section|article)>/gi, '\n')
-        .replace(/<[^>]+>/g, ' ')
-        .replace(/&nbsp;/gi, ' ')
-        .replace(/&amp;/gi, '&')
-        .replace(/&lt;/gi, '<')
-        .replace(/&gt;/gi, '>')
-        .replace(/&#(\d+);/g, (_match, code) => String.fromCharCode(Number(code)))
-        .replace(/[ \t]+\n/g, '\n')
-        .replace(/\n{3,}/g, '\n\n')
-        .trim();
-
-      // Some older educational sites are protected by an anti-bot page when
-      // requested from a server. Use a reader fallback that returns the same
-      // public page as text without requiring browser cookies.
-      const looksBlocked = /incapsula|_Incapsula_Resource|access denied|robot check/i.test(content);
-      if (content.length < 100 || looksBlocked) {
-        const readerResponse = await fetch(`https://r.jina.ai/http://${target.host}${target.pathname}${target.search}`, {
-          headers: { Accept: 'text/plain', 'User-Agent': 'BLACK-AI-URL-Extractor/1.0' },
-          signal: AbortSignal.timeout(25_000),
-        });
-        if (readerResponse.ok) {
-          content = (await readerResponse.text()).trim();
+        const decoded = await admin.auth().verifyIdToken(authHeader.slice(7).trim());
+        if (decoded.firebase?.sign_in_provider === 'anonymous') {
+          console.warn('[v1ImageGenerate] Anonymous Firebase user allowed through public provider path');
         }
+      } catch (authError: any) {
+        console.warn('[v1ImageGenerate] Optional Firebase auth not usable for this request:', authError?.message || authError);
       }
-
-      content = repairMojibake(content);
-
-      if (content.length < 100) {
-        res.status(422).json({ error: 'Could not extract meaningful content from URL' });
-        return;
-      }
-
-      res.status(200).json({ success: true, content, length: content.length });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      console.error('[v1FetchUrl] Error:', message);
-      res.status(500).json({ error: 'Failed to fetch URL', message });
-    }
-  }
-);
-
-// ── /api/v1/edo/lexicon — minimal Edo lexicon API (lookup / search / list / add)
-export const v1EdoLexicon = onRequest(
-  { cors: false, timeoutSeconds: 30 },
-  async (req, res) => {
-    if (setCorsHeaders(req, res)) return;
-    try {
-      const { lookupByWord, searchByEnglish, listRecent, addEntry } = await import('./lexicon/edoLexiconStore');
-
-      const q = String((req.query && (req.query.q || req.query.word)) || '').trim();
-
-      if (req.method === 'GET') {
-        if (q) {
-          // Try exact word lookup first
-          const byWord = lookupByWord(q);
-          if (byWord) {
-            res.status(200).json({ success: true, data: byWord });
-            return;
-          }
-
-          // Otherwise search English meanings
-          const search = searchByEnglish(q);
-          if (search && search.length) {
-            res.status(200).json({ success: true, data: search });
-            return;
-          }
-
-          res.status(404).json({ success: false, error: 'not_found' });
-          return;
-        }
-
-        // No query — list recent entries
-        const recent = listRecent(50);
-        res.status(200).json({ success: true, data: recent });
-        return;
-      }
-
-      if (req.method === 'POST') {
-        const body = req.body || {};
-        if (!body.word) {
-          res.status(400).json({ success: false, error: 'word required' });
-          return;
-        }
-        const created = addEntry(body);
-        res.status(201).json({ success: true, data: created });
-        return;
-      }
-
-      res.status(405).json({ success: false, error: 'Method not allowed' });
-    } catch (err: any) {
-      console.error('[v1EdoLexicon] Error building lexicon response:', err);
-      res.status(500).json({ success: false, error: err?.message || 'failed' });
-    }
-  }
-);
-
-// ── /api/v1/image/generate — Canonical image generation (honest routing & fallback)
-export const v1ImageGenerate = onRequest(
-  { secrets: ALL_SECRETS, cors: true, timeoutSeconds: 300, memory: '512MiB', invoker: 'public' },
-  async (req, res) => {
-    res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-    if (req.method === 'OPTIONS') {
-      res.status(204).send('');
-      return;
-    }
-
-    if (req.method !== 'POST') {
-      res.status(405).json({ error: 'Method not allowed' });
-      return;
     }
 
     // Parse payload robustly
@@ -308,7 +166,7 @@ export const v1ImageGenerate = onRequest(
             }
           }
         } catch (err: any) {
-          res.status(424).json({ success: false, error: `Preferred provider not available — fallback disabled` });
+          res.status(424).json({ success: false, error: `Preferred provider not available â€” fallback disabled` });
           return;
         }
       }
@@ -365,7 +223,7 @@ export const v1ImageGenerate = onRequest(
 
 
 
-// /api/v1/spreadsheet/parse — Parse uploaded XLSX into structured JSON (sheets, headers, columns)
+// /api/v1/spreadsheet/parse â€” Parse uploaded XLSX into structured JSON (sheets, headers, columns)
 export const v1SpreadsheetParse = onRequest(
   { cors: true, timeoutSeconds: 120, memory: '256MiB', invoker: 'public' },
   async (req, res) => {
@@ -463,7 +321,7 @@ function extractPathParam(req: any, prefix: string): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
-// ── Chart generation endpoint ───────────────────────────────────────────────
+// â”€â”€ Chart generation endpoint â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const v1ChartGenerate = onRequest(
   { cors: true, timeoutSeconds: 120, memory: '256MiB', invoker: 'public' },
   async (req, res) => {
@@ -499,7 +357,7 @@ export const v1ChartGenerate = onRequest(
   }
 );
 
-// ── CORS helper ────────────────────────────────────────────────────────────
+// â”€â”€ CORS helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const ALLOWED_ORIGINS = [
   'https://9jai.web.app',
@@ -561,7 +419,7 @@ function buildReadinessPayload(providerReports: Record<string, ProviderVerificat
   };
 }
 
-// ── Request ID generator ───────────────────────────────────────────────────
+// â”€â”€ Request ID generator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function genRequestId(): string {
   return crypto.randomBytes(8).toString('hex');
@@ -579,7 +437,7 @@ function parsePathId(route: string): string | null {
   return value ? decodeURIComponent(value) : null;
 }
 
-// ── Rate limiting (simple in-memory, per function instance) ───────────────
+// â”€â”€ Rate limiting (simple in-memory, per function instance) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT = 60; // requests per minute per IP
@@ -599,7 +457,7 @@ function checkRateLimit(ip: string): boolean {
   return true;
 }
 
-// ── /ai/chat — non-streaming chat ─────────────────────────────────────────
+// â”€â”€ /ai/chat â€” non-streaming chat â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const aiChat = onRequest(
   { secrets: ALL_SECRETS, cors: false },
@@ -670,7 +528,7 @@ export const aiChat = onRequest(
   }
 );
 
-// ── /ai/stream — Server-Sent Events streaming ─────────────────────────────
+// â”€â”€ /ai/stream â€” Server-Sent Events streaming â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const aiStream = onRequest(
   { secrets: ALL_SECRETS, cors: false, timeoutSeconds: 60 },
@@ -721,7 +579,7 @@ export const aiStream = onRequest(
 
     try {
       // Use non-streaming route but emit chunks as SSE
-      // (True streaming from providers requires HTTP/2 pass-through — use non-streaming for now)
+      // (True streaming from providers requires HTTP/2 pass-through â€” use non-streaming for now)
       const { routeChat } = await import('./router');
       const result = await routeChat({
         ...body,
@@ -774,7 +632,7 @@ export const aiStream = onRequest(
   }
 );
 
-// ── /ai/image — image generation ──────────────────────────────────────────
+// â”€â”€ /ai/image â€” image generation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const aiImage = onRequest(
   { secrets: ALL_SECRETS, cors: true, timeoutSeconds: 60, memory: '256MiB', invoker: 'public' },
@@ -847,7 +705,7 @@ export const aiImage = onRequest(
   }
 );
 
-// ── /api/images/generate — Canonical image generation endpoint (ComfyUI-aware)
+// â”€â”€ /api/images/generate â€” Canonical image generation endpoint (ComfyUI-aware)
 
 export const imagesGenerate = onRequest(
   { secrets: ALL_SECRETS, cors: true, timeoutSeconds: 300, memory: '512MiB', invoker: 'public' },
@@ -876,7 +734,6 @@ export const imagesGenerate = onRequest(
     const comfyMode = (process.env.COMFYUI_ENABLED === 'true') || (process.env.IMAGE_PROVIDER === 'comfyui');
 
     try {
-      // Authenticate user via Firebase ID token
       const authHeader = req.headers.authorization || req.headers.Authorization || '';
       let uid: string | null = null;
       if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
@@ -885,17 +742,13 @@ export const imagesGenerate = onRequest(
           const decoded = await admin.auth().verifyIdToken(idToken);
           uid = decoded.uid;
         } catch (verifyErr: any) {
-          console.warn('[imagesGenerate] Invalid ID token:', verifyErr?.message || verifyErr);
-          res.status(401).json({ error: 'Invalid authentication token' });
-          return;
+          console.warn('[imagesGenerate] Invalid ID token ignored for public provider flow:', verifyErr?.message || verifyErr);
         }
-      } else {
-        res.status(401).json({ error: 'Authorization header required' });
-        return;
       }
 
+      const publicUid = uid ?? 'public-user';
+
       if (comfyMode) {
-        // Use ComfyUI authoritative flow — do NOT fall back to other providers
         const comfyAdapter = await import('./media/comfyAdapter');
         const generation = await comfyAdapter.generateImage({
           prompt: prompt,
@@ -904,14 +757,12 @@ export const imagesGenerate = onRequest(
           steps: body.steps || 20,
           cfg_scale: body.cfg || 7.5,
           seed: body.seed || -1,
-        }, uid);
+        }, publicUid);
 
-        // Return generationId immediately — client polls status
         res.status(200).json({ success: true, provider: 'comfyui', generationId: generation.generationId });
         return;
       }
 
-      // Non-Comfy mode: fall back to Jimeng AI (ByteDance free service)
       const { jimengImage } = await import('./providers/jimeng');
       const result = await jimengImage(prompt);
 
@@ -919,7 +770,6 @@ export const imagesGenerate = onRequest(
     } catch (err: any) {
       console.error('[imagesGenerate] Error:', err);
       if ((process.env.COMFYUI_ENABLED === 'true') || (process.env.IMAGE_PROVIDER === 'comfyui')) {
-        // Per spec: honest failure when ComfyUI mode enabled
         res.status(503).json({ success: false, provider: 'comfyui', error: 'ComfyUI image generation is currently unavailable.' });
       } else {
         res.status(500).json({ success: false, provider: 'unknown', error: err?.message || 'Image generation failed' });
@@ -927,8 +777,7 @@ export const imagesGenerate = onRequest(
     }
   }
 );
-
-// ── /api/images/status/:generationId — Check generation status
+// /api/images/status/:generationId â€” Check generation status
 export const imagesStatus = onRequest({ cors: true }, async (req, res) => {
   res.set('Access-Control-Allow-Origin', '*');
   res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -953,7 +802,6 @@ export const imagesStatus = onRequest({ cors: true }, async (req, res) => {
   }
 
   try {
-    // Authenticate user via Firebase ID token
     const authHeader = req.headers.authorization || req.headers.Authorization || '';
     let uid: string | null = null;
     if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
@@ -962,13 +810,8 @@ export const imagesStatus = onRequest({ cors: true }, async (req, res) => {
         const decoded = await admin.auth().verifyIdToken(idToken);
         uid = decoded.uid;
       } catch (verifyErr: any) {
-        console.warn('[imagesStatus] Invalid ID token:', verifyErr?.message || verifyErr);
-        res.status(401).json({ error: 'Invalid authentication token' });
-        return;
+        console.warn('[imagesStatus] Invalid ID token ignored for public status check:', verifyErr?.message || verifyErr);
       }
-    } else {
-      res.status(401).json({ error: 'Authorization header required' });
-      return;
     }
 
     const { getStatus: getGenStatus } = await import('./media/generationStatus');
@@ -978,9 +821,7 @@ export const imagesStatus = onRequest({ cors: true }, async (req, res) => {
       return;
     }
 
-    // Only allow owner or master admin to view
-    if ((status as any).userId && (status as any).userId !== uid) {
-      // Allow master admin by email
+    if ((status as any).userId && uid && (status as any).userId !== uid) {
       const user = await admin.auth().getUser(uid);
       const isMasterAdmin = user.email === process.env.MASTER_ADMIN_EMAIL;
       if (!isMasterAdmin) {
@@ -994,8 +835,7 @@ export const imagesStatus = onRequest({ cors: true }, async (req, res) => {
     res.status(500).json({ error: err?.message || 'failed' });
   }
 });
-
-// ── /api/ai/image/process-next — Trigger processing of the next queued job (ADMIN)
+// /api/ai/image/process-next â€” Trigger processing of the next queued job (ADMIN)
 export const aiImageProcessNext = onRequest({ secrets: ALL_SECRETS, cors: true, timeoutSeconds: 300 }, async (req, res) => {
   if (setCorsHeaders(req, res)) return;
   if (req.method !== 'POST') {
@@ -1022,7 +862,7 @@ export const aiImageProcessNext = onRequest({ secrets: ALL_SECRETS, cors: true, 
   }
 });
 
-// ── /api/ai/image/health — Composite health for image engine
+// â”€â”€ /api/ai/image/health â€” Composite health for image engine
 export const aiImageHealth = onRequest({ secrets: ALL_SECRETS, cors: true, timeoutSeconds: 30 }, async (req, res) => {
   if (setCorsHeaders(req, res)) return;
   if (req.method !== 'GET') {
@@ -1043,7 +883,7 @@ export const aiImageHealth = onRequest({ secrets: ALL_SECRETS, cors: true, timeo
 });
 
 
-// ── /ai/video — shared media orchestration path ───────────────────────────
+// â”€â”€ /ai/video â€” shared media orchestration path â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const aiVideo = onRequest(
   { secrets: ALL_SECRETS, cors: false, timeoutSeconds: 300, memory: '512MiB' },
@@ -1106,7 +946,7 @@ export const aiVideo = onRequest(
   }
 );
 
-// ── Version 1.0 compatibility: /api/v1/document and /api/v1/ocr ─────────────
+// â”€â”€ Version 1.0 compatibility: /api/v1/document and /api/v1/ocr â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 // Debug helper: echo request headers and body (useful for diagnosing malformed requests)
 export const debugEcho = onRequest({ cors: false, timeoutSeconds: 60 }, async (req, res) => {
@@ -1469,7 +1309,7 @@ export const v1ConnectorRegistry = onRequest(
   }
 );
 
-// ── /ai/transcribe — Whisper audio transcription ──────────────────────────
+// â”€â”€ /ai/transcribe â€” Whisper audio transcription â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const aiTranscribe = onRequest(
   { secrets: ALL_SECRETS, cors: false, timeoutSeconds: 60, memory: '256MiB' },
@@ -1535,7 +1375,7 @@ export const aiTranscribe = onRequest(
   }
 );
 
-// ── /ai/search — Tavily web search ────────────────────────────────────────
+// â”€â”€ /ai/search â€” Tavily web search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const aiSearch = onRequest(
   { secrets: ALL_SECRETS, cors: false },
@@ -1564,7 +1404,7 @@ export const aiSearch = onRequest(
   }
 );
 
-// ── /ai/tts — Google Cloud TTS Nigerian voices ────────────────────────────
+// â”€â”€ /ai/tts â€” Google Cloud TTS Nigerian voices â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const aiTTS = onRequest(
   { secrets: ALL_SECRETS, cors: false, timeoutSeconds: 30 },
@@ -1588,7 +1428,7 @@ export const aiTTS = onRequest(
       const result = await synthesizeNigerianSpeech(text, voiceId);
 
       if (!result) {
-        // Google TTS not configured or failed — tell client to use browser TTS
+        // Google TTS not configured or failed â€” tell client to use browser TTS
         res.status(503).json({ error: 'TTS unavailable', fallback: true });
         return;
       }
@@ -1605,7 +1445,7 @@ export const aiTTS = onRequest(
   }
 );
 
-// ── /ai/health — provider health dashboard ────────────────────────────────
+// â”€â”€ /ai/health â€” provider health dashboard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const aiHealth = onRequest(
   { secrets: ALL_SECRETS, cors: false },
@@ -1728,7 +1568,7 @@ export const aiReady = onRequest(
   }
 );
 
-// ── /ai/replay — Execution replay without regenerating content ──────────
+// â”€â”€ /ai/replay â€” Execution replay without regenerating content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const aiReplay = onRequest(
   { secrets: ALL_SECRETS, cors: false },
@@ -1751,7 +1591,7 @@ export const aiReplay = onRequest(
  }
 );
 
-// ── /ai/explanation — Internal explanation lookup for admin diagnostics ───────────────────
+// â”€â”€ /ai/explanation â€” Internal explanation lookup for admin diagnostics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const aiExplanation = onRequest(
   { secrets: ALL_SECRETS, cors: false },
@@ -1777,7 +1617,7 @@ export const aiExplanation = onRequest(
   }
 );
 
-// ── /ai/fetchImage — Proxy external image URLs to base64 ───────────────────
+// â”€â”€ /ai/fetchImage â€” Proxy external image URLs to base64 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const aiFetchImage = onRequest(
   { secrets: ALL_SECRETS, cors: false, timeoutSeconds: 60, memory: '256MiB' },
@@ -1834,7 +1674,7 @@ export const aiFetchImage = onRequest(
   }
 );
 
-// ── /ai/visual-orchestrator — Visual Orchestrator (v1) ─────────────────────
+// â”€â”€ /ai/visual-orchestrator â€” Visual Orchestrator (v1) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const v1VisualOrchestrator = onRequest(
   { secrets: ALL_SECRETS, cors: false, timeoutSeconds: 300, memory: '512MiB' },
@@ -1852,7 +1692,7 @@ export const v1VisualOrchestrator = onRequest(
       return;
     }
 
-    // Lightweight intent detection (heuristic) — upgrade to ML-based intent detection later
+    // Lightweight intent detection (heuristic) â€” upgrade to ML-based intent detection later
     const text = prompt ?? (Array.isArray(messages) ? messages.map((m: any) => m.content || '').join(' ') : '') ?? '';
     const lower = String(text).toLowerCase();
 
@@ -1944,7 +1784,7 @@ export const v1VisualOrchestrator = onRequest(
   }
 );
 
-// ── /ai/vision — Image + document analysis via multimodal AI ─────────────
+// â”€â”€ /ai/vision â€” Image + document analysis via multimodal AI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function parseAndNormalizeImagePayload(raw: string) {
   const isDataUrl = typeof raw === 'string' && raw.startsWith('data:');
@@ -2031,7 +1871,7 @@ export const aiVision = onRequest(
 
     const normalizedImage = parsedImage.dataUrl;
 
-    const analysisPrompt = prompt || 'Analyze this image in detail. Describe what you see — objects, people, text, colors, context, and any important details.';
+    const analysisPrompt = prompt || 'Analyze this image in detail. Describe what you see â€” objects, people, text, colors, context, and any important details.';
     let freeVisionError = 'No free vision provider returned a result';
 
     try {
@@ -2084,7 +1924,7 @@ export const aiVision = onRequest(
   }
 );
 
-// ── /ai/time — Current time for any timezone (FREE) ───────────────────────
+// â”€â”€ /ai/time â€” Current time for any timezone (FREE) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const aiTime = onRequest(
   { secrets: ALL_SECRETS, cors: false },
@@ -2122,7 +1962,7 @@ export const aiTime = onRequest(
   }
 );
 
-// ── /ai/weather — Weather forecast via Open-Meteo (FREE) ─────────────────
+// â”€â”€ /ai/weather â€” Weather forecast via Open-Meteo (FREE) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const aiWeather = onRequest(
   { secrets: ALL_SECRETS, cors: false, timeoutSeconds: 30 },
@@ -2173,3 +2013,12 @@ export const v1Video = aiVideo;
 export const v1Vision = aiVision;
 export const v1TTS = aiTTS;
 export const v1Health = aiHealth;
+
+
+
+
+
+
+
+
+

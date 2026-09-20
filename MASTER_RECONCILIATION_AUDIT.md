@@ -248,7 +248,7 @@ App.tsx → onAuthStateChanged → setUser → protected routes
 
 **Provider Chain System**:
 - CHAT_CHAIN: `['groq', 'openrouter', 'deepseek', 'mistral', 'huggingface']`
-- IMAGE_CHAIN: `['openrouter']` (but `generateMedia()` uses Pollinations first)
+- IMAGE_CHAIN: `['openrouter']` (but `generateMedia()` uses legacy-image-provider first)
 - TRANSCRIBE_CHAIN: `['groq']`
 - SEARCH_CHAIN: `['openrouter']` (calls Tavily)
 
@@ -269,7 +269,7 @@ App.tsx → onAuthStateChanged → setUser → protected routes
 
 | Feature | Provider | FREE? | API Key Required | Status |
 |---------|----------|-------|------------------|---------|
-| **Image** | **Pollinations** | ✅ **YES** | ❌ **NO** | ✅ **WORKING** |
+| **Image** | **legacy-image-provider** | ✅ **YES** | ❌ **NO** | ✅ **WORKING** |
 | Chat | Groq/OpenRouter | ❌ NO | ✅ YES | ❌ BROKEN |
 | Video | HuggingFace | ❌ NO | ✅ YES | ❌ BROKEN |
 | STT | Groq Whisper | ❌ NO | ✅ YES | ❌ BROKEN |
@@ -281,13 +281,13 @@ App.tsx → onAuthStateChanged → setUser → protected routes
 **FREE Provider Implementation**:
 ```typescript
 // functions/src/media/engine.ts
-// Pollinations is primary for images (FREE, no key needed)
-const pollinationsUrl = getPollinationsUrl(request.prompt);
-if (await verifyImageAccessible(pollinationsUrl)) {
+// legacy-image-provider is primary for images (FREE, no key needed)
+const legacy-image-providerUrl = getlegacy-image-providerUrl(request.prompt);
+if (await verifyImageAccessible(legacy-image-providerUrl)) {
   return {
-    mediaUrl: pollinationsUrl,
-    provider: 'pollinations',
-    model: 'pollinations-flux',
+    mediaUrl: legacy-image-providerUrl,
+    provider: 'legacy-image-provider',
+    model: 'legacy-image-provider-flux',
   };
 }
 ```
@@ -456,7 +456,7 @@ if (await verifyImageAccessible(pollinationsUrl)) {
 | **Chat History** | ✅ WORKING | Dual-layer persistence |
 | **Animated Logo** | ✅ WORKING | Premium animations |
 | **Thinking Animation** | ✅ WORKING | 3-dot futuristic effect |
-| **Image Generation** | ✅ WORKING | Pollinations (FREE) |
+| **Image Generation** | ✅ WORKING | legacy-image-provider (FREE) |
 | **Video Generation** | ❌ BROKEN | Requires HF_KEY |
 | **Chat** | ❌ BROKEN | Requires paid APIs |
 | **Voice (STT)** | ❌ BROKEN | Requires GROQ_KEY |
@@ -480,7 +480,7 @@ if (await verifyImageAccessible(pollinationsUrl)) {
 3. ✅ Google Authentication is FULLY FUNCTIONAL
 4. ✅ Chat history with Firestore + localStorage is WORKING
 5. ✅ Premium animated logo is ACTIVE
-6. ✅ Image generation is FREE and WORKING (Pollinations)
+6. ✅ Image generation is FREE and WORKING (legacy-image-provider)
 7. ✅ Multilingual and self-learning infrastructure EXISTS
 8. ✅ Firebase project is INTACT (no replacement needed)
 

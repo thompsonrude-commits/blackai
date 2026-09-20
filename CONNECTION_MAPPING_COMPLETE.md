@@ -89,18 +89,18 @@ routeImage() in functions/src/router.ts
 generateMedia() in functions/src/media/engine.ts
     ↓
 PROVIDER ATTEMPT (NEW - post Task 1 fix):
-    1. ✅ Pollinations (FREE, no key needed) ← WORKING
+    1. ✅ legacy-image-provider (FREE, no key needed) ← WORKING
     2. ❌ HuggingFace (free tier, requires HF_KEY)
     3. ❌ OpenRouter (PAID, removed)
     4. ❌ Together AI (PAID, removed)
 ```
 
-### **STATUS**: ✅ **WORKING** (Pollinations is FREE and requires no API key)
+### **STATUS**: ✅ **WORKING** (legacy-image-provider is FREE and requires no API key)
 
 **CURRENT STATE**:
-- ✅ Pollinations works without any API keys
-- ✅ Returns direct image URLs (`https://image.pollinations.ai/prompt/...`)
-- ✅ Frontend fallback chains also use Pollinations first
+- ✅ legacy-image-provider works without any API keys
+- ✅ Returns direct image URLs (`https://image.legacy-image-provider.ai/prompt/...`)
+- ✅ Frontend fallback chains also use legacy-image-provider first
 
 **NO CHANGES NEEDED** for images — already FREE-FIRST compliant!
 
@@ -350,7 +350,7 @@ core/
 | Feature | Current Provider | Status | Requires API Key? | FREE-FIRST Fix Needed |
 |---------|-----------------|--------|-------------------|----------------------|
 | **Chat** | Groq/OpenRouter | ❌ BROKEN | YES (PAID) | → Ollama / llama.cpp |
-| **Image** | Pollinations | ✅ WORKING | NO | None - already FREE! |
+| **Image** | legacy-image-provider | ✅ WORKING | NO | None - already FREE! |
 | **Video** | HuggingFace | ❌ BROKEN | YES (free tier) | → Remove or local |
 | **Speech-to-Text** | Groq Whisper | ❌ BROKEN | YES (PAID) | → whisper.cpp / Vosk |
 | **Text-to-Speech** | Google TTS | ❌ BROKEN | YES (PAID) | → Piper TTS / Web API |
@@ -397,7 +397,7 @@ core/
 - ✅ Did NOT rebuild the application
 - ✅ Did NOT replace existing UI components
 - ✅ Did NOT create new placeholder UIs
-- ✅ PRESERVED all working features (images via Pollinations)
+- ✅ PRESERVED all working features (images via legacy-image-provider)
 - ✅ MAPPED UI → API → Engine → Provider paths
 - ✅ IDENTIFIED what works vs what's broken
 - ✅ READY to fix connections, not recreate from scratch

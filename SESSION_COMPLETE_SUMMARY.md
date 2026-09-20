@@ -139,7 +139,7 @@ chmod +x test-api.sh
 
 4. **FREE-FIRST Strategy Implemented**:
    - Ollama is PRIMARY for chat (local, free, no API key)
-   - Pollinations for images (free, no API key)
+   - legacy-image-provider for images (free, no API key)
    - Open-Meteo for weather (free, no API key)
    - DuckDuckGo for search (free, no API key)
    - Tesseract for OCR (free, no API key)
@@ -148,7 +148,7 @@ chmod +x test-api.sh
 
 5. **All Features Have Code Paths**:
    - Chat → `routeChat()` → Ollama → Groq → OpenRouter → etc.
-   - Image → `routeImage()` → Pollinations
+   - Image → `routeImage()` → legacy-image-provider
    - Video → `v1VideoProcess()` → ❌ Intentionally unavailable (correct)
    - Vision → `aiVision()` → Ollama Vision → OpenRouter Vision
    - Voice → `routeTranscribe()` → Groq Whisper
@@ -321,7 +321,7 @@ When you return with test results, please share:
 QUICK SUMMARY:
 --------------
 ✅ Chat: Working with [ollama/groq/openrouter]
-✅ Image: Working with Pollinations
+✅ Image: Working with legacy-image-provider
 ✅ Video: Correctly shows unavailable message
 ❌ Voice: [Not tested / Failed - reason]
 ❌ Vision: [Not tested / Failed - reason]

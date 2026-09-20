@@ -593,8 +593,8 @@ export async function checkAllProviders(): Promise<Record<ProviderId, ProviderCa
       capabilities: ['chat', 'vision'],
       lastChecked: Date.now(),
     },
-    pollinations: {
-      providerId: 'pollinations',
+    legacy-image-provider: {
+      providerId: 'legacy-image-provider',
       available: true,
       requiresApiKey: false,
       isFree: true,
@@ -615,7 +615,7 @@ export const EDO_SYSTEM_INSTRUCTION = `You are 9JAI — Africa's smartest AI, bu
 ## CAPABILITIES
 I can help with:
 - ✅ Chat and conversation (FREE - Ollama)
-- ✅ Image generation (FREE - Pollinations)
+- ✅ Image generation (FREE - legacy-image-provider)
 - ✅ Voice recognition (FREE - Browser)
 - ✅ Text-to-speech (FREE - Browser)
 - ✅ OCR text extraction (FREE - Tesseract)
@@ -666,7 +666,7 @@ Before deploying:
 | Feature | FREE Provider | Status |
 |---------|---------------|--------|
 | Chat | Ollama | ✅ FREE |
-| Images | Pollinations | ✅ FREE |
+| Images | legacy-image-provider | ✅ FREE |
 | STT | Browser API | ✅ FREE |
 | TTS | Browser API | ✅ FREE |
 | Vision | Ollama llava | ✅ FREE |

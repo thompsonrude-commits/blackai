@@ -24,7 +24,7 @@ SVG placeholders, stock photos, and retrieved images DO NOT count as "generated"
 
 - [ ] `nativeAIEngine.ts` compiles without errors
 - [ ] `media/engine.ts` includes native-gpu provider
-- [ ] Provider chain is: native-gpu → openrouter → pollinations
+- [ ] Provider chain is: native-gpu → openrouter → legacy-image-provider
 - [ ] Logs show "PRIMARY: Trying native GPU generation"
 
 ---
@@ -47,7 +47,7 @@ SVG placeholders, stock photos, and retrieved images DO NOT count as "generated"
 - ❌ SVG placeholder appears
 - ❌ Stock photo from image search appears
 - ❌ Image is generic/repeated from previous tests
-- ❌ Metadata shows "pollinations" or "fallback"
+- ❌ Metadata shows "legacy-image-provider" or "fallback"
 - ❌ File size < 50KB
 
 **Screenshot**: Take screenshot and save as `test1_landscape.png`
@@ -266,7 +266,7 @@ After completing all tests, verify:
 
 ### ✅ Technical Standards
 - [ ] Native GPU is PRIMARY provider (appears first in logs)
-- [ ] Fallback chain works correctly (GPU → OpenRouter → Pollinations)
+- [ ] Fallback chain works correctly (GPU → OpenRouter → legacy-image-provider)
 - [ ] Response times acceptable (<30s per image)
 - [ ] Metadata is accurate and honest
 - [ ] Image validation passes (not placeholder)
@@ -310,8 +310,8 @@ If any test fails, document using this format:
 [MediaEngine] ✗ native-gpu failed: CUDA OOM
 [MediaEngine] FALLBACK 1: Trying OpenRouter
 [MediaEngine] ✗ openrouter failed: Rate limit
-[MediaEngine] FALLBACK 2: Trying Pollinations
-[MediaEngine] ✗ pollinations failed: 403 Forbidden
+[MediaEngine] FALLBACK 2: Trying legacy-image-provider
+[MediaEngine] ✗ legacy-image-provider failed: 403 Forbidden
 [MediaEngine] All providers exhausted
 ```
 

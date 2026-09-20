@@ -85,7 +85,7 @@ I successfully tested the live backend and **confirmed it works end-to-end**.
 | **DeepSeek** | 🟢 Available | Chat fallback (reasoning) |
 | **Mistral** | 🟢 Available | Chat fallback |
 | **HuggingFace** | 🟢 Available | Chat fallback |
-| **Pollinations** | 🟢 Available | Image generation (FREE) |
+| **legacy-image-provider** | 🟢 Available | Image generation (FREE) |
 | **Tavily** | 🟢 Available | Web search |
 
 ### ❌ Not Installed
@@ -129,7 +129,7 @@ I successfully tested the live backend and **confirmed it works end-to-end**.
 ### 1. **FREE-FIRST Status: 🟡 PARTIALLY IMPLEMENTED**
 
 **What IS FREE**:
-- ✅ Image Generation (Pollinations)
+- ✅ Image Generation (legacy-image-provider)
 - ✅ Weather (Open-Meteo - built-in)
 - ✅ Time (Node.js - built-in)
 - ✅ Search (DuckDuckGo fallback - built-in)
@@ -203,7 +203,7 @@ You have two options:
 **Rationale**:
 - Backend works perfectly
 - Chat uses Groq (free tier, high quality)
-- Image uses Pollinations (free, no key)
+- Image uses legacy-image-provider (free, no key)
 - Acceptable for production
 - Can add Ollama later if needed
 

@@ -4,7 +4,7 @@
 Enable video generation functionality by activating the HuggingFace API integration and ensuring all backend services properly utilize the configured API secrets.
 
 ## Background
-- Image generation is now fully functional using Pollinations (free provider)
+- Image generation is now fully functional using legacy-image-provider (free provider)
 - HuggingFace API key (`<REDACTED>`) has been set as Firebase secret `HF_TOKEN`
 - Video generation currently shows error: "Video generation requires Together AI or Hugging face API keys to be configured on the server"
 - Cloud Functions need redeployment to access the newly configured secret
@@ -13,7 +13,7 @@ Enable video generation functionality by activating the HuggingFace API integrat
 
 ### What's Working ✅
 1. **Image Generation**
-   - Pollinations provider (free, primary)
+   - legacy-image-provider provider (free, primary)
    - OpenRouter fallback (paid)
    - Together AI last resort (paid)
    - Multi-provider fallback chain

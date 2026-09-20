@@ -98,7 +98,7 @@ Real Result
 - Download buttons (PNG/JPG)
 
 **Expected API Call**: `POST /api/v1/image/generate`
-**Expected Provider**: Pollinations AI (FREE, no API key)
+**Expected Provider**: legacy-image-provider AI (FREE, no API key)
 
 **Frontend Code**:
 - Detection: `isImageRequest()` in `GeneralAssistant.tsx`
@@ -110,7 +110,7 @@ Real Result
 **Backend Code**:
 - Function: `v1ImageGenerate` in `functions/src/index.ts`
 - Router: `routeImage()` in `functions/src/router.ts`
-- Provider: `pollinationsWithFallback()` in `functions/src/providers/pollinations.ts`
+- Provider: `legacy-image-providerWithFallback()` in `functions/src/providers/legacy-image-provider.ts`
 
 **Test Cases**:
 - [ ] Simple: "generate image of a lion"
@@ -125,7 +125,7 @@ Real Result
 - ✅ Image loads and displays
 - ✅ Download buttons work
 - ✅ Network shows: POST /api/v1/image/generate → 200 OK
-- ✅ Response contains: `{ imageUrl: "...", provider: "pollinations-...", model: "..." }`
+- ✅ Response contains: `{ imageUrl: "...", provider: "legacy-image-provider-...", model: "..." }`
 
 ---
 
@@ -330,7 +330,7 @@ Real Result
 
 ### FREE Providers (Should Work)
 - ✅ **Ollama** - Requires installation: `ollama serve` + `ollama pull llama3.2`
-- ✅ **Pollinations** - Public API, no key
+- ✅ **legacy-image-provider** - Public API, no key
 - ✅ **Open-Meteo** - Weather API, no key
 - ✅ **Time** - Built-in Node.js
 - ✅ **DuckDuckGo** - Search API, no key
@@ -387,7 +387,7 @@ Expected response:
 - **Check**: Firebase rewrites in `firebase.json` are working
 
 ### 4. Are All Features Actually Connected?
-- Image generation → Pollinations
+- Image generation → legacy-image-provider
 - Chat → Ollama/Groq/OpenRouter
 - Weather → Open-Meteo
 - Time → Built-in
@@ -442,13 +442,13 @@ If something doesn't work:
 
 ✅ **MINIMUM VIABLE**:
 - Chat works (any provider)
-- Image generation works (Pollinations)
+- Image generation works (legacy-image-provider)
 - No JavaScript errors in console
 - No 404s on API calls
 
 ✅ **IDEAL STATE**:
 - Chat uses FREE Ollama (local, no API key)
-- All FREE providers work (Pollinations, Open-Meteo, DuckDuckGo, Time)
+- All FREE providers work (legacy-image-provider, Open-Meteo, DuckDuckGo, Time)
 - Paid providers are fallbacks only
 - Every feature tested end-to-end
 - Real results verified from UI

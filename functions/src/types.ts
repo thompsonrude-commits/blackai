@@ -5,10 +5,10 @@
 // ── Provider identifiers ───────────────────────────────────────────────────
 
 export type ProviderId =
-  | 'puter'
   | 'jimeng'
   | 'zimage'
   | 'stablehorde'
+  | 'cloudflare'
   | 'craiyon'
   | 'kling'
   | 'native-gpu'

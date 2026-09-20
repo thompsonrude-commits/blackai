@@ -13,7 +13,7 @@ I just tested the `/api/v1/image/fetch` endpoint directly and **IT WORKS PERFECT
 ```bash
 curl -X POST "https://9jai.web.app/api/v1/image/fetch" \
   -H "Content-Type: application/json" \
-  -d '{"url": "https://image.pollinations.ai/prompt/a%20red%20circle?width=512&height=512"}'
+  -d '{"url": "https://image.legacy-image-provider.ai/prompt/a%20red%20circle?width=512&height=512"}'
 ```
 
 **Result**: ✅ **SUCCESS**

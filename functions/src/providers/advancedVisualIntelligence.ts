@@ -109,6 +109,16 @@ function parseScene(prompt: string) {
   return { count: sceneCount, action, environment, lighting, framing, mood, style: detectedStyle, raw: prompt };
 }
 
+function extractRequestedText(prompt: string): string[] {
+  const quoted = Array.from(prompt.matchAll(/["“”']([^"“”']{1,160})["“”']/g))
+    .map((match) => match[1].trim())
+    .filter(Boolean);
+  const labelled = Array.from(prompt.matchAll(/\b(?:text|words|caption|headline|title|says?)\s*:\s*["“']?([^"”'\n]{1,160})/gi))
+    .map((match) => match[1].trim())
+    .filter(Boolean);
+  return Array.from(new Set([...quoted, ...labelled]));
+}
+
 /**
  * TRUE Generative Pipeline Step 2: AI Prompt Expansion
  */
@@ -142,6 +152,10 @@ export function expandPrompt(prompt: string, style: string): string {
   const technical = "shot on Sony A7R IV, 85mm f/1.4 GM lens, unedited RAW photography, national geographic quality, 8k resolution, ray-traced global illumination, intricate textural realism, professional color grading";
 
   const artistic = getArtisticStyle(style);
+  const requestedText = extractRequestedText(prompt);
+  const textInstruction = requestedText.length
+    ? `EXACT TEXT PRESERVATION: render these characters exactly and do not translate, paraphrase, reorder, omit, or invent text: ${requestedText.map((text) => `"${text}"`).join(', ')}. Prioritize legibility and clean typography.`
+    : "";
 
   return [
     `Masterpiece visual of ${prompt}`,
@@ -154,8 +168,24 @@ export function expandPrompt(prompt: string, style: string): string {
     afroInstruction,
     artistic,
     technical,
+    textInstruction,
     "highest visual fidelity, award winning, hyper-detailed textures, realistic anatomy, sharp focus, no blur, no artifacts"
   ].filter(Boolean).join(', ');
+}
+
+export function compileProviderVisualPrompt(prompt: string, provider: string): string {
+  const text = extractRequestedText(prompt);
+  const providerInstruction = provider === 'zimage'
+    ? 'Use precise bilingual typography rendering and preserve literal text.'
+    : provider === 'cloudflare'
+      ? 'Use high-contrast, legible typography and preserve literal text.'
+      : provider === 'stablehorde'
+        ? 'Keep any requested lettering short, centered, and highly legible.'
+        : 'Preserve the requested visual brief and literal text.';
+  const textInstruction = text.length
+    ? ` Exact lettering required: ${text.map((value) => `"${value}"`).join(', ')}.`
+    : '';
+  return `${prompt}, ${providerInstruction}${textInstruction}`;
 }
 
 /**

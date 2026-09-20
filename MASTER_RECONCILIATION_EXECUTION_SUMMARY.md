@@ -314,7 +314,7 @@ Execute Phases 4-10 following `REMAINING_PHASES_IMPLEMENTATION_GUIDE.md`
 ### Current (After Phases 1-6)
 | Feature | Status | Provider |
 |---------|--------|----------|
-| Images | ✅ FREE | Pollinations |
+| Images | ✅ FREE | legacy-image-provider |
 | TTS | ✅ FREE | Browser API |
 | STT | ⏳ Ready* | Browser API (needs integration) |
 | Chat | ⏳ Ready* | Ollama (needs deployment) |
@@ -330,7 +330,7 @@ Execute Phases 4-10 following `REMAINING_PHASES_IMPLEMENTATION_GUIDE.md`
 ### Target (After All Phases)
 | Feature | Status | Provider |
 |---------|--------|----------|
-| Images | ✅ FREE | Pollinations |
+| Images | ✅ FREE | legacy-image-provider |
 | TTS | ✅ FREE | Browser API |
 | STT | ✅ FREE | Browser API |
 | Chat | ✅ FREE | Ollama |
@@ -386,7 +386,7 @@ After full execution, 9JAI AI will have:
 1. ✅ Original futuristic UI preserved
 2. ✅ Google Authentication working
 3. ✅ Chat history working
-4. ✅ Image generation FREE (Pollinations)
+4. ✅ Image generation FREE (legacy-image-provider)
 5. ✅ TTS FREE (Browser API)
 6. ✅ Ollama chat provider created
 7. ✅ Browser STT library created
@@ -509,7 +509,7 @@ To continue implementation:
 - ✅ All components preserved (only removed unused WorkspaceHome)
 
 **FREE-FIRST Compliance**: ⏳ IN PROGRESS
-- ✅ Images: 100% FREE (Pollinations)
+- ✅ Images: 100% FREE (legacy-image-provider)
 - ✅ TTS: 100% FREE (Browser API)
 - ⏳ Chat: Code ready, needs deployment (Ollama)
 - ⏳ STT: Code ready, needs integration (Browser API)

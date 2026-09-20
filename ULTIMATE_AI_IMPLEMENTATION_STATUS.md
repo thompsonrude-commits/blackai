@@ -34,7 +34,7 @@ Provider families present in the repo and/or wired in the architecture include:
 - HuggingFace
 - Mistral
 - Together
-- Pollinations
+- legacy-image-provider
 - other adapters already present in repository
 
 Authoritative status behavior:

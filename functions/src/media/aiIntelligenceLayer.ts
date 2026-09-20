@@ -1,4 +1,6 @@
 import type { ProviderId } from '../types';
+import { expandPrompt } from '../providers/advancedVisualIntelligence';
+import { detectVisualMode } from '../providers/visualIntelligence';
 
 export interface AILayerOutput {
   optimizedPrompt: string;
@@ -10,6 +12,15 @@ export const aiIntelligenceLayer = {
   async processRequest(input: Record<string, unknown>): Promise<AILayerOutput> {
     const rawPrompt = (input.prompt as string | undefined) ?? '';
     const preferredProviders = (input.preferredProviders as ProviderId[] | undefined) ?? [];
+
+    if (input.task === 'image' && rawPrompt.trim()) {
+      const mode = detectVisualMode(rawPrompt);
+      return {
+        optimizedPrompt: expandPrompt(rawPrompt.trim(), mode),
+        preferredProviders,
+        capability: `visual-${mode}`,
+      };
+    }
 
     // Language-aware adjustments: if the user requests Edo, include lexicon guidance
     try {

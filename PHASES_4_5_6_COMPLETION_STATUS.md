@@ -86,7 +86,7 @@ firebase deploy --only functions
 ### Before Phases 4-6:
 | Feature | Provider | FREE? | Status |
 |---------|----------|-------|--------|
-| Images | Pollinations | ✅ YES | ✅ Working |
+| Images | legacy-image-provider | ✅ YES | ✅ Working |
 | TTS | Browser API | ✅ YES | ✅ Working |
 | STT | Browser API | ✅ YES | ⏳ Ready |
 | Chat | Ollama | ✅ YES | ⏳ Ready |
@@ -99,7 +99,7 @@ firebase deploy --only functions
 ### After Phases 4-6:
 | Feature | Provider | FREE? | Status |
 |---------|----------|-------|--------|
-| Images | Pollinations | ✅ YES | ✅ Working |
+| Images | legacy-image-provider | ✅ YES | ✅ Working |
 | TTS | Browser API | ✅ YES | ✅ Working |
 | STT | Browser API | ✅ YES | ⏳ Ready |
 | Chat | Ollama | ✅ YES | ⏳ Ready |

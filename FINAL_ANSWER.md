@@ -35,7 +35,7 @@ aiProxy.ts (direct API calls)
     ↓
 Backend Endpoints (functions/src/index.ts)
     ↓
-External Providers (Pollinations, etc.)
+External Providers (legacy-image-provider, etc.)
     ↓
 Response
 ```

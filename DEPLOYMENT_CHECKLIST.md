@@ -166,7 +166,7 @@ After deployment, verify each FREE feature:
 | Search | `/aiSearch` | DuckDuckGo | ⬜ |
 | Vision | `/aiVision` | Ollama llava | ⬜ |
 | OCR | `/v1Ocr` | Tesseract.js | ⬜ |
-| Images | `/aiImage` | Pollinations | ⬜ |
+| Images | `/aiImage` | legacy-image-provider | ⬜ |
 | TTS | Client-side | Browser API | ⬜ |
 
 ---

@@ -91,7 +91,7 @@ curl -X POST https://us-central1-jatalk-1274b.cloudfunctions.net/aiWeather \
 | Chat Interface | ✅ Live | ⏳ Pending | ⏳ Need Ollama | 🟡 Partial |
 | TTS (Browser) | ✅ Live | N/A | N/A | ✅ Working |
 | STT (Browser) | ✅ Ready | N/A | N/A | 🟡 Needs integration |
-| Images (Pollinations) | ✅ Live | ✅ Ready | N/A | ✅ Working |
+| Images (legacy-image-provider) | ✅ Live | ✅ Ready | N/A | ✅ Working |
 | Search (DuckDuckGo) | ✅ Live | ✅ Ready | N/A | 🟡 Needs deploy |
 | Time | ✅ Live | ✅ Ready | N/A | 🟡 Needs deploy |
 | Weather | ✅ Live | ✅ Ready | N/A | 🟡 Needs deploy |

@@ -22,7 +22,7 @@ npx firebase deploy --only functions
 **Deployed Functions:**
 1. `aiChat` — Multi-provider chat
 2. `aiStream` — Streaming chat (SSE)
-3. `aiImage` — Image generation (Pollinations + fallback)
+3. `aiImage` — Image generation (legacy-image-provider + fallback)
 4. `aiVideo` — Video generation
 5. `aiTranscribe` — Whisper speech-to-text
 6. `aiSearch` — Tavily web search
@@ -55,7 +55,7 @@ Ensured all Firebase Hosting rewrites are active.
 ### ✅ **Image Generation**
 - **Endpoint**: `https://9jai.web.app/api/v1/image/generate`
 - **Rewrite**: `/api/v1/image/generate` → `v1ImageGenerate` function
-- **Provider**: Pollinations AI (fast, free, no API key needed)
+- **Provider**: legacy-image-provider AI (fast, free, no API key needed)
 - **Fallback**: HuggingFace, Replicate, Together AI, Stability AI
 - **Format**: Returns both `imageUrl` (direct link) and `imageBase64` (instant display)
 
@@ -73,7 +73,7 @@ curl -X POST https://9jai.web.app/api/v1/image/generate \
   "data": {
     "imageUrl": "data:image/jpeg;base64,...",
     "metadata": {
-      "provider": "pollinations",
+      "provider": "legacy-image-provider",
       "model": "flux"
     }
   }
@@ -287,7 +287,7 @@ const response = await fetch('/api/v1/ocr', {
 - **Status**: Well within limits
 
 ### Performance:
-- **Image Generation**: 2-5 seconds (Pollinations)
+- **Image Generation**: 2-5 seconds (legacy-image-provider)
 - **Chat**: 200-800ms (Groq/OpenRouter)
 - **Speech-to-Text**: 1-3 seconds (Groq Whisper)
 - **OCR**: 2-4 seconds (OpenRouter Vision)
@@ -327,7 +327,7 @@ const response = await fetch('/api/v1/ocr', {
 1. **Check console logs**: Look for network errors
 2. **Verify endpoint**: Should be `/api/v1/image/generate`
 3. **Test directly**: Use curl command from this doc
-4. **Check provider**: Pollinations.ai should be accessible
+4. **Check provider**: legacy-image-provider.ai should be accessible
 
 ---
 

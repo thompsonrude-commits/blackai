@@ -5,7 +5,7 @@
 I apologize for the confusion earlier. You were right - I should have checked the backend architecture first. Now it's **completely clean**:
 
 ### ❌ REMOVED (All Broken Providers)
-1. **Pollinations** - Has watermark ❌
+1. **legacy-image-provider** - Has watermark ❌
 2. **Gemini** - Needs API key (not configured) ❌
 3. **OpenRouter** - Needs API key (not configured) ❌
 
@@ -53,7 +53,7 @@ Backend: Jimeng AI ONLY
 - Model: jimeng-4.5
 - Resolution: 2K (2048×2048)
 
-**Why it's better than Pollinations:**
+**Why it's better than legacy-image-provider:**
 - ✅ NO watermark
 - ✅ Higher quality
 - ✅ From major Chinese AI company (ByteDance)
@@ -71,7 +71,7 @@ Backend: Jimeng AI ONLY
 ### Updated:
 1. `functions/src/media/engine.ts` - Simplified to use ONLY Jimeng
 2. `functions/src/types.ts` - Added 'jimeng' type
-3. `functions/src/media/authoritativeRegistry.ts` - Registered Jimeng, removed Gemini/OpenRouter/Pollinations
+3. `functions/src/media/authoritativeRegistry.ts` - Registered Jimeng, removed Gemini/OpenRouter/legacy-image-provider
 
 ---
 
@@ -105,7 +105,7 @@ Try any image generation in the app
 ## 🎉 Benefits
 
 ### No More Issues
-- ❌ No Pollinations watermark
+- ❌ No legacy-image-provider watermark
 - ❌ No missing API keys
 - ❌ No broken providers
 - ❌ No complex fallback chains
@@ -127,14 +127,14 @@ Try any image generation in the app
 
 ## 📊 Provider Comparison
 
-| Feature | Puter.js | Jimeng AI | Pollinations (OLD) |
+| Feature | Puter.js | Jimeng AI | legacy-image-provider (OLD) |
 |---------|----------|-----------|-------------------|
 | **Watermark** | ❌ None | ❌ None | ✅ YES |
 | **Auth Required** | ❌ No | ❌ No | ❌ No |
 | **Quality** | High (multiple models) | High (jimeng-4.5) | Medium |
 | **Location** | Client-side | Backend | Backend |
 | **Cost** | Free (user-pays) | Free | Free |
-| **Company** | Puter.com | ByteDance | Pollinations.ai |
+| **Company** | Puter.com | ByteDance | legacy-image-provider.ai |
 | **Models** | 7+ (Qwen, FLUX, etc) | jimeng-4.5 | Flux |
 | **Resolution** | 1024×1024 | 2048×2048 (2K) | 1024×1024 |
 | **Text Rendering** | Excellent (Qwen) | Good | Poor |
@@ -147,7 +147,7 @@ Try any image generation in the app
 
 **Old Flow (❌ Broken):**
 ```
-Frontend → Backend → Gemini (no key) → OpenRouter (no key) → Pollinations (watermark)
+Frontend → Backend → Gemini (no key) → OpenRouter (no key) → legacy-image-provider (watermark)
 ```
 
 **New Flow (✅ Clean):**
@@ -160,7 +160,7 @@ Frontend → Puter.js (works!) → If fails → Jimeng (works!)
 **Before:**
 - Watermark visible ❌
 - Low quality ❌
-- Always uses Pollinations ❌
+- Always uses legacy-image-provider ❌
 
 **After:**
 - No watermark ✅
@@ -211,9 +211,9 @@ This is EXACTLY how Chinese AI apps work:
 ## 📝 Summary
 
 ### Before (Messy)
-- 5 providers (Puter, Gemini, OpenRouter, Pollinations, ComfyUI)
+- 5 providers (Puter, Gemini, OpenRouter, legacy-image-provider, ComfyUI)
 - 3 broken (need API keys)
-- 1 bad (Pollinations watermark)
+- 1 bad (legacy-image-provider watermark)
 - Complex fallback chain
 - Hard to debug
 

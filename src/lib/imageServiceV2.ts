@@ -1,4 +1,4 @@
-import { buildFinalImagePrompt, generateImageWithFallback, GeneratedImage, GenerationStage } from './imageService';
+﻿import { buildFinalImagePrompt, generateImageWithFallback, GeneratedImage, GenerationStage } from './imageService';
 
 // Wrapper that calls the canonical backend path and accepts provider controls
 export async function generateImage(prompt: string, options?: { preferredProviders?: string[]; allowFallback?: boolean }, onStage?: (stage: GenerationStage) => void): Promise<GeneratedImage> {
@@ -14,7 +14,7 @@ export async function generateImage(prompt: string, options?: { preferredProvide
       const { auth } = await import('./firebase');
       if (auth?.currentUser) {
         const idToken = await auth.currentUser.getIdToken();
-        if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
+        if (idToken) headers['Authorization'] = 'Bearer ' + idToken;
       }
     } catch (tokenErr) {
       // ignore
@@ -68,3 +68,5 @@ export async function generateImage(prompt: string, options?: { preferredProvide
 }
 
 export { buildFinalImagePrompt }; // re-export for consumers
+
+

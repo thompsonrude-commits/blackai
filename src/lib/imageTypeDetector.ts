@@ -6,12 +6,12 @@ import type { ImageGenerationRequest } from './newImageEngine';
 
 export function detectImageType(userMessage: string): ImageGenerationRequest | null {
   const lower = userMessage.toLowerCase();
-  
-  // Check if it's an image request
-  const isImageRequest = 
-    /\b(generate|create|make|design|build)\b.*\b(image|picture|photo|graphic|visual)\b/i.test(userMessage) ||
-    /\b(logo|flyer|poster|banner|ad|advertisement|business card|letterhead)\b/i.test(userMessage);
-  
+
+  const hasImageRequestVerb = /\b(?:generate|create|make|design|build|draw|paint|render|produce|illustrate|show|display|ṣe|yi)\b/i.test(userMessage);
+  const hasImageTarget = /\b(?:image|picture|photo|graphic|visual|logo|flyer|poster|banner|ad|advertisement|business\s+card|letterhead|illustration|diagram|chart|graph|infographic|aworan|avatar|thumbnail|cover|portrait|painting|drawing|sketch|wallpaper|render)\b/i.test(userMessage);
+  const hasImageIntentPhrase = /\b(?:generate|create|make|design|draw|paint|render|produce|illustrate|show|ṣe|yi)\s+(?:me\s+)?(?:a\s+|an\s+)?(?:image|picture|photo|graphic|visual|logo|flyer|poster|banner|illustration|diagram|chart|graph|infographic|aworan|avatar|thumbnail|cover|portrait|painting|drawing|sketch|wallpaper)/i.test(userMessage);
+  const isImageRequest = (hasImageRequestVerb && hasImageTarget) || hasImageIntentPhrase || /\b(?:logo|flyer|poster|banner|ad|advertisement|business\s+card|letterhead)\b/i.test(userMessage);
+
   if (!isImageRequest) return null;
   
   const request: ImageGenerationRequest = {

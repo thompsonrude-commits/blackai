@@ -109,10 +109,10 @@ export async function generateImage(prompt: string, options?: { preferredProvide
       const { auth } = await import('./firebase');
       if (auth?.currentUser) {
         const idToken = await auth.currentUser.getIdToken();
-        if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
+        if (idToken) headers['Authorization'] = 'Bearer ' + idToken;
       }
     } catch (tokenErr) {
-      // If token acquisition fails, proceed without Authorization header — backend will reject if required
+      // If token acquisition fails, proceed without Authorization header; the backend accepts public image requests without forced Google auth
     }
 
     const response = await fetch('/api/v1/image/generate', {
@@ -227,3 +227,6 @@ export async function enhancePrompt(prompt: string): Promise<string> {
   if (!prompt || !prompt.trim()) return prompt;
   return `${prompt.trim()}, polished concept art, clean educational composition, African-inspired palette, high contrast`;
 }
+
+
+

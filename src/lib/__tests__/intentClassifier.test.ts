@@ -6,6 +6,7 @@ describe('intent classifier', () => {
   it('does not mistake Nigerian Pidgin conversation verbs for image requests', () => {
     const result = classifyUserIntent('Abeg, make we go now');
     expect(result.capability).toBe('chat');
+    expect(classifyUserIntent('Let me make a plan for tomorrow').capability).toBe('chat');
   });
 
   it('keeps normal English conversation on the chat capability', () => {

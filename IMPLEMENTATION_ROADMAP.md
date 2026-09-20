@@ -4,7 +4,7 @@
 
 ### What Works NOW (Without Engine Integration):
 ✅ Text chat (12 languages)  
-✅ Image generation (Pollinations via backend)  
+✅ Image generation (legacy-image-provider via backend)  
 ✅ Maps (Google Maps integration)  
 ✅ Admin login  
 ✅ Agent management  
@@ -45,7 +45,7 @@
 
 | Feature | Status | How It Works | Implementation Needed |
 |---------|--------|--------------|----------------------|
-| **Basic Generation** | ✅ Fixed | Frontend → aiImage endpoint → Pollinations | **NONE - Test it** |
+| **Basic Generation** | ✅ Fixed | Frontend → aiImage endpoint → legacy-image-provider | **NONE - Test it** |
 | **Diagram Generation** | ✅ Fixed | Visual orchestrator | **NONE - Test it** |
 | **Upload & View** | ✅ Working | File upload component | **NONE** |
 | **Download** | ✅ Working | Canvas conversion | **NONE** |
@@ -62,7 +62,7 @@ aiProxy.ts tries /api/ai/image
     ↓
 Backend aiImage endpoint
     ↓
-Pollinations API
+legacy-image-provider API
     ↓
 Returns imageUrl
     ↓

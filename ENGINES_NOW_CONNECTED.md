@@ -7,7 +7,7 @@
 **After**: ALL 6 engines connected (image, vision, OCR, speech, video, language)
 
 **Added**:
-- `ImageEngine` - Tries backend, falls back to Pollinations
+- `ImageEngine` - Tries backend, falls back to legacy-image-provider
 - `VisionEngine` - Tries backend, graceful fallback message
 - `OCREngine` - Tries backend, graceful fallback message
 - `SpeechEngine` - Tries backend transcribe/TTS
@@ -84,7 +84,7 @@ Response
 
 ### ImageEngine
 1. Calls `/api/ai/image` backend
-2. If fails → Falls back to Pollinations directly
+2. If fails → Falls back to legacy-image-provider directly
 3. Returns imageUrl
 
 ### VisionEngine

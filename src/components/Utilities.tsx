@@ -52,6 +52,7 @@ export default function Utilities() {
               </div>
               <h2 className="text-lg font-semibold mb-2">{tool.title}</h2>
               <p className="text-sm text-gray-600">{tool.description}</p>
+              <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-gray-400">Open from the tools below</p>
             </motion.div>
           );
         })}
@@ -91,7 +92,7 @@ export default function Utilities() {
                   Voice Settings
                 </button>
               ) : (
-                <div className="mt-6 text-xs text-gray-500">Coming soon in the Utilities hub.</div>
+                <div className="mt-6 text-xs font-medium text-gray-500">Not connected yet — this tool is not presented as available.</div>
               )}
             </motion.div>
           );

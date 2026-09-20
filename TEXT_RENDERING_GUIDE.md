@@ -42,7 +42,7 @@ The system automatically detects text-related requests using keywords:
 - **Watermark:** None
 
 ### 4. **Fallback Models**
-- Prodia, Vyro, Picsum, Pollinations (if text models unavailable)
+- Prodia, Vyro, Picsum, legacy-image-provider (if text models unavailable)
 
 ---
 

@@ -71,7 +71,7 @@ core/orchestrator → core/engines → core/inference → [NO PROVIDERS]
 | Feature | Works Without API Keys? | Current Provider |
 |---------|------------------------|------------------|
 | Chat | ❌ NO | Groq/OpenRouter (PAID) |
-| **Image** | ✅ **YES** | **Pollinations (FREE)** |
+| **Image** | ✅ **YES** | **legacy-image-provider (FREE)** |
 | Video | ❌ NO | HuggingFace (requires key) |
 | Speech-to-Text | ❌ NO | Groq Whisper (PAID) |
 | Text-to-Speech | ❌ NO | Google Cloud TTS (PAID) |
@@ -85,30 +85,30 @@ core/orchestrator → core/engines → core/inference → [NO PROVIDERS]
 
 ## 🎨 WORKING FEATURE: IMAGE GENERATION
 
-### **POLLINATIONS SUCCESS STORY**
+### **legacy-image-provider SUCCESS STORY**
 
 ```typescript
 // functions/src/media/engine.ts
 export async function generateMedia(request: MediaGenerationRequest): Promise<MediaGenerationResult> {
-  // TRY POLLINATIONS FIRST (FREE, no key needed)
+  // TRY legacy-image-provider FIRST (FREE, no key needed)
   if (request.kind === 'image' || request.kind === 'text-to-image') {
-    const pollinationsUrl = getPollinationsUrl(request.prompt);
-    if (await verifyImageAccessible(pollinationsUrl)) {
+    const legacy-image-providerUrl = getlegacy-image-providerUrl(request.prompt);
+    if (await verifyImageAccessible(legacy-image-providerUrl)) {
       return {
-        mediaUrl: pollinationsUrl,
-        provider: 'pollinations',
-        model: 'pollinations-flux',
+        mediaUrl: legacy-image-providerUrl,
+        provider: 'legacy-image-provider',
+        model: 'legacy-image-provider-flux',
         latencyMs: timer(),
       };
     }
   }
-  // HuggingFace fallback only if Pollinations fails
+  // HuggingFace fallback only if legacy-image-provider fails
 }
 ```
 
 **WHY IT WORKS**:
 - ✅ No API key required
-- ✅ Direct URL generation: `https://image.pollinations.ai/prompt/{encodedPrompt}`
+- ✅ Direct URL generation: `https://image.legacy-image-provider.ai/prompt/{encodedPrompt}`
 - ✅ Fast response (CDN-backed)
 - ✅ Good quality images
 - ✅ Already integrated in both frontend and backend

@@ -19,6 +19,7 @@
 import fetch from 'node-fetch';
 
 const CRAIYON_API = 'https://api.craiyon.com';
+const REQUEST_TIMEOUT_MS = 8_000;
 
 interface CraiyonGenerationParams {
   prompt: string;
@@ -57,6 +58,7 @@ export async function generateImage(params: CraiyonGenerationParams): Promise<st
         model: version === 'v3' ? 'art' : 'photo', // art model = better quality
         negative_prompt,
       }),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
 
     if (!response.ok) {

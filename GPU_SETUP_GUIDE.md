@@ -404,7 +404,7 @@ Your GPU doesn't have enough VRAM.
 // Primary: Self-hosted GPU (FREE, always on)
 // Fallback 1: Vast.ai ($0.20/hr, on-demand when self-hosted is busy)
 // Fallback 2: OpenRouter DALL-E 3 ($0.04/image, when all GPUs offline)
-// Fallback 3: Pollinations (FREE, low quality, last resort)
+// Fallback 3: legacy-image-provider (FREE, low quality, last resort)
 ```
 
 This gives you:

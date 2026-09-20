@@ -184,7 +184,7 @@ CONSISTENCY IS MANDATORY.
 #### Before (Broken)
 ```
 Video Request → HuggingFace (requires HF_KEY ❌)
-              → Pollinations (watermark ⚠️)
+              → legacy-image-provider (watermark ⚠️)
 ```
 
 #### After (Free & Working)
@@ -301,7 +301,7 @@ export type ProviderId =
 
 ### Before
 ```
-Image Request → Pollinations (watermark ❌)
+Image Request → legacy-image-provider (watermark ❌)
               → Gemini (needs key ❌)
               → OpenRouter (needs key ❌)
 ```
@@ -391,7 +391,7 @@ curl https://your-domain.com/api/v1/media/generate \
 ### Image Generation
 - [ ] Request image: "generate a beautiful landscape"
 - [ ] Check provider: should be "puter" or "jimeng"
-- [ ] Verify: No Pollinations watermark
+- [ ] Verify: No legacy-image-provider watermark
 - [ ] Verify: High quality, crisp image
 
 ---
@@ -401,7 +401,7 @@ curl https://your-domain.com/api/v1/media/generate \
 ### Before
 - Mobile scroll: ❌ Janky, jumps around
 - Language switching: ❌ Random mid-conversation
-- Image quality: ⚠️ Watermarked (Pollinations)
+- Image quality: ⚠️ Watermarked (legacy-image-provider)
 - Video generation: ❌ Broken (no HF_KEY)
 
 ### After
@@ -427,8 +427,8 @@ curl https://your-domain.com/api/v1/media/generate \
 - `functions/src/index.ts` - Updated image endpoints
 
 ### Removed
-- ❌ All Pollinations calls (frontend + backend)
-- ❌ Pollinations fallbacks in aiOrchestratorBridge.ts
+- ❌ All legacy-image-provider calls (frontend + backend)
+- ❌ legacy-image-provider fallbacks in aiOrchestratorBridge.ts
 
 ---
 
@@ -533,8 +533,8 @@ localStorage.removeItem('conversation_language')
 ## Commit History
 
 ```bash
-660aad2 - fix: Remove ALL Pollinations references, use only Jimeng AI
-fbd6009 - fix: Remove remaining Pollinations from GeneralAssistant and video gen
+660aad2 - fix: Remove ALL legacy-image-provider references, use only Jimeng AI
+fbd6009 - fix: Remove remaining legacy-image-provider from GeneralAssistant and video gen
 92f98f0 - feat: Fix mobile chat stability, language mixing, and add Kling video provider
 ```
 

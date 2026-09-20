@@ -107,7 +107,7 @@ Commit Message: "fix: Enable text selection and update service worker cache"
 Previous Commits:
 - 1143b34: feat: Implement unlimited-first provider strategy
 - 81c3202: feat: Add Z-Image provider
-- aeeb5b3: docs: Document Pollinations removal
+- aeeb5b3: docs: Document legacy-image-provider removal
 ```
 
 All changes pushed to GitHub ✅

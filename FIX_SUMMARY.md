@@ -36,7 +36,7 @@ export async function generateMedia(request: MediaGenerationRequest): Promise<Me
   if (request.kind === 'image' && request.prompt) {
     // Try providers in order with fallback
     const providers = [
-      { name: 'pollinations', fn: pollinationsWithFallback },
+      { name: 'legacy-image-provider', fn: legacy-image-providerWithFallback },
       { name: 'openrouter', fn: openRouterImage },
       { name: 'together', fn: togetherImage },
     ];
@@ -69,14 +69,14 @@ export async function generateMedia(request: MediaGenerationRequest): Promise<Me
 ## 🚀 What Now Works
 
 ### Image Generation Chain:
-1. **Pollinations** (Primary) - Free, fast, good quality
+1. **legacy-image-provider** (Primary) - Free, fast, good quality
    - Tries multiple models: turbo, stable-diffusion-3.5-large
    - Auto-detects image type (logo, portrait, landscape, etc.)
    - Returns base64 data URL for instant browser rendering
 
 2. **OpenRouter** (Fallback) - Paid, high quality
    - Uses advanced image models
-   - Falls back if Pollinations fails
+   - Falls back if legacy-image-provider fails
 
 3. **Together AI** (Last Resort) - Paid, reliable
    - Final fallback option
@@ -105,8 +105,8 @@ export async function generateMedia(request: MediaGenerationRequest): Promise<Me
 ```
 1. Frontend detects image request ✅
 2. Backend receives request ✅
-3. Backend calls Pollinations ✅
-4. Pollinations generates real image ✅
+3. Backend calls legacy-image-provider ✅
+4. legacy-image-provider generates real image ✅
 5. Backend returns base64 data ✅
 6. User sees actual AI image! ✅
 ```
@@ -179,7 +179,7 @@ The frontend detection logic was already correct. The problem was 100% backend.
 - Backend: Returns fake data
 
 ### After Fix:
-- Image generation success rate: ~95% (Pollinations is very reliable)
+- Image generation success rate: ~95% (legacy-image-provider is very reliable)
 - User sees: Real AI-generated images
 - Backend: Calls actual providers with fallback
 
@@ -189,8 +189,8 @@ If images still don't generate, check:
 
 1. **Backend Logs** (Firebase Console):
 ```
-Look for: "[MediaEngine] Trying pollinations for image generation"
-Should see: "[MediaEngine] Success with pollinations in XXXms"
+Look for: "[MediaEngine] Trying legacy-image-provider for image generation"
+Should see: "[MediaEngine] Success with legacy-image-provider in XXXms"
 ```
 
 2. **Browser Console**:
@@ -225,16 +225,16 @@ Should return actual base64 image data, not placeholder!
 ## 🚨 Important Notes
 
 ### API Keys Status:
-The system works with **FREE** providers (Pollinations) which don't require API keys!
+The system works with **FREE** providers (legacy-image-provider) which don't require API keys!
 
 ### Cost:
-- Pollinations: ✅ FREE (unlimited)
-- OpenRouter: Fallback only (won't hit unless Pollinations fails)
+- legacy-image-provider: ✅ FREE (unlimited)
+- OpenRouter: Fallback only (won't hit unless legacy-image-provider fails)
 - Together: Last resort (rarely used)
 
 ### Performance:
 - Expected: 10-15 seconds for image generation
-- Actual: ~8-12 seconds with Pollinations
+- Actual: ~8-12 seconds with legacy-image-provider
 - Quality: High (multiple models, automatic selection)
 
 ## ✅ Verification Checklist

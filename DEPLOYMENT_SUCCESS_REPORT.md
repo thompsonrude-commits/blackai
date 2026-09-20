@@ -166,7 +166,7 @@
 | Search | DuckDuckGo | ❌ None | $0 | ✅ Deployed |
 | Time | Node.js Date | ❌ None | $0 | ✅ Deployed ⭐ |
 | Weather | Open-Meteo | ❌ None | $0 | ✅ Deployed ⭐ |
-| Images | Pollinations | ❌ None | $0 | ✅ Deployed |
+| Images | legacy-image-provider | ❌ None | $0 | ✅ Deployed |
 | TTS | Browser API | ❌ None | $0 | ✅ Deployed |
 | STT | Browser API | ❌ None | $0 | ✅ Ready |
 | Translation | Ollama* | ❌ None | $0 | ✅ Ready |
@@ -204,7 +204,7 @@ Firebase Functions (Node.js 24)
 │   ├── DuckDuckGo (search)
 │   ├── Open-Meteo (weather) ⭐
 │   ├── Node.js Date (time) ⭐
-│   ├── Pollinations (images)
+│   ├── legacy-image-provider (images)
 │   └── Browser APIs (TTS/STT)
 └── Router with FREE-FIRST chains
 ```
@@ -519,7 +519,7 @@ The **9JAI AI FREE-FIRST transformation** has been successfully deployed to prod
 - 🌤️ Weather forecasts (FREE, no API key)
 - 🕐 Time queries (FREE, instant)
 - 🔍 Web search (FREE, DuckDuckGo)
-- 🎨 Image generation (FREE, Pollinations)
+- 🎨 Image generation (FREE, legacy-image-provider)
 - 💬 Chat interface (FREE-FIRST with Ollama)
 - 📄 OCR (FREE, 100+ languages)
 - 🗣️ Voice (FREE, browser APIs)

@@ -23,9 +23,9 @@ USER: "generate image of Lagos skyline"
   │
   ├─> routeImage() → generateMedia()
   │
-  ├─> 🟢 POLLINATIONS (FREE, no API key)
+  ├─> 🟢 legacy-image-provider (FREE, no API key)
   │     ↓
-  │   https://image.pollinations.ai/prompt/{prompt}
+  │   https://image.legacy-image-provider.ai/prompt/{prompt}
   │
   └─> ✅ Image URL returned to UI
         Browser renders instantly
@@ -274,7 +274,7 @@ WHY NOT USED:
 ┌─────────────────────────────────────────────────────────┐
 │  FEATURE SCORECARD                                      │
 ├─────────────────────────────────────────────────────────┤
-│  ✅ Image Generation:      WORKING (Pollinations FREE)  │
+│  ✅ Image Generation:      WORKING (legacy-image-provider FREE)  │
 │  ❌ Chat:                  BROKEN (requires API keys)   │
 │  ❌ Speech-to-Text:        BROKEN (requires API keys)   │
 │  ❌ Text-to-Speech:        BROKEN (requires API keys)   │

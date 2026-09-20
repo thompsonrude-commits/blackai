@@ -32,7 +32,7 @@ Primary evidence:
 - `src/components` contains `GeneralAssistant`, `LanguageExplorer`, `AdminRepository`, `AdminTraining`, `UserLibrary`, `Utilities`, `VisionEngine`, `VideoCreator`, `DocumentViewer`, `SpreadsheetViewer`, `PlatformStatus`, etc.
 - `src/lib` contains chat, voice, vision, OCR, search, memory, language, provider-health, analytics, and orchestration logic
 - `functions/src` contains provider registry, backend router, provider adapters, media engine, lexicon, video router, and logger
-- `functions/src/providers` contains modules for `gemini`, `grok`, `groq`, `openrouter`, `ollama`, `ollamaVision`, `mistral`, `together`, `huggingface`, `pollinations`, `tavily`, `tesseract`, `googleTTS`, `deepseek`, and more
+- `functions/src/providers` contains modules for `gemini`, `grok`, `groq`, `openrouter`, `ollama`, `ollamaVision`, `mistral`, `together`, `huggingface`, `legacy-image-provider`, `tavily`, `tesseract`, `googleTTS`, `deepseek`, and more
 
 Observed repository shape:
 - Frontend: `src/`
@@ -132,7 +132,7 @@ Evidence:
 - `src/components/ImageGenerator.tsx`
 - `src/components/NewImageBubble.tsx`, `ImageBubble.tsx`, `AnimatedIllustration.tsx`, `SvgImageGenerator.tsx`
 - `src/lib/imageEngine.ts`, `imageGeneration.ts`, `newImageEngine.ts`, `imagePromptBuilder.ts`, `imageService.ts`, `imageServiceV2.ts`, `imageNormalization.ts`, `imageQuota.ts`
-- `functions/src/providers/pollinations.ts`, `gemini.ts`, `openrouter.ts`, `ollamaVision.ts`, `logoEngine.ts`
+- `functions/src/providers/legacy-image-provider.ts`, `gemini.ts`, `openrouter.ts`, `ollamaVision.ts`, `logoEngine.ts`
 - `functions/src/media/engine.ts` handles image generation attempt ordering and fallback semantics
 
 Image and creative surfaces include:
@@ -240,7 +240,7 @@ Actual engine names found in code and registry:
 - `tesseract`
 - `google-tts`
 - `ollama-vision`
-- `pollinations`
+- `legacy-image-provider`
 - `deepseek`
 - `video-worker`
 - `africanVoices`
@@ -279,7 +279,7 @@ Provider matrix:
 | Tesseract | `functions/src/providers/tesseract.ts` | OCR | Yes | Partial | Partial | Local JS dependency | Usually available locally | Partially tested | PARTIAL |
 | Google TTS | `functions/src/providers/googleTTS.ts` | TTS | Yes | Partial | Partial | `GOOGLE_TTS_KEY` | Missing | Not tested | NOT_CONFIGURED |
 | Ollama Vision | `functions/src/providers/ollamaVision.ts` | VISION | Yes | Partial | Partial | local service | Unavailable if OLLaMA absent | Not verified | PARTIAL |
-| Pollinations | `functions/src/providers/pollinations.ts` | IMAGE | Yes | Yes | Yes | none required in some paths | reachable/fallback path | Validated in prior work | WORKING |
+| legacy-image-provider | `functions/src/providers/legacy-image-provider.ts` | IMAGE | Yes | Yes | Yes | none required in some paths | reachable/fallback path | Validated in prior work | WORKING |
 | DeepSeek | `functions/src/providers/deepseek.ts` | SEARCH / SPECIALIZED | Yes (disabled) | Partial | Partial | `DEEPSEEK_KEY` | Not configured | Not tested | DISABLED |
 
 Overall provider status:
@@ -651,7 +651,7 @@ Evidence-backed capabilities:
 |---|---|---|---|---|---|---|---|---|
 | Chat | local + proxy + provider router | Yes | Yes | `/ai/chat`, `/api/v1/chat` patterns | grok/groq/ollama/etc. | sessions/logging | PARTIAL | `src/lib/ai.ts`, `src/lib/aiProxy.ts`, `functions/src/index.ts` |
 | Language | Edo / Nigerian languages | Yes | Yes | lexicon route + chat routing | local language logic | local store + metadata | WORKING | `GeneralAssistant.tsx`, `language.ts`, `edoLexiconStore.ts` |
-| Image | Pollinations / Gemini / OpenRouter / native-gpu | Yes | Yes | `/ai/image`, `/api/v1/image/generate` | Pollinations/gemini/openrouter | generated output | PARTIAL | `imageService.ts`, `media/engine.ts`, `pollinations.ts` |
+| Image | legacy-image-provider / Gemini / OpenRouter / native-gpu | Yes | Yes | `/ai/image`, `/api/v1/image/generate` | legacy-image-provider/gemini/openrouter | generated output | PARTIAL | `imageService.ts`, `media/engine.ts`, `legacy-image-provider.ts` |
 | Vision/OCR | Tesseract + Ollama Vision + visual intelligence | Yes | Partial | route surfaces present | tesseract/ollama-vision | local temp / output | PARTIAL | `VisionEngine.tsx`, `ocr.ts`, `tesseract.ts` |
 | Search | Tavily / knowledge engine | Partial | Yes | `/ai/search` | Tavily | knowledge index | PARTIAL | `searchEngine.ts`, `tavily.ts`, `knowledgeEngine.ts` |
 | Audio/TTS | Google TTS + voice engine | Yes | Partial | provider adapter surfaces | google-tts | voice settings / temp | PARTIAL | `voiceEngine.ts`, `googleTTS.ts` |
@@ -669,7 +669,7 @@ Evidence-backed capabilities:
 |---|---|---|---|---|---|---|---|---|---|
 | Unified AI core | central orchestration | Yes | Yes | Partial | Yes | Many | TypeScript compile + tests pass | WORKING | live credentials |
 | Chat routing | task selection and chat failover | Yes | Yes | Yes | Yes | grok/groq/ollama | backend tests pass | WORKING | real provider keys |
-| Image generation | image provider rotation | Yes | Yes | Yes | Yes | pollinations/gemini/openrouter | route logic present | PARTIAL | secrets & live providers |
+| Image generation | image provider rotation | Yes | Yes | Yes | Yes | legacy-image-provider/gemini/openrouter | route logic present | PARTIAL | secrets & live providers |
 | Vision + OCR | visual analysis and OCR | Yes | Partial | Yes | Partial | tesseract/ollama-vision | partial local checks | PARTIAL | runtime model/service |
 | Search | web retrieval | Yes | Yes | Partial | Yes | tavily/duckduckgo | not live | PARTIAL | `TAVILY_KEY` |
 | TTS | speech synthesis | Yes | Partial | Yes | Partial | google-tts | not live | PARTIAL | secret not configured |
@@ -691,7 +691,7 @@ Evidence-backed capabilities:
 | HuggingFace | `huggingface.ts` | chat | Yes | Partial | Partial | `HF_KEY` | Missing | Not tested | NOT_CONFIGURED |
 | Mistral | `mistral.ts` | chat | Yes | Partial | Partial | `MISTRAL_KEY` | Missing | Not tested | NOT_CONFIGURED |
 | Together | `together.ts` | chat | Yes | Partial | Partial | `TOGETHER_KEY` | Missing | Not tested | NOT_CONFIGURED |
-| Pollinations | `pollinations.ts` | image | Yes | Yes | Yes | optional/public | reachable fallback path | Validated | WORKING |
+| legacy-image-provider | `legacy-image-provider.ts` | image | Yes | Yes | Yes | optional/public | reachable fallback path | Validated | WORKING |
 | DeepSeek | `deepseek.ts` | specialized/search | Yes (disabled) | Partial | Partial | `DEEPSEEK_KEY` | not configured | Not tested | DISABLED |
 | Tavily | `tavily.ts` | search | Yes | Yes | Partial | `TAVILY_KEY` | Missing | Not tested | NOT_CONFIGURED |
 | Google TTS | `googleTTS.ts` | TTS | Yes | Partial | Partial | `GOOGLE_TTS_KEY` | Missing | Not tested | NOT_CONFIGURED |

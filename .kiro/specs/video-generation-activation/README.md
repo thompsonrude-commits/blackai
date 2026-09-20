@@ -22,7 +22,7 @@ This spec guides the implementation of video generation functionality by activat
 ## 🎬 Current State
 
 ### ✅ What's Working
-- Image generation fully functional (using Pollinations)
+- Image generation fully functional (using legacy-image-provider)
 - HuggingFace API key configured as Firebase secret `HF_TOKEN`
 - All 20 Cloud Functions deployed and operational
 - Frontend detection for media requests working
@@ -268,7 +268,7 @@ This spec follows the same pattern as the successful image generation implementa
 ```typescript
 // Multi-provider fallback
 const providers = [
-  { name: 'pollinations', fn: pollinationsWithFallback },
+  { name: 'legacy-image-provider', fn: legacy-image-providerWithFallback },
   { name: 'openrouter', fn: openRouterImage },
   { name: 'together', fn: togetherImage },
 ];

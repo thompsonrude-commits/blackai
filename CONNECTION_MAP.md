@@ -65,14 +65,14 @@ functions/src/router.ts → routeImage()
   ↓
 functions/src/media/engine.ts → generateMedia({ kind: 'image' })
   ↓
-functions/src/providers/pollinations.ts → pollinationsWithFallback() [FREE]
+functions/src/providers/legacy-image-provider.ts → legacy-image-providerWithFallback() [FREE]
   ↓
 RESPONSE: { imageBase64, provider, model, latencyMs }
   ↓
 Frontend receives → Displays image
 ```
 
-**PROVIDER**: Pollinations AI (FREE, no API key)
+**PROVIDER**: legacy-image-provider AI (FREE, no API key)
 
 ---
 
@@ -334,7 +334,7 @@ RESPONSE: { status, providers[], cache }
 |---------|--------|----------|----------|----------|
 | Chat | POST | /api/v1/chat | aiChat | Ollama → Groq → OpenRouter |
 | Stream | POST | /api/v1/stream | aiStream | Same as chat |
-| Image | POST | /api/v1/image/generate | v1ImageGenerate | Pollinations |
+| Image | POST | /api/v1/image/generate | v1ImageGenerate | legacy-image-provider |
 | Video | POST | /api/v1/video/process | v1VideoProcess | ❌ None |
 | Vision | POST | /api/v1/vision/analyze | aiVision | Ollama → OpenRouter |
 | Transcribe | POST | /api/v1/speech/transcribe | aiTranscribe | Groq Whisper |
@@ -352,7 +352,7 @@ RESPONSE: { status, providers[], cache }
 | Provider | Type | API Key Required | Cost | Status |
 |----------|------|------------------|------|--------|
 | **Ollama** | Chat | ❌ No | FREE | ✅ If installed locally |
-| **Pollinations** | Image | ❌ No | FREE | ✅ Always works |
+| **legacy-image-provider** | Image | ❌ No | FREE | ✅ Always works |
 | **Open-Meteo** | Weather | ❌ No | FREE | ✅ Always works |
 | **Time** | Time | ❌ No | FREE | ✅ Built-in |
 | **DuckDuckGo** | Search | ❌ No | FREE | ✅ Always works |

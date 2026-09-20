@@ -1,7 +1,9 @@
 import type { ProviderId } from '../types';
+import { isProviderDisabled } from '../providers/secretHelpers';
 // Lazy-load to avoid initialization timeout:
 // import { huggingfaceVideo } from '../providers/huggingface';
 import { generateImageNative, checkNativeAIAvailable, classifyImageType, enhancePromptForQuality } from './nativeAIEngine';
+import { compileProviderVisualPrompt } from '../providers/advancedVisualIntelligence';
 
 export interface MediaGenerationRequest {
   kind: 'image' | 'video' | 'audio' | 'text-to-video';
@@ -91,75 +93,58 @@ export async function generateMedia(request: MediaGenerationRequest): Promise<Me
       }
     }
 
-    // PRIORITY 1: Stable Horde (unlimited, community-powered)
-    try {
-      console.log('[MediaEngine] Priority 1: Stable Horde (unlimited, may take 1-3 minutes)');
-      const { generateImage: stableHordeGenerate } = await import('../providers/stablehorde');
-      const imageBase64 = await stableHordeGenerate({ prompt: promptToUse });
-      return {
-        kind: 'image',
-        provider: 'stablehorde',
-        model: 'stable-diffusion',
-        latencyMs: Date.now() - startTime,
-        imageBase64,
-        mediaUrl: undefined,
-      };
-    } catch (stableHordeError: any) {
-      console.warn('[MediaEngine] Stable Horde failed, trying Craiyon:', stableHordeError.message);
-      
-      // PRIORITY 2: Craiyon (unlimited, fast but lower quality)
+    const configuredProviders: ProviderId[] = ['jimeng', 'zimage', 'stablehorde', 'cloudflare'];
+    const requestedProviders = request.preferredProviders?.filter((provider): provider is ProviderId =>
+      configuredProviders.includes(provider)
+    );
+    const providers = requestedProviders?.length ? requestedProviders : configuredProviders;
+    const allowFallback = request.allowFallback !== false;
+    const failures: string[] = [];
+
+    for (const provider of providers) {
+      if (!allowFallback && failures.length > 0) break;
+      if (isProviderDisabled(provider)) {
+        failures.push(`${provider}: disabled`);
+        continue;
+      }
+
       try {
-        console.log('[MediaEngine] Priority 2: Craiyon (unlimited fallback)');
-        const { generateImage: craiyonGenerate } = await import('../providers/craiyon');
-        const imageBase64 = await craiyonGenerate({ prompt: promptToUse });
-        return {
-          kind: 'image',
-          provider: 'craiyon',
-          model: 'dall-e-mini',
-          latencyMs: Date.now() - startTime,
-          imageBase64,
-          mediaUrl: undefined,
-        };
-      } catch (craiyonError: any) {
-        console.warn('[MediaEngine] Craiyon failed, trying Z-Image:', craiyonError.message);
-        
-        // PRIORITY 3: Z-Image (2,000/day, high quality, fast)
-        try {
-          console.log('[MediaEngine] Priority 3: Z-Image Turbo (Alibaba - 2K/day)');
-          const { generateImage: zImageGenerate } = await import('../providers/zimage');
-          const imageBase64 = await zImageGenerate({ prompt: promptToUse });
-          return {
-            kind: 'image',
-            provider: 'zimage',
-            model: 'z-image-turbo',
-            latencyMs: Date.now() - startTime,
-            imageBase64,
-            mediaUrl: undefined,
-          };
-        } catch (zimageError: any) {
-          console.warn('[MediaEngine] Z-Image failed, trying Jimeng:', zimageError.message);
-          
-          // PRIORITY 4: Jimeng (80-100/day, good quality, fast)
-          try {
-            console.log('[MediaEngine] Priority 4: Jimeng AI (ByteDance - 80-100/day)');
-            const { jimengImage } = await import('../providers/jimeng');
-            const result = await jimengImage(promptToUse);
-            return {
-              kind: 'image',
-              provider: 'jimeng',
-              model: result.model,
-              latencyMs: Date.now() - startTime,
-              imageBase64: undefined,
-              mediaUrl: result.url,
-            };
-          } catch (jimengError: any) {
-            const reason = jimengError instanceof Error ? jimengError.message : String(jimengError);
-            console.error('[MediaEngine] All image providers failed:', reason);
-            throw new Error(`Image generation unavailable: All providers failed`);
-          }
+        const providerPrompt = compileProviderVisualPrompt(promptToUse, provider);
+        if (provider === 'jimeng') {
+          const { jimengImage } = await import('../providers/jimeng');
+          const result = await jimengImage(providerPrompt);
+          if (!result.url) throw new Error('Jimeng returned no image URL');
+          return { kind: 'image', provider, model: result.model, latencyMs: Date.now() - startTime, mediaUrl: result.url };
         }
+
+        if (provider === 'zimage') {
+          if (!process.env.MODELSCOPE_TOKEN) throw new Error('ModelScope token is not configured');
+          const { generateImage: zImageGenerate } = await import('../providers/zimage');
+          const imageBase64 = await zImageGenerate({ prompt: providerPrompt });
+          if (!imageBase64) throw new Error('ModelScope returned no image');
+          return { kind: 'image', provider, model: 'z-image-turbo', latencyMs: Date.now() - startTime, imageBase64 };
+        }
+
+        if (provider === 'stablehorde') {
+          const { generateImage: hordeGenerate } = await import('../providers/stablehorde');
+          const imageBase64 = await hordeGenerate({ prompt: providerPrompt });
+          if (!imageBase64) throw new Error('AI Horde returned no image');
+          return { kind: 'image', provider, model: 'stable_diffusion', latencyMs: Date.now() - startTime, imageBase64 };
+        }
+
+        const { generateImage: cloudflareGenerate } = await import('../providers/cloudflare');
+        const result = await cloudflareGenerate(providerPrompt);
+        if (!result.imageBase64) throw new Error('Cloudflare Workers AI returned no image');
+        return { kind: 'image', provider, model: result.model, latencyMs: Date.now() - startTime, imageBase64: result.imageBase64 };
+      } catch (providerError) {
+        const message = providerError instanceof Error ? providerError.message : String(providerError);
+        failures.push(`${provider}: ${message}`);
+        console.warn(`[MediaEngine] ${provider} failed: ${message}`);
+        if (!allowFallback) break;
       }
     }
+
+    throw new Error(`Image generation unavailable. ${failures.join('; ')}`);
   }
 
   // Handle video generation (text-to-video)

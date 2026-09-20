@@ -69,7 +69,7 @@ Complete architectural rebuild with:
 │  (PRIMARY)       │            │  (FALLBACK)      │
 │                  │            │                  │
 │ - SDXL Turbo    │            │ - DALL-E 3       │
-│ - FLUX Schnell  │            │ - Pollinations   │
+│ - FLUX Schnell  │            │ - legacy-image-provider   │
 │ - FLUX Dev      │            │                  │
 │                  │            │                  │
 │ Cost: FREE      │            │ Cost: $0.04/img  │
@@ -118,7 +118,7 @@ Complete architectural rebuild with:
 // External API as primary
 providers = [
   'openrouter',     // $0.04/image, used first
-  'pollinations',   // FREE but returns 403
+  'legacy-image-provider',   // FREE but returns 403
 ];
 
 // No validation
@@ -133,7 +133,7 @@ return anyImageData; // Could be SVG placeholder
 providers = [
   'native-gpu',     // FREE, real AI, used first
   'openrouter',     // $0.04/image, fallback only
-  'pollinations',   // FREE, last resort
+  'legacy-image-provider',   // FREE, last resort
 ];
 
 // Validation required
@@ -289,7 +289,7 @@ See `GPU_SETUP_GUIDE.md` Troubleshooting section for details.
 ### Provider Chain Priority
 1. **native-gpu** (PRIMARY) - FREE, self-hosted models
 2. **openrouter** (Fallback 1) - $0.04/image, DALL-E 3
-3. **pollinations** (Fallback 2) - FREE, unreliable
+3. **legacy-image-provider** (Fallback 2) - FREE, unreliable
 
 ---
 

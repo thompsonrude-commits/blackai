@@ -22,7 +22,7 @@ I have completed the **mandatory pre-implementation audit** as required by the M
 2. ✅ **Premium animated logo** - NineJAILogo.tsx with network waves, all states working
 3. ✅ **Google Authentication** - Firebase Auth fully functional
 4. ✅ **Chat history** - Dual-layer (Firestore + localStorage) working perfectly
-5. ✅ **Image generation** - **POLLINATIONS (FREE)** - no API key needed ✨
+5. ✅ **Image generation** - **legacy-image-provider (FREE)** - no API key needed ✨
 6. ✅ **Multilingual infrastructure** - 7 African languages (Edo, Yoruba, Igbo, Hausa, etc.)
 7. ✅ **Self-learning system** - Adaptive learning infrastructure exists
 8. ✅ **Mobile-responsive** - Full mobile support
@@ -35,7 +35,7 @@ I have completed the **mandatory pre-implementation audit** as required by the M
 
 | Feature | Current Status | Issue |
 |---------|----------------|-------|
-| **Images** | ✅ **WORKING** | Pollinations (FREE) |
+| **Images** | ✅ **WORKING** | legacy-image-provider (FREE) |
 | Chat | ❌ BROKEN | Requires Groq/OpenRouter API keys |
 | Video | ❌ BROKEN | Requires HuggingFace API key |
 | Speech-to-Text | ❌ BROKEN | Requires Groq API key |

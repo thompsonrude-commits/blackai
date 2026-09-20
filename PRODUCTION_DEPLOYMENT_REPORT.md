@@ -72,7 +72,7 @@
 | Mistral | MISTRAL_KEY | Configured in Secret Manager |
 | Tavily | TAVILY_KEY | Configured in Secret Manager |
 | Google TTS | GOOGLE_TTS_KEY | Configured in Secret Manager |
-| Pollinations | None (free) | Always available |
+| legacy-image-provider | None (free) | Always available |
 
 ---
 

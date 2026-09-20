@@ -108,8 +108,13 @@ export function classifyUserIntent(input: string): ClassifiedIntent {
   if (translationMatch) {
     detected.push('language');
   }
-  const imageMatch = /(?:\b(?:logo|poster|banner|picture|image|photo|artwork|visual|diagram|chart|graph|infographic|aworan|hoto|foto)\b|\b(?:generate|create|make|draw|paint|design|render|illustrate|ṣe|yi)\s+(?:an?\s+)?(?:logo|poster|banner|picture|image|photo|artwork|visual|diagram|chart|graph|infographic|aworan|hoto|foto)\b)/i.exec(lower);
-  if (imageMatch) {
+
+  const hasImageRequestVerb = /\b(?:generate|create|make|draw|paint|design|build|render|produce|illustrate|show|display|ṣe|yi|give\s+me|i\s+want|i\s+wan|abeg\s+make)\b/i.test(lower);
+  const hasExplicitImageTarget = /\b(?:logo|poster|banner|picture|image|photo|artwork|visual|diagram|chart|graph|infographic|aworan|hoto|foto|illustration|avatar|thumbnail|cover|portrait|painting|drawing|sketch|wallpaper|graphic)\b/i.test(lower);
+  const hasStrongImagePattern = /(?:generate|create|make|draw|paint|design|build|render|produce|illustrate|show|ṣe|yi)\s+(?:me\s+)?(?:a\s+|an\s+)?(?:logo|poster|banner|picture|image|photo|artwork|visual|diagram|chart|graph|infographic|aworan|hoto|foto|illustration|avatar|thumbnail|cover|portrait|painting|drawing|sketch|wallpaper|graphic)/i.test(lower);
+  const hasVisualExplanationPattern = /\b(?:explain|teach|describe|show|illustrate|demonstrate)\b.*\b(?:diagram|image|picture|visual|chart|graph|illustration|infographic|poster|banner|logo)\b|\b(?:diagram|image|picture|visual|chart|graph|illustration|infographic|poster|banner|logo)\b.*\b(?:explain|teach|describe|show|illustrate|demonstrate)\b/i.test(lower);
+
+  if ((hasImageRequestVerb && hasExplicitImageTarget) || hasStrongImagePattern || hasVisualExplanationPattern) {
     detected.push('image');
   }
   const musicMatch = /(song|music|beat|lyrics|instrumental|afrobeats|afrobeat|amapiano|highlife|gospel|hip[- ]?hop|r&b|reggae|dancehall|compose|melody|track|mix|master|vocal)/i.exec(lower);

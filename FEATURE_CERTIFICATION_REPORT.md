@@ -14,7 +14,7 @@
 | Chat (Yoruba/Igbo/Hausa) | ✅ PASS | Dedicated system prompts per language |
 | Chat streaming | ✅ PASS | Word-by-word SSE with 15ms chunk delay |
 | Chat memory | ✅ PASS | 20-message sliding window, adaptive learning |
-| Image generation | ✅ PASS | Pollinations Flux model, random seed every call |
+| Image generation | ✅ PASS | legacy-image-provider Flux model, random seed every call |
 | Image analysis (upload) | ✅ PASS | Real vision API via aiVision Cloud Function |
 | Document analysis | ✅ PASS | Text files extracted, injected into chat context |
 | OCR on generated images | ✅ PASS | Tesseract.js auto-runs after image loads |

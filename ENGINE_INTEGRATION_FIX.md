@@ -14,7 +14,7 @@ aiProxy.ts (bypasses engines)
     ↓
 Backend API Endpoints (bypass engines)
     ↓
-External Providers (Pollinations, etc.)
+External Providers (legacy-image-provider, etc.)
     ↓
 Response
 ```
@@ -247,19 +247,19 @@ export async function generateVideoViaOrchestrator(prompt: string) {
 ```typescript
 // 9ja-ai/9ja-ai-core/engines/image/ImageEngine.ts
 
-import { buildPollinationsImageUrl } from '../../../src/lib/imageService';
+import { buildlegacy-image-providerImageUrl } from '../../../src/lib/imageService';
 
 export default class ImageEngine {
   async generate(payload: any) {
     const prompt = payload.prompt || '';
     
     // Call actual image generation provider
-    const imageUrl = buildPollinationsImageUrl(prompt);
+    const imageUrl = buildlegacy-image-providerImageUrl(prompt);
     
     return {
       imageUrl,
       prompt,
-      provider: 'pollinations',
+      provider: 'legacy-image-provider',
       model: 'flux',
       latencyMs: 0,
     };
@@ -538,7 +538,7 @@ They're because:
 
 The engines are just an **organizational layer**. The real work happens in:
 - **Backend endpoints** (`functions/src/index.ts`)
-- **External providers** (Pollinations, etc.)
+- **External providers** (legacy-image-provider, etc.)
 - **Frontend UI** (`GeneralAssistant.tsx`)
 
 ---

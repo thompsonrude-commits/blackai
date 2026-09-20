@@ -115,7 +115,7 @@ Show: "🎨 Generating image: 'a lion in the savanna'..."
     ↓
 Call: generateImageWithFallback(prompt)
     ↓
-Try Pollinations API (no API key needed)
+Try legacy-image-provider API (no API key needed)
     ↓
 Display: Actual image in chat
 ```
@@ -167,7 +167,7 @@ Response: ⚠️ Currently unavailable (providers being certified)
 ## Backend Status
 
 ### Image Generation:
-- **Provider**: Pollinations AI
+- **Provider**: legacy-image-provider AI
 - **Endpoint**: `/api/v1/image/generate` → `v1ImageGenerate` function
 - **Status**: ✅ **WORKING**
 - **Speed**: 2-5 seconds

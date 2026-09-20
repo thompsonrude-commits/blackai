@@ -130,7 +130,7 @@ export async function generateImage(params: StableHordeGenerationParams): Promis
 
     // Step 2: Poll for completion
     let attempts = 0;
-    const maxAttempts = 120; // 120 attempts × 3s = 6 minutes max wait
+    const maxAttempts = 15; // Allow a realistic queue window within the image function timeout
     const pollInterval = 3000; // 3 seconds
 
     while (attempts < maxAttempts) {
@@ -178,7 +178,7 @@ export async function generateImage(params: StableHordeGenerationParams): Promis
       // Still processing, continue polling
     }
 
-    throw new Error('StableHorde generation timeout after 6 minutes');
+    throw new Error('AI Horde generation timed out before a worker returned an image');
   } catch (error: any) {
     console.error('[StableHorde] Error:', error.message);
     throw error;

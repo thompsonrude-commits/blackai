@@ -12,7 +12,7 @@
 3. ✅ Premium animated NineJAILogo with network waves
 4. ✅ Google Authentication via Firebase
 5. ✅ Chat history (Firestore + localStorage dual-layer)
-6. ✅ Image generation (Pollinations - FREE, no API key)
+6. ✅ Image generation (legacy-image-provider - FREE, no API key)
 7. ✅ Multilingual infrastructure (7 African languages)
 8. ✅ Self-learning system (adaptive learning)
 9. ✅ Mobile-responsive design

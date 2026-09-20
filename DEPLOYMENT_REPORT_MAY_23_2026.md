@@ -82,9 +82,9 @@ All security fixes and functionality improvements have been successfully deploye
 - **Fix:** Integrated backend API with professional providers
 - **Providers in order:**
   1. Together AI (FLUX.1-schnell) - Real AI
-  2. Pollinations (Visual Intelligence) - Professional
+  2. legacy-image-provider (Visual Intelligence) - Professional
   3. HuggingFace (Stable Diffusion) - Backup
-  4. Pollinations URL fallback
+  4. legacy-image-provider URL fallback
 - **Status:** DEPLOYED
 
 ---

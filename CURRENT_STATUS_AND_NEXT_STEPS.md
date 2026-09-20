@@ -21,7 +21,7 @@ I've read and analyzed the critical codebase files:
 - ✅ `functions/src/index.ts` - All 23 Cloud Functions
 - ✅ `functions/src/router.ts` - Intelligent routing logic
 - ✅ `functions/src/providers/ollama.ts` - FREE local AI (primary)
-- ✅ `functions/src/providers/pollinations.ts` - FREE image generation
+- ✅ `functions/src/providers/legacy-image-provider.ts` - FREE image generation
 - ✅ `functions/src/providers/time.ts` - FREE time API
 - ✅ `functions/src/providers/weather.ts` - FREE weather API
 
@@ -40,7 +40,7 @@ I've read and analyzed the critical codebase files:
 #### B. `CONNECTION_MAP.md`
 **Quick reference showing exact flow for each feature**:
 - Chat: UI → API → Function → Router → Provider → Response
-- Image: UI → API → Pollinations → Image
+- Image: UI → API → legacy-image-provider → Image
 - Video: UI → API → ❌ Unavailable (correct behavior)
 - Vision: UI → API → Ollama/OpenRouter → Analysis
 - Voice: UI → API → Groq Whisper → Transcription
@@ -199,7 +199,7 @@ This bypasses the frontend to verify backend works.
 
 ### Scenario A: Everything Works (Best Case)
 - ✅ Chat works (using Ollama or Groq)
-- ✅ Image generation works (Pollinations)
+- ✅ Image generation works (legacy-image-provider)
 - ✅ Weather/time work (FREE APIs)
 - ✅ Search works (DuckDuckGo)
 - ✅ All features functional

@@ -330,11 +330,13 @@ function isImageRequest(text: string): boolean {
   const lower = text.toLowerCase();
   if (text.startsWith('__GENERATE__')) return true;
 
-  const generateWords = ['generate','create','make','draw','paint','design','show','produce','render','illustrate','i want','i need','give me','i wan','abeg make'];
-  const imageWords = ['image','picture','photo','artwork','art','illustration','logo','poster','banner','thumbnail','avatar','icon','graphic','portrait','painting','drawing','sketch','render','visual','wallpaper','cover','flyer','design','skyline','sunset','beach','landmark','building','tower','city','landscape','scenery','diagram','chart','graph','flowchart','timeline','comparison'];
+  const generateWords = ['generate','create','make','draw','paint','design','show','produce','render','illustrate','i want','i need','give me','i wan','abeg make','ṣe','yi'];
+  const imageWords = ['image','picture','photo','artwork','art','illustration','logo','poster','banner','thumbnail','avatar','icon','graphic','portrait','painting','drawing','sketch','render','visual','wallpaper','cover','flyer','design','skyline','sunset','beach','landmark','building','tower','city','landscape','scenery','diagram','chart','graph','flowchart','timeline','comparison','aworan','foto','hoto'];
   const hasGenerate = generateWords.some(w => lower.includes(w));
   const hasImageWord = imageWords.some(w => lower.includes(w));
-  if (hasGenerate && hasImageWord) return true;
+  const hasExplicitVisualPhrase = /(?:generate|create|make|draw|paint|design|show|produce|render|illustrate|ṣe|yi)\s+(?:me\s+)?(?:a\s+|an\s+)?(?:image|picture|photo|artwork|art|illustration|logo|poster|banner|thumbnail|avatar|icon|graphic|portrait|painting|drawing|sketch|render|visual|wallpaper|cover|flyer|design|diagram|chart|graph|infographic|flowchart|aworan|foto|hoto)/i.test(lower);
+
+  if ((hasGenerate && hasImageWord) || hasExplicitVisualPhrase) return true;
 
   const strongTriggers = [
     'generate image','create image','make image','draw me','paint me','picture of','image of','photo of','logo of','logo for','make a logo','create a logo','design a logo','make a poster','create a poster','generate art','create art','make art','ai art','generate a picture','i wan generate','i want image','i wan image','flag of','generate video','create video','make video','animate',

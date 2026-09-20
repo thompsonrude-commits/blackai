@@ -61,7 +61,7 @@ Status: Working perfectly
 
 ### ✅ FREE Providers Working
 
-- **Pollinations** (image generation) - 100% FREE
+- **legacy-image-provider** (image generation) - 100% FREE
 - **Open-Meteo** (weather) - 100% FREE  
 - **Time API** (built-in) - 100% FREE
 - **DuckDuckGo** (search fallback) - 100% FREE
@@ -96,7 +96,7 @@ Status: Working perfectly
 |----------|--------|----------|------|
 | Groq | 🟢 **ACTIVE** | Chat (primary) | Free tier |
 | OpenRouter | 🟢 Available | Chat fallback, Vision | Free tier |
-| Pollinations | 🟢 Available | Image generation | FREE |
+| legacy-image-provider | 🟢 Available | Image generation | FREE |
 | TogetherAI | 🟢 Available | Chat fallback | Paid |
 | DeepSeek | 🟢 Available | Reasoning | Paid |
 | Mistral | 🟢 Available | Chat fallback | Paid |

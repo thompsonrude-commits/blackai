@@ -388,9 +388,9 @@
 - **Test**: Verify provider failover
 
 #### 10.2 Image Providers
-- Pollinations
+- legacy-image-provider
 - **Status**: Checking...
-- **Files**: functions/src/providers/pollinations.ts
+- **Files**: functions/src/providers/legacy-image-provider.ts
 - **Test**: Verify image generation
 
 #### 10.3 Caching System

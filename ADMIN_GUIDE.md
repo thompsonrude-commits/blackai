@@ -189,7 +189,7 @@ Users can install 9JAI as a native app on their device:
 
 1. **Chat System**: All features working (text, voice, vision, images)
 2. **Language Support**: Pidgin, Edo, Yoruba, Igbo, Hausa, Esan, etc.
-3. **Image Generation**: Fixed and working with Pollinations
+3. **Image Generation**: Fixed and working with legacy-image-provider
 4. **Diagram Generation**: Fixed (no more HTML code output)
 5. **Vision Analysis**: Working with image uploads
 6. **Mobile Optimization**: Chatbar sized properly for mobile

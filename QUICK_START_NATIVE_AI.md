@@ -8,7 +8,7 @@ Get REAL AI image generation working in 1 hour.
 
 ### ❌ OLD SYSTEM (BROKEN)
 - Uses OpenRouter DALL-E 3 as PRIMARY ($0.04/image)
-- Falls back to Pollinations (returns 403 errors)
+- Falls back to legacy-image-provider (returns 403 errors)
 - Returns SVG placeholders when APIs fail
 - **RESULT**: Users get stock photos/placeholders, not AI generations
 
@@ -169,7 +169,7 @@ curl https://[POD_ID]-7860.proxy.runpod.net/system_stats
 1. Check logs to see which provider was tried
 2. If native-gpu failed: Check ComfyUI endpoint
 3. If OpenRouter failed: Check API key and credits
-4. If Pollinations failed: Expected (it's unreliable)
+4. If legacy-image-provider failed: Expected (it's unreliable)
 
 ---
 

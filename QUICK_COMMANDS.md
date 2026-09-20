@@ -49,8 +49,8 @@ curl -s -X POST https://9jai.web.app/api/v1/image/generate \
 
 **What to look for**:
 - `"imageUrl": "..."` - Image URL or base64 data
-- `"provider": "pollinations-..."` - Should be Pollinations
-- `"model": "..."` - Which Pollinations model
+- `"provider": "legacy-image-provider-..."` - Should be legacy-image-provider
+- `"model": "..."` - Which legacy-image-provider model
 
 ---
 
@@ -267,8 +267,8 @@ curl -s https://9jai.web.app/api/v1/health | jq '.providers[] | {id: .id, availa
 {
   "imageUrl": "data:image/jpeg;base64,...",
   "imageBase64": "data:image/jpeg;base64,...",
-  "provider": "pollinations-turbo",
-  "model": "pollinations-turbo",
+  "provider": "legacy-image-provider-turbo",
+  "model": "legacy-image-provider-turbo",
   "latencyMs": 2345
 }
 ```

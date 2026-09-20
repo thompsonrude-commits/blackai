@@ -98,7 +98,7 @@ API.image = '/api/v1/image/generate'
 **Function**: `v1ImageGenerate` EXISTS (deployed)
 
 **Providers Available**:
-- ✅ pollinations.ts (FREE)
+- ✅ legacy-image-provider.ts (FREE)
 - ✅ huggingface.ts
 
 **Conclusion**: Appears connected, needs **LIVE TESTING**

@@ -23,7 +23,7 @@
 2. **NO VISION WITHOUT PAID KEYS**: OpenRouter vision is primary, no free alternative
 3. **NO SEARCH WITHOUT PAID KEY**: Tavily is only search provider (paid)
 4. **NO TTS WITHOUT PAID KEY**: Google TTS requires API key
-5. **IMAGE GENERATION**: Pollinations is FREE ✅ (but has paid fallbacks)
+5. **IMAGE GENERATION**: legacy-image-provider is FREE ✅ (but has paid fallbacks)
 
 ---
 
@@ -84,19 +84,19 @@
 
 | Provider | Status | Cost Model | Current Usage | Free Alternative | Migration Priority |
 |----------|--------|------------|---------------|------------------|-------------------|
-| **Pollinations** | ✅ FREE | Completely free | PRIMARY ✅ | N/A - Keep | **KEEP AS-IS** |
-| **OpenRouter Images** | ❌ PAID | Credit-based | REMOVED ✅ | Pollinations | **COMPLETE** |
-| **Together AI Images** | ❌ PAID | Credit-based | REMOVED ✅ | Pollinations | **COMPLETE** |
-| **HuggingFace Images** | ⚠️ FREE TIER | Free with limits | OPTIONAL | Pollinations, Local SD | **LOW** |
+| **legacy-image-provider** | ✅ FREE | Completely free | PRIMARY ✅ | N/A - Keep | **KEEP AS-IS** |
+| **OpenRouter Images** | ❌ PAID | Credit-based | REMOVED ✅ | legacy-image-provider | **COMPLETE** |
+| **Together AI Images** | ❌ PAID | Credit-based | REMOVED ✅ | legacy-image-provider | **COMPLETE** |
+| **HuggingFace Images** | ⚠️ FREE TIER | Free with limits | OPTIONAL | legacy-image-provider, Local SD | **LOW** |
 
 **Current Status**: ✅ **ALREADY FREE-FIRST**  
-Pollinations is the primary provider (no API key needed).
+legacy-image-provider is the primary provider (no API key needed).
 
 **Recent Changes**: Removed OpenRouter and Together paid fallbacks.
 
 **Files Affected**:
 - `functions/src/media/engine.ts` ✅ (cleaned up)
-- `functions/src/providers/pollinations.ts` ✅ (free)
+- `functions/src/providers/legacy-image-provider.ts` ✅ (free)
 - `src/lib/imageService.ts` (frontend - may have paid fallbacks)
 
 
@@ -288,7 +288,7 @@ Without API keys configured:
 ❌ TTS does not work (requires Google Cloud)
 ❌ Transcription does not work (requires Groq)
 ❌ OCR does not work (requires OpenRouter)
-✅ Image generation works (Pollinations is free)
+✅ Image generation works (legacy-image-provider is free)
 ❌ Video generation requires HuggingFace key
 ```
 
@@ -597,7 +597,7 @@ functions/src/providers/
 │   ├── paddleOCR.ts           (local OCR)
 │   ├── searxng.ts             (self-hosted search)
 │   ├── nllb.ts                (local translation)
-│   └── pollinations.ts        (free image API)
+│   └── legacy-image-provider.ts        (free image API)
 │
 ├── freeTier/                  (FREE TIER - requires keys but free)
 │   ├── groq.ts                (free tier chat/STT)
@@ -803,7 +803,7 @@ export class ChatProviderManager {
 - [ ] PaddleOCR provider
 - [ ] SearXNG or DuckDuckGo search
 - [ ] NLLB translation provider
-- [ ] Pollinations image provider (already exists)
+- [ ] legacy-image-provider image provider (already exists)
 
 **Free Tier Providers** (Requires keys but free):
 - [ ] Groq provider (already exists, make optional)
@@ -956,7 +956,7 @@ export class ChatProviderManager {
 ✅ **Core Features Working**:
 - [ ] Chat (streaming and non-streaming)
 - [ ] Vision (image understanding)
-- [ ] Image generation (via Pollinations)
+- [ ] Image generation (via legacy-image-provider)
 - [ ] Speech-to-text
 - [ ] Text-to-speech
 - [ ] OCR
@@ -1023,7 +1023,7 @@ export class ChatProviderManager {
 ## 📊 CURRENT STATUS SUMMARY
 
 ### What's Already Free ✅
-- Image generation (Pollinations)
+- Image generation (legacy-image-provider)
 - Frontend UI (fully preserved)
 - Firebase infrastructure
 - Authentication system
@@ -1069,8 +1069,8 @@ mv functions/src/providers/groq.ts functions/src/providers/freeTier/
 mv functions/src/providers/huggingface.ts functions/src/providers/freeTier/
 mv functions/src/providers/deepseek.ts functions/src/providers/freeTier/
 
-# Keep Pollinations in free/
-mv functions/src/providers/pollinations.ts functions/src/providers/free/
+# Keep legacy-image-provider in free/
+mv functions/src/providers/legacy-image-provider.ts functions/src/providers/free/
 ```
 
 **Files to Create**:
@@ -1309,9 +1309,9 @@ volumes:
 - Application works without it
 - Failover to paid providers only if user configures them
 
-### Decision 3: Pollinations Remains Primary for Images
+### Decision 3: legacy-image-provider Remains Primary for Images
 **Date**: August 10, 2026  
-**Decision**: Keep Pollinations as-is  
+**Decision**: Keep legacy-image-provider as-is  
 **Rationale**:
 - Already free ✅
 - No API key needed ✅
@@ -1354,7 +1354,7 @@ volumes:
 - [ ] Application starts with ZERO API keys configured
 - [ ] Chat functionality works without paid APIs
 - [ ] Vision functionality works without paid APIs
-- [ ] Image generation works (already does - Pollinations)
+- [ ] Image generation works (already does - legacy-image-provider)
 - [ ] Speech features work without paid APIs
 - [ ] OCR works without paid APIs
 - [ ] NO fake responses ever returned

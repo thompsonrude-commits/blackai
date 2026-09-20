@@ -92,7 +92,7 @@
 **Details**:
 - API Call: `/api/v1/image/generate`
 - HTTP Status: [200/500/404/etc]
-- Provider Used: [pollinations-turbo/etc]
+- Provider Used: [legacy-image-provider-turbo/etc]
 - Generation Time: [X seconds]
 - Image Quality: [Good/Poor/None]
 - Image Loads: [Yes/No]
@@ -294,7 +294,7 @@ curl https://9jai.web.app/api/v1/health
 | Ollama | [Yes/No] | |
 | Groq | [Yes/No] | |
 | OpenRouter | [Yes/No] | |
-| Pollinations | [Yes/No] | |
+| legacy-image-provider | [Yes/No] | |
 | DuckDuckGo | [Yes/No] | |
 | Open-Meteo | [Yes/No] | |
 

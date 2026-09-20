@@ -53,7 +53,7 @@ Yoruba: "Bawo ni?"
 
 **2.1 Image Generation** ✅
 - Backend: `aiImage` endpoint (CORS fixed, public access)
-- Fallback: Pollinations API
+- Fallback: legacy-image-provider API
 - Enhancement: `imagePromptBuilder.ts` optimizes prompts
 - Frontend: `ImageBubble` component in GeneralAssistant
 

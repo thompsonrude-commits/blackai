@@ -10,10 +10,10 @@
 
 | Feature | Provider | API Key Required | Cost | Status |
 |---------|----------|------------------|------|--------|
-| **Image Generation** | **Pollinations** | ❌ NO | FREE | ✅ **WORKING** |
+| **Image Generation** | **legacy-image-provider** | ❌ NO | FREE | ✅ **WORKING** |
 
 **Implementation**:
-- Direct URL generation: `https://image.pollinations.ai/prompt/{encodedPrompt}`
+- Direct URL generation: `https://image.legacy-image-provider.ai/prompt/{encodedPrompt}`
 - Fast CDN-backed delivery
 - Good quality images
 - Already integrated in frontend and backend
@@ -151,7 +151,7 @@
 
 | Phase | Feature | FREE Provider | Status | Compliance |
 |-------|---------|---------------|--------|------------|
-| ✅ Current | Images | Pollinations | ✅ WORKING | ✅ 100% |
+| ✅ Current | Images | legacy-image-provider | ✅ WORKING | ✅ 100% |
 | 2 | Chat | Ollama | ⏳ In Progress | → 100% |
 | 3 | STT | Browser API | ⏳ In Progress | → 100% |
 | 3 | TTS | Browser API | ⏳ In Progress | → 100% |

@@ -3,7 +3,7 @@
 ## 🎯 What Was Done
 
 ### Problem
-- App was using Pollinations (has watermark)
+- App was using legacy-image-provider (has watermark)
 - Images were blurry
 - Not prompt-aware (no text rendering optimization)
 
@@ -25,7 +25,7 @@ Integrated **Puter.js** - the Chinese app approach for free unlimited AI image g
 - `src/lib/imageClient.ts` ✅ Updated
   - Tries Puter.js FIRST
   - Falls back to backend API
-  - Then Pollinations (last resort)
+  - Then legacy-image-provider (last resort)
 
 - `src/lib/aiOrchestratorBridge.ts` ✅ Updated
   - `generateImageViaOrchestrator()` uses Puter.js first
@@ -68,9 +68,9 @@ Frontend: generateImageViaOrchestrator()
    └─ Use FLUX for images
     ↓
 2. If Puter fails → Backend API
-   └─ Priority: Gemini → OpenRouter → Pollinations
+   └─ Priority: Gemini → OpenRouter → legacy-image-provider
     ↓
-3. If backend fails → Pollinations fallback
+3. If backend fails → legacy-image-provider fallback
 ```
 
 ### Smart Detection
@@ -90,14 +90,14 @@ if (prompt.includes('text|poster|banner|quote|sign|caption')) {
 ### Frontend (Client-Side)
 1. **Puter.js** (Priority 1) - Client-side, free unlimited
 2. **Backend API** (Fallback 1) - Firebase Functions
-3. **Pollinations** (Fallback 2) - Last resort
+3. **legacy-image-provider** (Fallback 2) - Last resort
 
 ### Backend (Firebase Functions)
 1. **Puter** (Priority 1) - Registered but client-side
 2. **Gemini** (Priority 5) - Requires API key
 3. **ComfyUI** (Priority 10) - Local GPU
 4. **OpenRouter** (Priority 12) - Requires API key
-5. **Pollinations** (Priority 99) - Free fallback
+5. **legacy-image-provider** (Priority 99) - Free fallback
 
 ---
 
@@ -145,12 +145,12 @@ Generate any image in the app
 **❌ FALLBACK (Puter.js failed):**
 ```
 [ImageGen] Puter.js failed, trying backend
-[ImageGen] Using Pollinations fallback
+[ImageGen] Using legacy-image-provider fallback
 ```
 
 ### 4. Check Result
 - ✅ No watermark = Puter.js working
-- ❌ Has watermark = Using Pollinations fallback
+- ❌ Has watermark = Using legacy-image-provider fallback
 
 ---
 
@@ -174,7 +174,7 @@ Generate any image in the app
 ### First Image (Initial Load)
 ```
 1. Puter.js SDK starts loading (1-2 seconds)
-2. Meanwhile, may use Pollinations (has watermark)
+2. Meanwhile, may use legacy-image-provider (has watermark)
 3. Puter.js finishes loading ✅
 ```
 
@@ -201,7 +201,7 @@ Result: Clear readable text ✅
 
 ## 🔍 Troubleshooting
 
-### Still Seeing Pollinations?
+### Still Seeing legacy-image-provider?
 
 **Check Console:**
 ```javascript
@@ -225,7 +225,7 @@ Result: Clear readable text ✅
 
 ## 📊 Performance Metrics
 
-| Metric | Puter.js | Pollinations |
+| Metric | Puter.js | legacy-image-provider |
 |--------|----------|--------------|
 | **Watermark** | ❌ None | ✅ Yes |
 | **Quality** | High (1024×1024) | Medium |
@@ -271,7 +271,7 @@ Result: Clear readable text ✅
 5. **Look for**: `[ImageGen] Using Puter.js`
 6. **Verify**: No watermark on image
 
-If you still see Pollinations after trying 2-3 images, share the browser console logs and we'll debug further!
+If you still see legacy-image-provider after trying 2-3 images, share the browser console logs and we'll debug further!
 
 ---
 

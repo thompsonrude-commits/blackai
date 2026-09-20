@@ -63,7 +63,7 @@
 - 🔍 Search (DuckDuckGo) - $0
 - 🕐 Time (Node.js) - $0
 - 🌤️ Weather (Open-Meteo) - $0
-- 🎨 Images (Pollinations) - $0
+- 🎨 Images (legacy-image-provider) - $0
 - 🔊 TTS (Browser) - $0
 - 🎤 STT (Browser) - $0
 - 💬 Chat (Ollama)* - $0
@@ -206,7 +206,7 @@ Firebase Functions (Node.js 24)
 │   ├── DuckDuckGo (search)
 │   ├── Open-Meteo (weather)
 │   ├── Node.js (time)
-│   ├── Pollinations (images)
+│   ├── legacy-image-provider (images)
 │   └── Browser APIs (TTS/STT)
 └── Router with FREE-FIRST chains
 ```

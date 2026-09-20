@@ -149,7 +149,7 @@ ollama serve
   - DuckDuckGo (search)
   - Open-Meteo (weather)
   - Node.js Date (time)
-  - Pollinations (images)
+  - legacy-image-provider (images)
   - Browser APIs (TTS/STT)
 
 ### Infrastructure
@@ -268,7 +268,7 @@ AI: I can help with: chat, vision, OCR, search, weather,
 | Search | DuckDuckGo | ❌ None | $0 | ✅ Code ready |
 | Time | Node.js Date | ❌ None | $0 | ✅ Code ready |
 | Weather | Open-Meteo | ❌ None | $0 | ✅ Code ready |
-| Images | Pollinations | ❌ None | $0 | ✅ Live |
+| Images | legacy-image-provider | ❌ None | $0 | ✅ Live |
 | TTS | Browser API | ❌ None | $0 | ✅ Live |
 | STT | Browser API | ❌ None | $0 | ✅ Code ready |
 

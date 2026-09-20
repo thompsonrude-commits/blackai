@@ -63,7 +63,7 @@ Provider recommendations
 - Vector DB: Pinecone (easy), Weaviate (open-source + scalable), RedisVector for low-latency edge
 - STT: OpenAI Whisper (server-side) / local whisper.cpp for edge
 - TTS: ElevenLabs for quality, fallback to Edge TTS or open-source models
-- Image gen: Pollinations, HuggingFace diffusers endpoints, TogetherAI image endpoints
+- Image gen: legacy-image-provider, HuggingFace diffusers endpoints, TogetherAI image endpoints
 
 Security & Costs
 - Centralize keys in environment (secrets manager)

@@ -53,7 +53,8 @@ export default function ImageGenerator({ onClose, initialPrompt = '', onImageGen
       setHistory(getImageHistory());
       onImageGenerated?.(image.imageUrl);
     } catch (err) {
-      setError('Failed to generate image. Please try again.');
+      const message = err instanceof Error ? err.message : 'Image generation failed';
+      setError(message);
       console.error(err);
     } finally {
       setIsGenerating(false);

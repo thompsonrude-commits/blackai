@@ -556,7 +556,7 @@ Update the existing media engine to use native AI first:
 // functions/src/media/engine.ts (UPDATED)
 import { generateImageNative } from './nativeAIEngine';
 import { openRouterImage } from '../providers/openrouter';
-import { pollinationsWithFallback } from '../providers/pollinations';
+import { legacy-image-providerWithFallback } from '../providers/legacy-image-provider';
 
 export async function generateMedia(request: MediaGenerationRequest): Promise<MediaGenerationResult> {
   const startTime = Date.now();
@@ -589,10 +589,10 @@ export async function generateMedia(request: MediaGenerationRequest): Promise<Me
         }
       },
       { 
-        name: 'pollinations', 
+        name: 'legacy-image-provider', 
         fn: async () => {
-          console.log('[MediaEngine] FALLBACK 2: Pollinations (FREE)');
-          const result = await pollinationsWithFallback(request.prompt!);
+          console.log('[MediaEngine] FALLBACK 2: legacy-image-provider (FREE)');
+          const result = await legacy-image-providerWithFallback(request.prompt!);
           return { imageBase64: result.imageBase64, imageUrl: result.url, model: result.model };
         }
       },
@@ -642,7 +642,7 @@ Just update metadata display:
     <span className="font-bold">
       {result.provider === 'native-gpu' ? '🖥️ 9JAI GPU' : 
        result.provider === 'openrouter' ? '☁️ DALL-E 3' : 
-       '🌐 Pollinations'}
+       '🌐 legacy-image-provider'}
     </span>
     <span>·</span>
     <span>{result.model}</span>
@@ -728,7 +728,7 @@ function validateGeneratedImage(imageBase64: string, prompt: string): boolean {
 
 ### Current System (100 users, 10 images/day each)
 - OpenRouter DALL-E 3: **$1,200/month**
-- Pollinations: **$0** (but returning 403 errors, unreliable)
+- legacy-image-provider: **$0** (but returning 403 errors, unreliable)
 - **Total: $1,200/month** (unsustainable)
 
 ### New System (Native GPU)

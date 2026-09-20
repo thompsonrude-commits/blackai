@@ -125,7 +125,7 @@ Documentation:            14 comprehensive documents
 ┌──────────────┬──────────────┬────────────────────┬────────────┐
 │ Feature      │ Provider     │ API Key Required   │ Status     │
 ├──────────────┼──────────────┼────────────────────┼────────────┤
-│ Images       │ Pollinations │ ❌ NONE            │ ✅ FREE    │
+│ Images       │ legacy-image-provider │ ❌ NONE            │ ✅ FREE    │
 │ Chat         │ Ollama       │ ❌ NONE            │ ⏳ Deploy  │
 │ TTS          │ Browser API  │ ❌ NONE            │ ✅ FREE    │
 │ STT          │ Browser API  │ ❌ NONE            │ ⏳ Integrate│
@@ -156,7 +156,7 @@ FREE-FIRST Compliance: 44% deployed → 89% after deployment → 100% target
  Ollama            DuckDuckGo    OpenRouter         Groq
  Tesseract         Node.js       Together          Tavily
  Open-Meteo        Browser       DeepSeek
- Pollinations                    Mistral
+ legacy-image-provider                    Mistral
 
       $0/month                    Pay-per-use
       NO API KEYS                 API KEYS REQUIRED
@@ -193,7 +193,7 @@ DuckDuckGo:                   $0.00
 Node.js Date:                 $0.00
 Open-Meteo:                   $0.00
 Browser APIs:                 $0.00
-Pollinations:                 $0.00
+legacy-image-provider:                 $0.00
 ─────────────────────────────────────
 Firebase Functions:           $0-5.00 (free tier: 2M invocations)
 Firebase Hosting:             $0.00 (free tier: 10GB)
