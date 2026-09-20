@@ -2,11 +2,21 @@
 // Disable Vercel's built-in body parser - handle manually
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Session-Id, X-User-Id');
   
   if (req.method === 'OPTIONS') {
     return res.status(204).send('');
+  }
+
+  // Temporary: GET request lists available models
+  if (req.method === 'GET') {
+    const GROQ_KEY = process.env.GROQ_API_KEY || process.env.GROQ_KEY || process.env.VITE_GROQ_KEY;
+    if (!GROQ_KEY) return res.status(500).json({ error: 'No key' });
+    const r = await fetch('https://api.groq.com/openai/v1/models', { headers: { 'Authorization': `Bearer ${GROQ_KEY}` } });
+    const d = await r.json();
+    const models = d.data ? d.data.map(m => m.id).sort() : d;
+    return res.status(200).json({ models });
   }
 
   if (req.method !== 'POST') {
