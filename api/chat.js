@@ -13,7 +13,25 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { messages, temperature = 0.7, maxTokens = 2048 } = req.body;
+    // Parse body manually if needed (Vercel sometimes doesn't auto-parse)
+    let body = req.body;
+    if (typeof body === 'string') {
+      try { body = JSON.parse(body); } catch (e) { /* ignore */ }
+    }
+    if (!body) {
+      // Read raw body
+      const raw = await new Promise((resolve, reject) => {
+        let data = '';
+        req.on('data', chunk => { data += chunk; });
+        req.on('end', () => resolve(data));
+        req.on('error', reject);
+      });
+      try { body = JSON.parse(raw); } catch (e) {
+        return res.status(400).json({ error: 'Invalid JSON body' });
+      }
+    }
+
+    const { messages, temperature = 0.7, maxTokens = 2048 } = body;
     
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ error: 'messages array required' });
