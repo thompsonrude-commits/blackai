@@ -1,5 +1,4 @@
 ﻿// Vercel chat endpoint with Groq + real-time web search
-// Web search keeps responses current and accurate
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -9,7 +8,6 @@ module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    // Parse raw body
     const raw = await new Promise((resolve, reject) => {
       let data = '';
       req.on('data', chunk => { data += chunk.toString(); });
@@ -31,133 +29,170 @@ module.exports = async (req, res) => {
       return res.status(500).json({ error: 'API key not configured', text: 'Backend configuration error.', provider: 'none', model: 'error' });
     }
 
-    // ── 1. Detect if the query needs fresh/current information ──────────────
-    const userMessage = messages[messages.length - 1]?.content || '';
-    const needsCurrentInfo = /\b(governor|governors|president|minister|senator|current|latest|recent|today|now|2024|2025|2026|news|price|rate|exchange|usd|naira|ngn|election|win|won|result|score|match|game|live|died|dead|born|new|update|who is|who are|what is the current|how much is)\b/i.test(userMessage);
+    // ── 1. Detect queries needing current/real-time information ─────────────
+    const userQuery = messages[messages.length - 1]?.content || '';
+    const needsSearch = /\b(governor|governors|president|minister|senator|commissioner|chairman|current|latest|recent|today|now|2024|2025|2026|news|price|rate|exchange|usd|naira|ngn|dollar|election|win|won|result|score|match|live|died|dead|born|new|update|who is|who are|what is the current|how much|when did|when was|where is|capital|headquarters)\b/i.test(userQuery);
 
-    // ── 2. Web search function (DuckDuckGo Instant Answer API - free) ────────
-    async function webSearch(query) {
+    // ── 2. Search functions ──────────────────────────────────────────────────
+
+    // Wikipedia - completely free, no API key, very reliable
+    async function searchWikipedia(query) {
       try {
         const encoded = encodeURIComponent(query);
-        // DuckDuckGo Instant Answer API
-        const ddgUrl = `https://api.duckduckgo.com/?q=${encoded}&format=json&no_html=1&skip_disambig=1`;
-        const ddgRes = await fetch(ddgUrl, {
-          headers: { 'User-Agent': 'BlackAI/1.0' },
-          signal: AbortSignal.timeout(5000)
-        });
-        const ddgData = await ddgRes.json();
+        const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encoded}&format=json&srlimit=3&origin=*`;
+        const r = await fetch(url, { signal: AbortSignal.timeout(6000) });
+        const d = await r.json();
+        if (!d.query?.search?.length) return null;
 
-        let results = [];
-
-        // Abstract (main answer)
-        if (ddgData.Abstract && ddgData.Abstract.length > 10) {
-          results.push(`📌 ${ddgData.AbstractText || ddgData.Abstract}`);
+        const snippets = [];
+        for (const item of d.query.search.slice(0, 2)) {
+          try {
+            const summaryUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=true&explaintext=true&titles=${encodeURIComponent(item.title)}&format=json&exsentences=5&origin=*`;
+            const sr = await fetch(summaryUrl, { signal: AbortSignal.timeout(5000) });
+            const sd = await sr.json();
+            const pages = sd.query?.pages;
+            if (pages) {
+              const page = Object.values(pages)[0];
+              if (page.extract && page.extract.length > 50) {
+                snippets.push(`[Wikipedia: ${page.title}]\n${page.extract.substring(0, 600)}`);
+              }
+            }
+          } catch (e) { /* skip */ }
         }
-
-        // Answer (short direct answer)
-        if (ddgData.Answer) {
-          results.push(`✅ ${ddgData.Answer}`);
-        }
-
-        // Related topics
-        if (ddgData.RelatedTopics && ddgData.RelatedTopics.length > 0) {
-          const topics = ddgData.RelatedTopics
-            .slice(0, 5)
-            .filter(t => t.Text)
-            .map(t => `• ${t.Text}`);
-          if (topics.length > 0) results.push(...topics);
-        }
-
-        // Infobox (structured data like tables)
-        if (ddgData.Infobox && ddgData.Infobox.content) {
-          const info = ddgData.Infobox.content
-            .slice(0, 8)
-            .map(item => `• ${item.label}: ${item.value}`)
-            .join('\n');
-          if (info) results.push(info);
-        }
-
-        if (results.length === 0) {
-          // Fallback: try SearXNG public instance
-          return await searxSearch(query);
-        }
-
-        return results.join('\n').substring(0, 3000);
+        return snippets.length ? snippets.join('\n\n') : null;
       } catch (e) {
-        console.warn('[Search] DuckDuckGo failed:', e.message);
-        return await searxSearch(query);
+        console.warn('[Search] Wikipedia failed:', e.message);
+        return null;
       }
     }
 
-    // Fallback search using public SearXNG instance
-    async function searxSearch(query) {
+    // DuckDuckGo Instant Answer - free
+    async function searchDDG(query) {
       try {
         const encoded = encodeURIComponent(query);
-        const url = `https://searx.be/search?q=${encoded}&format=json&categories=general`;
+        const url = `https://api.duckduckgo.com/?q=${encoded}&format=json&no_html=1&skip_disambig=1`;
         const r = await fetch(url, {
-          headers: { 'User-Agent': 'BlackAI/1.0', 'Accept': 'application/json' },
+          headers: { 'User-Agent': 'Mozilla/5.0 BlackAI/1.0' },
           signal: AbortSignal.timeout(5000)
         });
-        const data = await r.json();
-        if (data.results && data.results.length > 0) {
-          const snippets = data.results
-            .slice(0, 5)
-            .map(r => `• ${r.title}: ${r.content}`)
-            .join('\n');
-          return snippets.substring(0, 3000);
+        const d = await r.json();
+        const parts = [];
+        if (d.Answer) parts.push(`Answer: ${d.Answer}`);
+        if (d.AbstractText && d.AbstractText.length > 20) parts.push(`Summary: ${d.AbstractText.substring(0, 500)}`);
+        if (d.RelatedTopics?.length) {
+          const topics = d.RelatedTopics.filter(t => t.Text).slice(0, 4).map(t => `• ${t.Text}`).join('\n');
+          if (topics) parts.push(topics);
         }
-        return null;
+        return parts.length ? parts.join('\n') : null;
       } catch (e) {
-        console.warn('[Search] SearXNG also failed:', e.message);
+        console.warn('[Search] DDG failed:', e.message);
         return null;
       }
     }
 
-    // ── 3. Build messages with search context if needed ─────────────────────
+    // Brave Search - free tier available (uses API key if configured)
+    async function searchBrave(query) {
+      const key = process.env.BRAVE_SEARCH_KEY || process.env.BRAVE_API_KEY;
+      if (!key) return null;
+      try {
+        const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=5&freshness=pm`;
+        const r = await fetch(url, {
+          headers: { 'Accept': 'application/json', 'X-Subscription-Token': key },
+          signal: AbortSignal.timeout(6000)
+        });
+        const d = await r.json();
+        if (!d.web?.results) return null;
+        return d.web.results.slice(0, 5)
+          .map(item => `[${item.title}]\n${item.description}\nSource: ${item.url}`)
+          .join('\n\n');
+      } catch (e) { return null; }
+    }
+
+    // Tavily Search - excellent for AI grounding (uses API key if configured)  
+    async function searchTavily(query) {
+      const key = process.env.TAVILY_API_KEY || process.env.TAVILY_KEY;
+      if (!key) return null;
+      try {
+        const r = await fetch('https://api.tavily.com/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            api_key: key,
+            query,
+            search_depth: 'basic',
+            include_answer: true,
+            max_results: 5
+          }),
+          signal: AbortSignal.timeout(8000)
+        });
+        const d = await r.json();
+        const parts = [];
+        if (d.answer) parts.push(`Direct Answer: ${d.answer}`);
+        if (d.results?.length) {
+          d.results.slice(0, 4).forEach(item => {
+            parts.push(`[${item.title}]\n${item.content?.substring(0, 300)}\nSource: ${item.url}`);
+          });
+        }
+        return parts.length ? parts.join('\n\n') : null;
+      } catch (e) { return null; }
+    }
+
+    // ── 3. Run searches in parallel and combine results ─────────────────────
+    let searchContext = null;
+
+    if (needsSearch) {
+      console.log('[Chat] Searching for:', userQuery.substring(0, 80));
+
+      const [tavily, brave, wiki, ddg] = await Promise.allSettled([
+        searchTavily(userQuery),
+        searchBrave(userQuery),
+        searchWikipedia(userQuery),
+        searchDDG(userQuery)
+      ]);
+
+      const parts = [];
+      if (tavily.status === 'fulfilled' && tavily.value) parts.push(tavily.value);
+      if (brave.status === 'fulfilled' && brave.value) parts.push(brave.value);
+      if (wiki.status === 'fulfilled' && wiki.value) parts.push(wiki.value);
+      if (ddg.status === 'fulfilled' && ddg.value) parts.push(ddg.value);
+
+      if (parts.length > 0) {
+        searchContext = parts.join('\n\n---\n\n').substring(0, 4000);
+        console.log('[Chat] Search context length:', searchContext.length, 'from', parts.length, 'sources');
+      } else {
+        console.log('[Chat] All searches failed, proceeding without search context');
+      }
+    }
+
+    // ── 4. Build messages with search context injected ──────────────────────
     let finalMessages = [...messages];
 
-    if (needsCurrentInfo) {
-      console.log('[Chat] Query needs current info, searching:', userMessage.substring(0, 80));
-      const searchResults = await webSearch(userMessage);
+    if (needsSearch) {
+      const systemContent = searchContext
+        ? `You are BLACK AI, Africa's smartest AI. You have real-time web search results below. Use them as your PRIMARY and most accurate source of information. The search results reflect CURRENT data as of today.
 
-      if (searchResults) {
-        console.log('[Chat] Got search results, length:', searchResults.length);
-        // Inject search results as a system message just before the user's query
-        const systemMsg = {
-          role: 'system',
-          content: `You are BLACK AI, Africa's smartest AI assistant. You have access to the following REAL-TIME web search results to answer the user's question accurately and with current information. Use these results as your primary source of truth. Do NOT say you don't have internet access if you have search results below.
+REAL-TIME SEARCH RESULTS:
+===
+${searchContext}
+===
 
-CURRENT WEB SEARCH RESULTS (fetched right now):
----
-${searchResults}
----
+Instructions:
+- Use the search results above as your primary source
+- Give direct, confident answers based on what you found
+- If search results contain the answer, state it clearly without hedging
+- Only fall back to training data if search results don't cover the topic
+- Do NOT say you lack internet access — you have current search results above`
+        : `You are BLACK AI. Web search is unavailable right now. For questions about current events, officials, or recent news, state clearly when your training data is from and recommend the user verify from official sources like government websites or news outlets.`;
 
-Use the above real-time data to give an accurate, up-to-date answer. If the search results don't fully answer the question, supplement with your training knowledge but clearly note what is from search vs training data. Always be direct and helpful.`
-        };
-
-        // Insert system message at start, keep conversation history
-        const existingSystem = finalMessages.find(m => m.role === 'system');
-        if (existingSystem) {
-          // Append to existing system message
-          existingSystem.content += '\n\n' + systemMsg.content;
-        } else {
-          finalMessages = [systemMsg, ...finalMessages];
-        }
+      const existingSystem = finalMessages.findIndex(m => m.role === 'system');
+      if (existingSystem >= 0) {
+        finalMessages[existingSystem] = { role: 'system', content: systemContent };
       } else {
-        console.log('[Chat] Search returned no results, using training data with disclaimer');
-        // Still inject a system message telling AI to be transparent about data currency
-        const fallbackSystem = {
-          role: 'system',
-          content: `You are BLACK AI. Web search is currently unavailable. When answering questions about current events, governors, officials, prices, or recent news, clearly state the date of your training data and advise the user to verify current information from official sources like government websites or reputable news outlets.`
-        };
-        const existingSystem = finalMessages.find(m => m.role === 'system');
-        if (!existingSystem) {
-          finalMessages = [fallbackSystem, ...finalMessages];
-        }
+        finalMessages = [{ role: 'system', content: systemContent }, ...finalMessages];
       }
     }
 
-    // ── 4. Call Groq with enriched messages ─────────────────────────────────
+    // ── 5. Call Groq ─────────────────────────────────────────────────────────
     const callGroq = async (model, msgs) => {
       const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -165,24 +200,16 @@ Use the above real-time data to give an accurate, up-to-date answer. If the sear
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${GROQ_KEY}`
         },
-        body: JSON.stringify({
-          model,
-          messages: msgs,
-          temperature,
-          max_tokens: maxTokens,
-          stream: false
-        })
+        body: JSON.stringify({ model, messages: msgs, temperature, max_tokens: maxTokens, stream: false })
       });
       if (!r.ok) {
-        const err = await r.text();
-        console.error(`[Chat] ${model} error ${r.status}:`, err);
+        console.error(`[Chat] ${model} error ${r.status}:`, await r.text());
         return null;
       }
       const d = await r.json();
       return d.choices?.[0]?.message?.content || null;
     };
 
-    // Try primary then fallback model
     let text = await callGroq('openai/gpt-oss-120b', finalMessages);
     if (!text || text.trim() === '') {
       console.warn('[Chat] Primary model empty, trying groq/compound...');
@@ -192,7 +219,7 @@ Use the above real-time data to give an accurate, up-to-date answer. If the sear
       text = "I'm sorry, I couldn't generate a response right now. Please try again.";
     }
 
-    // ── 5. Strip internal reasoning sections from response ──────────────────
+    // ── 6. Strip internal reasoning sections ────────────────────────────────
     text = text
       .replace(/^#+\s*Reasoning\s+Summary\b[\s\S]*?\n{2,}/im, '')
       .replace(/^\*{0,2}Reasoning\s+Summary\*{0,2}\s*\n[\s\S]*?\n{2,}/im, '')
@@ -205,7 +232,7 @@ Use the above real-time data to give an accurate, up-to-date answer. If the sear
       choices: [{ message: { content: text } }],
       provider: 'groq',
       model: 'openai/gpt-oss-120b',
-      searchUsed: needsCurrentInfo,
+      searchUsed: needsSearch && !!searchContext,
       latencyMs: 0,
       cached: false
     });
@@ -222,7 +249,4 @@ Use the above real-time data to give an accurate, up-to-date answer. If the sear
   }
 };
 
-// Tell Vercel NOT to parse the body - we do it ourselves
-module.exports.config = {
-  api: { bodyParser: false },
-};
+module.exports.config = { api: { bodyParser: false } };
