@@ -38,27 +38,41 @@ module.exports = async (req, res) => {
     // Wikipedia - completely free, no API key, very reliable
     async function searchWikipedia(query) {
       try {
-        const encoded = encodeURIComponent(query);
-        const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encoded}&format=json&srlimit=3&origin=*`;
-        const r = await fetch(url, { signal: AbortSignal.timeout(6000) });
-        const d = await r.json();
-        if (!d.query?.search?.length) return null;
+        // Build multiple targeted queries to maximise hit rate
+        const queries = [
+          query,
+          // If asking about a person/role, also search recent elections
+          query.replace(/who is (the )?current/i, '').trim() + ' 2024 election',
+          query.replace(/who is (the )?current/i, '').trim() + ' governor Nigeria',
+        ];
 
         const snippets = [];
-        for (const item of d.query.search.slice(0, 2)) {
-          try {
-            const summaryUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=true&explaintext=true&titles=${encodeURIComponent(item.title)}&format=json&exsentences=5&origin=*`;
-            const sr = await fetch(summaryUrl, { signal: AbortSignal.timeout(5000) });
-            const sd = await sr.json();
-            const pages = sd.query?.pages;
-            if (pages) {
-              const page = Object.values(pages)[0];
-              if (page.extract && page.extract.length > 50) {
-                snippets.push(`[Wikipedia: ${page.title}]\n${page.extract.substring(0, 600)}`);
+
+        for (const q of queries.slice(0, 2)) {
+          const encoded = encodeURIComponent(q);
+          const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encoded}&format=json&srlimit=5&origin=*`;
+          const r = await fetch(url, { signal: AbortSignal.timeout(6000) });
+          const d = await r.json();
+          if (!d.query?.search?.length) continue;
+
+          for (const item of d.query.search.slice(0, 3)) {
+            try {
+              const summaryUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=true&explaintext=true&titles=${encodeURIComponent(item.title)}&format=json&exsentences=6&origin=*`;
+              const sr = await fetch(summaryUrl, { signal: AbortSignal.timeout(5000) });
+              const sd = await sr.json();
+              const pages = sd.query?.pages;
+              if (pages) {
+                const page = Object.values(pages)[0];
+                if (page.extract && page.extract.length > 50) {
+                  const entry = `[Wikipedia: ${page.title}]\n${page.extract.substring(0, 700)}`;
+                  if (!snippets.includes(entry)) snippets.push(entry);
+                }
               }
-            }
-          } catch (e) { /* skip */ }
+            } catch (e) { /* skip */ }
+          }
+          if (snippets.length >= 3) break; // Enough results
         }
+
         return snippets.length ? snippets.join('\n\n') : null;
       } catch (e) {
         console.warn('[Search] Wikipedia failed:', e.message);
