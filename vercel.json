@@ -21,7 +21,6 @@
     { "src": "/api/v1/image/generate", "dest": "/api/image.js" },
     { "src": "/api/ai/health", "dest": "/api/health.js" },
     { "src": "/api/v1/health", "dest": "/api/health.js" },
-    { "src": "/api/test-models", "dest": "/api/test-models.js" },
     { "src": "/api/v1/providers", "dest": "/api/providers.js" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
