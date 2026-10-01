@@ -23,6 +23,11 @@
     { "src": "/api/v1/health", "dest": "/api/health.js" },
     { "src": "/api/v1/providers", "dest": "/api/providers.js" },
     { "src": "/api/search", "dest": "/api/search.js" },
+    { "src": "/api/v1/search", "dest": "/api/search.js" },
+    { "src": "/api/ai/vision", "dest": "/api/vision.js" },
+    { "src": "/api/v1/vision/analyze", "dest": "/api/vision.js" },
+    { "src": "/api/v1/ocr", "dest": "/api/vision.js" },
+    { "src": "/api/upscale", "dest": "/api/upscale.js" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
   ],

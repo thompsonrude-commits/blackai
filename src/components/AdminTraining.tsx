@@ -12,7 +12,7 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import { recordAudioBlob } from "../lib/voice";
 import { NIGERIAN_LANGUAGES } from "../lib/nigerianLanguages";
-import { useLexicon, LexiconEntry } from "../lib/useLexicon";
+import { useLexicon, LexiconEntry, LEXICON_CATEGORIES, LEXICON_VALIDATION_STATUSES, createLexiconEntryRecord, detectDuplicateLexiconEntry, isLexiconEntryEligibleForCompiler, normalizeLexiconKey } from "../lib/useLexicon";
 import { extractTrainingEntries } from "../lib/trainingExtraction";
 import { repairMojibake } from "../lib/textEncoding";
 import { defaultLanguageCoordinationEngine, ingestTrainingEntries } from "../../core/language-intelligence";
@@ -59,29 +59,51 @@ function LexiconManager() {
   const { allEntries, categories, loading } = useLexicon();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
+  const [languageFilter, setLanguageFilter] = useState("all");
+  const [dialectFilter, setDialectFilter] = useState("all");
+  const [validationFilter, setValidationFilter] = useState("all");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [draft, setDraft] = useState({
-    edoWord: "", english: "", phonetic: "", category: "General", context: "",
+    language: "edo", dialect: "", edoWord: "", english: "", phonetic: "", phonology: "",
+    category: "General", partOfSpeech: "", grammaticalRole: "", semanticConcept: "",
+    exampleSentence: "", aliases: "", alternateForms: "", provenance: "admin-training",
+    confidence: "0.5", validationStatus: "candidate" as LexiconEntry["validationStatus"], context: "",
     audioBlob: null as Blob | null, audioUrl: null as string | null,
   });
   const [saving, setSaving] = useState(false);
 
   const filtered = allEntries.filter(entry => {
     const needle = search.trim().toLowerCase();
-    const matchesSearch = !needle || [entry.edoWord, entry.english, entry.phonetic, entry.context]
+    const matchesSearch = !needle || [entry.writtenForm, entry.edoWord, entry.meaning, entry.english, entry.pronunciationGuide, entry.phonetic, entry.phonology, entry.context]
       .some(value => String(value || "").toLowerCase().includes(needle));
-    return matchesSearch && (category === "all" || entry.category === category);
+    return matchesSearch
+      && (category === "all" || entry.category === category)
+      && (languageFilter === "all" || entry.language === languageFilter)
+      && (dialectFilter === "all" || (entry.dialect || "unspecified") === dialectFilter)
+      && (validationFilter === "all" || (entry.validationStatus || "candidate") === validationFilter);
   });
 
   const beginEdit = (entry: LexiconEntry) => {
     setEditingId(entry.id);
     setIsAdding(false);
     setDraft({
-      edoWord: entry.edoWord,
-      english: entry.english,
-      phonetic: entry.phonetic,
+      language: entry.language || "edo",
+      dialect: entry.dialect || "",
+      edoWord: entry.writtenForm || entry.edoWord,
+      english: entry.meaning || entry.english,
+      phonetic: entry.pronunciationGuide || entry.pronunciation || entry.phonetic,
+      phonology: entry.phonology || "",
       category: entry.category || "General",
+      partOfSpeech: entry.partOfSpeech || "",
+      grammaticalRole: entry.grammaticalRole || "",
+      semanticConcept: entry.semanticConcept || "",
+      exampleSentence: entry.exampleSentence || "",
+      aliases: (entry.aliases || []).join(", "),
+      alternateForms: (entry.alternateForms || []).join(", "),
+      provenance: entry.provenance || "admin-training",
+      confidence: String(entry.confidence ?? 0.5),
+      validationStatus: entry.validationStatus || "candidate",
       context: entry.context || "",
       audioBlob: null,
       audioUrl: entry.audioUrl || null,
@@ -92,12 +114,50 @@ function LexiconManager() {
     if (!draft.edoWord.trim() || !draft.english.trim()) return;
     setSaving(true);
     try {
-      const id = (editingId || draft.edoWord).trim();
-      const updateData: Record<string, unknown> = {
-        translation: draft.edoWord.trim(),
-        word: draft.english.trim(),
-        phonetic: draft.phonetic.trim(),
+      const candidate = createLexiconEntryRecord({
+        id: editingId || `${draft.language}-${normalizeLexiconKey(draft.edoWord)}-${draft.category}`,
+        language: draft.language,
+        dialect: draft.dialect || undefined,
+        writtenForm: draft.edoWord.trim(),
+        meaning: draft.english.trim(),
+        pronunciationGuide: draft.phonetic.trim() || undefined,
+        phonology: draft.phonology.trim() || undefined,
         category: draft.category.trim() || "General",
+        partOfSpeech: draft.partOfSpeech.trim() || undefined,
+        grammaticalRole: draft.grammaticalRole.trim() || undefined,
+        semanticConcept: draft.semanticConcept.trim() || undefined,
+        exampleSentence: draft.exampleSentence.trim() || undefined,
+        aliases: draft.aliases.split(",").map(value => value.trim()).filter(Boolean),
+        alternateForms: draft.alternateForms.split(",").map(value => value.trim()).filter(Boolean),
+        provenance: draft.provenance.trim() || "admin-training",
+        confidence: Number(draft.confidence) || 0.5,
+        validationStatus: draft.validationStatus || "candidate",
+      });
+      if (detectDuplicateLexiconEntry(allEntries.filter(entry => entry.id !== editingId), candidate)) {
+        alert("Duplicate lexicon entry detected for the same language, dialect, category, and written form.");
+        return;
+      }
+      const id = (editingId || candidate.id).trim();
+      const updateData: Record<string, unknown> = {
+        language: candidate.language,
+        dialect: candidate.dialect || null,
+        writtenForm: candidate.writtenForm,
+        translation: candidate.writtenForm,
+        word: candidate.meaning,
+        meaning: candidate.meaning,
+        pronunciationGuide: candidate.pronunciationGuide || null,
+        phonetic: candidate.pronunciationGuide || null,
+        phonology: candidate.phonology || null,
+        category: candidate.category,
+        partOfSpeech: candidate.partOfSpeech || null,
+        grammaticalRole: candidate.grammaticalRole || null,
+        semanticConcept: candidate.semanticConcept || null,
+        exampleSentence: candidate.exampleSentence || null,
+        aliases: candidate.aliases,
+        alternateForms: candidate.alternateForms,
+        provenance: candidate.provenance,
+        confidence: candidate.confidence,
+        validationStatus: candidate.validationStatus,
         context: draft.context.trim() || null,
         deleted: false,
         updatedAt: serverTimestamp(),
@@ -113,7 +173,7 @@ function LexiconManager() {
       await setDoc(doc(db, "coreVocabAudio", id), updateData, { merge: true });
       setEditingId(null);
       setIsAdding(false);
-      setDraft({ edoWord: "", english: "", phonetic: "", category: "General", context: "", audioBlob: null, audioUrl: null });
+      setDraft({ language: "edo", dialect: "", edoWord: "", english: "", phonetic: "", phonology: "", category: "General", partOfSpeech: "", grammaticalRole: "", semanticConcept: "", exampleSentence: "", aliases: "", alternateForms: "", provenance: "admin-training", confidence: "0.5", validationStatus: "candidate", context: "", audioBlob: null, audioUrl: null });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (/permission|insufficient permissions|unauthenticated/i.test(message)) {
@@ -130,21 +190,6 @@ function LexiconManager() {
     if (!confirm(`Delete "${entry.edoWord}" from the language lexicon?`)) return;
     setSaving(true);
     try {
-      // Debug: Log current auth state
-      const currentUser = auth.currentUser;
-      console.log('[AdminTraining] Current user:', {
-        uid: currentUser?.uid,
-        email: currentUser?.email,
-        emailVerified: currentUser?.emailVerified
-      });
-      
-      // Get and log the ID token
-      if (currentUser) {
-        const token = await currentUser.getIdToken();
-        const tokenResult = await currentUser.getIdTokenResult();
-        console.log('[AdminTraining] Token claims:', tokenResult.claims);
-      }
-      
       // A tombstone is required for built-in repository words; deleting only
       // the override would cause the static word to return on the next load.
       await setDoc(doc(db, "coreVocabAudio", entry.id), {
@@ -164,15 +209,33 @@ function LexiconManager() {
   const resetEditor = () => {
     setEditingId(null);
     setIsAdding(false);
-    setDraft({ edoWord: "", english: "", phonetic: "", category: "General", context: "", audioBlob: null, audioUrl: null });
+    setDraft({ language: "edo", dialect: "", edoWord: "", english: "", phonetic: "", phonology: "", category: "General", partOfSpeech: "", grammaticalRole: "", semanticConcept: "", exampleSentence: "", aliases: "", alternateForms: "", provenance: "admin-training", confidence: "0.5", validationStatus: "candidate", context: "", audioBlob: null, audioUrl: null });
   };
 
   const editor = (
     <div className="grid md:grid-cols-2 gap-3 p-4 bg-[#0F0F0F] border border-[#00ff88]/20 rounded-2xl">
-      <input className={INPUT_CLASS} value={draft.edoWord} onChange={e => setDraft({ ...draft, edoWord: e.target.value })} placeholder="Edo word or sentence *" />
-      <input className={INPUT_CLASS} value={draft.english} onChange={e => setDraft({ ...draft, english: e.target.value })} placeholder="English meaning *" />
-      <input className={INPUT_CLASS} value={draft.phonetic} onChange={e => setDraft({ ...draft, phonetic: e.target.value })} placeholder="Phonetics / pronunciation" />
-      <input className={INPUT_CLASS} value={draft.category} onChange={e => setDraft({ ...draft, category: e.target.value })} placeholder="Category, e.g. Greetings & Courtesy" />
+      <select className={INPUT_CLASS} value={draft.language} onChange={e => setDraft({ ...draft, language: e.target.value })}>
+        {ALL_LANGUAGES.map(language => <option key={language.id} value={language.id}>{language.name}</option>)}
+      </select>
+      <input className={INPUT_CLASS} value={draft.dialect} onChange={e => setDraft({ ...draft, dialect: e.target.value })} placeholder="Dialect (optional)" />
+      <input className={INPUT_CLASS} value={draft.edoWord} onChange={e => setDraft({ ...draft, edoWord: e.target.value })} placeholder="Written/native form *" />
+      <input className={INPUT_CLASS} value={draft.english} onChange={e => setDraft({ ...draft, english: e.target.value })} placeholder="Meaning / translation *" />
+      <input className={INPUT_CLASS} value={draft.phonetic} onChange={e => setDraft({ ...draft, phonetic: e.target.value })} placeholder="Pronunciation guide (not IPA)" />
+      <input className={INPUT_CLASS} value={draft.phonology} onChange={e => setDraft({ ...draft, phonology: e.target.value })} placeholder="Verified IPA / phonology (optional)" />
+      <select className={INPUT_CLASS} value={draft.category} onChange={e => setDraft({ ...draft, category: e.target.value })}>
+        {LEXICON_CATEGORIES.map(item => <option key={item} value={item}>{item}</option>)}
+      </select>
+      <select className={INPUT_CLASS} value={draft.validationStatus} onChange={e => setDraft({ ...draft, validationStatus: e.target.value as LexiconEntry["validationStatus"] })}>
+        {LEXICON_VALIDATION_STATUSES.map(status => <option key={status} value={status}>{status}</option>)}
+      </select>
+      <input className={INPUT_CLASS} value={draft.partOfSpeech} onChange={e => setDraft({ ...draft, partOfSpeech: e.target.value })} placeholder="Part of speech" />
+      <input className={INPUT_CLASS} value={draft.grammaticalRole} onChange={e => setDraft({ ...draft, grammaticalRole: e.target.value })} placeholder="Grammatical role" />
+      <input className={INPUT_CLASS} value={draft.semanticConcept} onChange={e => setDraft({ ...draft, semanticConcept: e.target.value })} placeholder="Semantic concept" />
+      <input className={INPUT_CLASS} value={draft.aliases} onChange={e => setDraft({ ...draft, aliases: e.target.value })} placeholder="Aliases (comma separated)" />
+      <input className={INPUT_CLASS} value={draft.alternateForms} onChange={e => setDraft({ ...draft, alternateForms: e.target.value })} placeholder="Alternate forms (comma separated)" />
+      <input className={INPUT_CLASS} value={draft.confidence} onChange={e => setDraft({ ...draft, confidence: e.target.value })} placeholder="Confidence (0-1)" />
+      <input className={INPUT_CLASS} value={draft.provenance} onChange={e => setDraft({ ...draft, provenance: e.target.value })} placeholder="Provenance/source" />
+      <input className={INPUT_CLASS} value={draft.exampleSentence} onChange={e => setDraft({ ...draft, exampleSentence: e.target.value })} placeholder="Example sentence (optional)" />
       <input className={INPUT_CLASS + " md:col-span-2"} value={draft.context} onChange={e => setDraft({ ...draft, context: e.target.value })} placeholder="Usage, grammar, source, or correction note" />
       <div className="md:col-span-2 rounded-xl border border-white/10 bg-black/20 p-3">
         <label className="text-[9px] uppercase tracking-widest text-white/60 font-bold block mb-2">
@@ -207,11 +270,23 @@ function LexiconManager() {
           <Plus size={14} /> Add word or sentence
         </button>
       </div>
-      <div className="grid md:grid-cols-[1fr_220px] gap-3 mb-5">
+      <div className="grid md:grid-cols-2 xl:grid-cols-5 gap-3 mb-5">
         <input className={INPUT_CLASS} value={search} onChange={e => setSearch(e.target.value)} placeholder="Search words, meanings, phonetics, or notes..." />
         <select className={INPUT_CLASS} value={category} onChange={e => setCategory(e.target.value)}>
           <option value="all">All categories ({allEntries.length})</option>
           {categories.map(item => <option key={item.category} value={item.category}>{item.category} ({item.entries.length})</option>)}
+        </select>
+        <select className={INPUT_CLASS} value={languageFilter} onChange={e => setLanguageFilter(e.target.value)}>
+          <option value="all">All languages</option>
+          {ALL_LANGUAGES.map(language => <option key={language.id} value={language.id}>{language.name}</option>)}
+        </select>
+        <select className={INPUT_CLASS} value={dialectFilter} onChange={e => setDialectFilter(e.target.value)}>
+          <option value="all">All dialects</option>
+          {[...new Set(allEntries.map(entry => entry.dialect || "unspecified"))].sort().map(dialect => <option key={dialect} value={dialect}>{dialect}</option>)}
+        </select>
+        <select className={INPUT_CLASS} value={validationFilter} onChange={e => setValidationFilter(e.target.value)}>
+          <option value="all">All validation states</option>
+          {LEXICON_VALIDATION_STATUSES.map(status => <option key={status} value={status}>{status}</option>)}
         </select>
       </div>
       {isAdding && <div className="mb-5">{editor}</div>}
@@ -223,13 +298,16 @@ function LexiconManager() {
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-bold text-white">{entry.edoWord}</span>
+                      <span className="font-bold text-white">{entry.writtenForm || entry.edoWord}</span>
                       <span className="text-[9px] uppercase tracking-widest px-2 py-1 rounded-full bg-[#00ff88]/10 text-[#00ff88]">{entry.category}</span>
+                      <span className="text-[9px] uppercase tracking-widest px-2 py-1 rounded-full bg-yellow-500/10 text-yellow-300">{entry.validationStatus || "candidate"}</span>
+                      {isLexiconEntryEligibleForCompiler(entry) && <span className="text-[9px] uppercase tracking-widest px-2 py-1 rounded-full bg-green-500/10 text-green-400">compiler eligible</span>}
                       {entry.isSeeded && <span className="text-[9px] uppercase tracking-widest text-white/30">Built-in</span>}
                     </div>
-                    <p className="text-sm text-white/70 mt-1">{entry.english}</p>
-                    <p className="text-xs text-[#8A8A60] mt-1">/{entry.phonetic || "phonetics not added"}/</p>
+                    <p className="text-sm text-white/70 mt-1">{entry.meaning || entry.english}</p>
+                    <p className="text-xs text-[#8A8A60] mt-1">{entry.pronunciationGuide ? `Pronunciation guide: ${entry.pronunciationGuide}` : "Pronunciation unknown"}{entry.phonology ? ` · IPA: ${entry.phonology}` : ""}</p>
                     {entry.context && <p className="text-xs text-white/40 mt-2">{entry.context}</p>}
+                    <p className="text-[10px] uppercase tracking-wider text-white/35 mt-2">{entry.language || "edo"} · {entry.dialect || "dialect unspecified"} · {entry.provenance || "provenance unavailable"}</p>
                     <div className="mt-3">
                       {entry.audioUrl ? (
                         <button

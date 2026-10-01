@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { classifyUserIntent } from '../providerAdapter';
-import { routeResearchRequest } from '../../../core/research';
+import { classifyTemporalIntent, routeResearchRequest } from '../../../core/research';
 
 describe('intent classifier', () => {
   it('does not mistake Nigerian Pidgin conversation verbs for image requests', () => {
@@ -84,6 +84,16 @@ describe('intent classifier', () => {
   it('routes medical reasoning requests through the research capability', () => {
     const result = classifyUserIntent('I have fever, cough, and body aches for two days');
     expect(result.capability).toBe('research');
+  });
+
+  it('routes current epilepsy and medicine questions through research', () => {
+    expect(classifyUserIntent('What are the newest anti-seizure medicines?').capability).toBe('research');
+    expect(classifyUserIntent('What is the latest research on epilepsy?').capability).toBe('research');
+  });
+
+  it('preserves explicit temporal intent for current medical questions', () => {
+    expect(classifyTemporalIntent('What are the current treatments for epilepsy?')).toBe('current');
+    expect(classifyTemporalIntent('What is cenobamate?')).toBe('static');
   });
 
   it('routes One Health cross-domain requests through the research capability', async () => {

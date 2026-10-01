@@ -305,67 +305,70 @@ export async function proxyVisualOrchestrator(options: { prompt?: string; messag
   }
 }
 
-function buildVisionUnavailableResult(prompt?: string): { text: string; description: string; objects: string[]; provider: string; model: string; latencyMs: number } {
-  const reason = prompt
-    ? `Vision analysis is unavailable in this environment. No configured vision provider responded for: "${prompt.slice(0, 180)}".`
-    : 'Vision analysis is unavailable in this environment. No configured vision provider responded.';
+
+export async function proxyVision(imageDataUrl: string, prompt?: string): Promise<{ text: string; description: string; objects: string[]; provider: string; model: string; latencyMs: number }> {
+  const startTime = Date.now();
+
+  try {
+    const headers = await getHeaders();
+
+    // Try the primary vision endpoint
+    let resp = await fetch('/api/ai/vision', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ task: 'vision', imageBase64: imageDataUrl, prompt }),
+      signal: AbortSignal.timeout(60000),
+    });
+
+    // If primary fails, try the v1 alias
+    if (!resp.ok) {
+      console.warn('[AIProxy] /api/ai/vision failed, trying /api/v1/vision/analyze');
+      resp = await fetch('/api/v1/vision/analyze', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ imageBase64: imageDataUrl, prompt }),
+        signal: AbortSignal.timeout(60000),
+      });
+    }
+
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data?.error) {
+        console.warn('[AIProxy] backend vision returned an error:', data.error);
+        return {
+          text: data.text || 'Vision analysis failed. Please try again.',
+          description: data.text || '',
+          objects: [],
+          provider: 'groq',
+          model: 'vision',
+          latencyMs: Date.now() - startTime,
+        };
+      }
+      if (data && (data.text || data.description)) {
+        return {
+          text: data.text || data.description || '',
+          description: data.description || data.text || '',
+          objects: data.objects || [],
+          provider: data.provider || 'groq',
+          model: data.model || 'vision',
+          latencyMs: Date.now() - startTime,
+        };
+      }
+    }
+
+    console.warn('[AIProxy] Vision endpoint returned no usable data, status:', resp.status);
+  } catch (err: any) {
+    console.warn('[AIProxy] proxyVision request failed:', err?.message || err);
+  }
 
   return {
-    text: reason,
-    description: 'Vision analysis is unavailable because no backend vision provider responded in this local environment.',
+    text: 'Vision analysis is temporarily unavailable. Please try again in a moment.',
+    description: 'Vision analysis failed — no backend vision provider responded.',
     objects: [],
     provider: 'unavailable',
     model: 'unavailable',
     latencyMs: 0,
   };
-}
-
-export async function proxyVision(imageDataUrl: string, prompt?: string): Promise<{ text: string; description: string; objects: string[]; provider: string; model: string; latencyMs: number }> {
-  const unavailable = buildVisionUnavailableResult(prompt);
-
-  try {
-    const headers = await getHeaders();
-    let resp = await fetch('/api/ai/vision', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ task: 'vision', imageBase64: imageDataUrl, prompt }),
-      signal: AbortSignal.timeout(90000),
-    });
-    if (!resp.ok) {
-      const resp2 = await fetch('/api/v1/vision/analyze', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ imageBase64: imageDataUrl, prompt }),
-        signal: AbortSignal.timeout(90000),
-      });
-      if (resp2.ok) resp = resp2;
-    }
-    if (resp.ok) {
-      const data = await resp.json();
-      if (data?.error) {
-        console.warn('[AIProxy] backend vision returned an error:', data.error);
-        return unavailable;
-      }
-      if (data && (data.text || data.description)) {
-        const providerName = data.provider || 'unknown';
-        const modelName = data.model || 'unknown';
-        const textWithMeta = `${data.text || data.description || ''}\n\n[Vision provider: ${providerName}; model: ${modelName}]`;
-        return {
-          text: textWithMeta,
-          description: data.description || data.text || '',
-          objects: data.objects || [],
-          provider: providerName,
-          model: modelName,
-          latencyMs: data.latencyMs || 0,
-        };
-      }
-    }
-  } catch (err) {
-    console.warn('[AIProxy] proxyVision backend failed:', err?.message || err);
-    return unavailable;
-  }
-
-  return unavailable;
 }
 
 export async function proxySearch(query: string): Promise<{ results: Array<{ title: string; url: string; source: string; snippet: string; retrievedAt: number }>; provider: string; latencyMs: number }> {

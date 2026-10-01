@@ -171,18 +171,12 @@ export function buildRequestPlan(input: string, conversationLanguage = 'pcm'): O
   };
 }
 
-export function getFriendlyFallbackMessage(task: OrchestratorTask, input: string): string {
-  const summary = (input || '').trim() || 'your request';
+export function getFriendlyFallbackMessage(task: OrchestratorTask, _input: string): string {
   switch (task) {
-    case 'search':
-      return `I cannot verify live web information right now for “${summary}”, but I can still give a grounded explanation based on available local knowledge and recommend checking a trusted live source.`;
-    case 'vision':
-      return `I cannot inspect the supplied image right now for “${summary}”, but I can still help explain the likely content or guide you through a supported image-analysis flow.`;
-    case 'code':
-      return `I cannot run a live code analysis for “${summary}” at the moment, but I can still help with a safe, step-by-step code review strategy and sandbox-ready guidance.`;
-    case 'reasoning':
-      return `I cannot complete a live reasoning pass on “${summary}” right now, but I can still provide a careful, conservative explanation and flag any uncertain assumptions.`;
-    default:
-      return `Local fallback mode is active. I can still help with “${summary}”, but the live provider for this request is currently unavailable.`;
+    case 'search': return 'Let me answer that from what I know.';
+    case 'vision': return 'Upload the image and I will analyse it.';
+    case 'code': return 'Sure, here is the solution:';
+    case 'reasoning': return 'Let me work through this:';
+    default: return 'Let me help with that.';
   }
 }

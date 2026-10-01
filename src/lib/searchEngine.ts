@@ -4,6 +4,8 @@ export interface SearchResult {
   source: 'live' | 'local' | 'cached';
   snippet: string;
   date?: string;
+  retrievedAt?: number;
+  sourceType?: 'regulatory' | 'literature' | 'clinical-trial' | 'guideline' | 'general' | 'unknown';
 }
 
 export interface SearchResponse {
@@ -52,11 +54,11 @@ async function fetchLiveSearch(query: string): Promise<SearchResult[]> {
       const text = typeof item === 'string' ? item : item.Text;
       const href = typeof item === 'string' ? '' : item.FirstURL;
       if (text) {
-        items.push({ title: text.slice(0, 64), url: href || '#', source: 'live', snippet: text.slice(0, 200), date: undefined });
+        items.push({ title: text.slice(0, 64), url: href || '#', source: 'live', snippet: text.slice(0, 200), date: undefined, retrievedAt: Date.now(), sourceType: 'general' });
       }
     }
     if (items.length === 0 && data?.AbstractText) {
-      items.push({ title: data.Heading || query, url: data.AbstractURL || '#', source: 'live', snippet: data.AbstractText.slice(0, 220) });
+      items.push({ title: data.Heading || query, url: data.AbstractURL || '#', source: 'live', snippet: data.AbstractText.slice(0, 220), retrievedAt: Date.now(), sourceType: 'general' });
     }
     return items.slice(0, 5);
   } catch {

@@ -2,18 +2,14 @@ import React, { useState } from 'react';
 import { Mail, Lock, Loader, AlertCircle, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db, signInWithEmail } from '../lib/firebase';
+import { signInWithEmail, signOut } from '../lib/firebase';
 import RotatingLogo, { RotatingLogoMedium } from './RotatingLogo';
 
 interface AdminLoginProps {
   onLoginSuccess: () => void;
 }
 
-const ADMIN_CREDENTIALS = {
-  email: 'obosathompsons@gmail.com',
-  password: 'admin8594'
-};
+const ADMIN_EMAIL = 'obosathompsons@gmail.com';
 
 export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
   const [email, setEmail] = useState('');
@@ -30,14 +26,17 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
     setIsLoading(true);
 
     try {
-      // Check master admin credentials first
-      if (email.trim().toLowerCase() === ADMIN_CREDENTIALS.email.toLowerCase() && password === ADMIN_CREDENTIALS.password) {
-        // Establish a real Firebase session so Firestore rules authorize
-        // lexicon, training, and audio changes made by this admin.
-        await signInWithEmail(email.trim(), password);
+      if (email.trim().toLowerCase() === ADMIN_EMAIL) {
+        // Firestore authorization is the source of truth for privileged writes.
+        // Do not keep or compare an admin password in frontend code.
+        const signedInUser = await signInWithEmail(email.trim(), password);
+        if (signedInUser.email?.toLowerCase() !== ADMIN_EMAIL) {
+          await signOut();
+          throw new Error('This account is not authorized for the admin panel.');
+        }
         const adminUser = {
           username: 'admin',
-          email: ADMIN_CREDENTIALS.email,
+          email: ADMIN_EMAIL,
           isAdmin: true,
           isMasterAdmin: true,
           loginTime: Date.now()
@@ -52,41 +51,7 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
         return;
       }
 
-      // Check agents database
-      const q = query(
-        collection(db, 'agents'),
-        where('email', '==', email.trim().toLowerCase())
-      );
-      const snapshot = await getDocs(q);
-
-      if (!snapshot.empty) {
-        const agentDoc = snapshot.docs[0];
-        const agentData = agentDoc.data();
-
-        // Verify password
-        if (agentData.password === password) {
-          const agentUser = {
-            username: agentData.name,
-            email: agentData.email,
-            isAdmin: true,
-            isAgent: true,
-            agentRole: agentData.role,
-            permissions: agentData.permissions || ['train'],
-            loginTime: Date.now()
-          };
-          const storage = rememberLogin ? localStorage : sessionStorage;
-          localStorage.removeItem('lexicon_dev_user');
-          sessionStorage.removeItem('lexicon_dev_user');
-          storage.setItem('lexicon_dev_user', JSON.stringify(agentUser));
-          localStorage.setItem('lexicon_dev_user_remembered', String(rememberLogin));
-          // Reload to pick up the new state
-          window.location.href = '/admin';
-          return;
-        }
-      }
-
-      // No match found
-      setError('Invalid email or password. Please check your credentials.');
+      setError('Admin access requires the configured Firebase admin account. Agent sign-in must be provisioned through Firebase Authentication and server-side roles before it can be enabled.');
       setIsLoading(false);
     } catch (err: any) {
       setError(err.message || 'Login failed. Please try again.');

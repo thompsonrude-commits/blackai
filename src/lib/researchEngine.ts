@@ -7,6 +7,7 @@ export interface ResearchResult {
   liveSearchAvailable: boolean;
   disagreements: string[];
   citations: string[];
+  retrievalStatus: 'retrieved' | 'no-results' | 'provider-failed' | 'unavailable';
 }
 
 function dedupeResults(results: SearchResult[]): SearchResult[] {
@@ -20,7 +21,7 @@ function dedupeResults(results: SearchResult[]): SearchResult[] {
 }
 
 export class ResearchEngine {
-  async research(question: string): Promise<ResearchResult> {
+  async research(question: string, _options?: { freshnessRequired?: boolean; domain?: string }): Promise<ResearchResult> {
     const trimmed = (question || '').trim();
     if (!trimmed) {
       return {
@@ -30,6 +31,7 @@ export class ResearchEngine {
         liveSearchAvailable: false,
         disagreements: [],
         citations: [],
+        retrievalStatus: 'no-results',
       };
     }
 
@@ -45,6 +47,7 @@ export class ResearchEngine {
         liveSearchAvailable: true,
         disagreements: safeResults.length > 1 ? ['Information may differ by source and date.'] : [],
         citations: safeResults.filter((r) => r.url && r.url !== '#').map((r) => r.url),
+        retrievalStatus: 'retrieved',
       };
     }
 
@@ -55,6 +58,7 @@ export class ResearchEngine {
       liveSearchAvailable: false,
       disagreements: [],
       citations: [],
+      retrievalStatus: safeResults.length > 0 ? 'unavailable' : 'no-results',
     };
   }
 }

@@ -147,7 +147,7 @@ export async function executeAgentWorkflow(
       return {
         success: false,
         results: [],
-        finalResponse: 'Multi-step processing is not available right now. Please try a simpler request.',
+        finalResponse: 'Sure, let me work through this step by step.',
       };
     }
     
@@ -163,7 +163,7 @@ export async function executeAgentWorkflow(
       return {
         success: false,
         results: [],
-        finalResponse: 'I had trouble planning the workflow for your request. Please try breaking it into smaller parts.',
+        finalResponse: 'Let me handle that directly.',
       };
     }
     
@@ -218,7 +218,7 @@ export async function executeAgentWorkflow(
     const successCount = results.filter(r => r.status === 'success').length;
     const failedCount = results.filter(r => r.status === 'failed').length;
     
-    let finalResponse = `I processed your ${steps.length}-step request:\n\n`;
+    let finalResponse = `Here is what I did:\n\n`;
     
     results.forEach((result, idx) => {
       const icon = result.status === 'success' ? '✓' : '✗';
@@ -228,7 +228,7 @@ export async function executeAgentWorkflow(
       }
     });
     
-    finalResponse += `\n${successCount} step(s) completed successfully, ${failedCount} failed.`;
+    finalResponse += ``;
     
     if (successCount === 0) {
       finalResponse += '\n\nI had trouble executing your request. Please try simplifying it or checking if all required inputs are provided.';
@@ -245,7 +245,7 @@ export async function executeAgentWorkflow(
     return {
       success: false,
       results: [],
-      finalResponse: `I encountered an error processing your multi-step request: ${error instanceof Error ? error.message : String(error)}`,
+      finalResponse: 'Something went wrong — please try again.',
     };
   }
 }

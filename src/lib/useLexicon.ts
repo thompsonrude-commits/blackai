@@ -11,20 +11,145 @@ import { db, isFirebaseUnavailableError } from './firebase';
 import { LINGUISTIC_REPOSITORY } from './repository';
 import { customAudioCache } from './voice';
 
+export type LexiconValidationStatus =
+  | 'candidate'
+  | 'under-review'
+  | 'verified'
+  | 'community-supported'
+  | 'conflicting'
+  | 'rejected'
+  | 'superseded';
+
+export const LEXICON_CATEGORIES = [
+  'Words', 'Pronouns', 'Nouns', 'Verbs', 'Adjectives', 'Adverbs', 'Places', 'People / Names',
+  'Numbers', 'Dates', 'Time', 'Countries', 'Cities', 'Organizations', 'Animals', 'Plants',
+  'Food', 'Objects', 'Colors', 'Technology', 'Science', 'Medicine', 'Engineering',
+  'Professional terminology', 'Idioms', 'Expressions', 'Proper nouns', 'Cultural terminology', 'General'
+] as const;
+
+export const LEXICON_VALIDATION_STATUSES: LexiconValidationStatus[] = [
+  'candidate', 'under-review', 'verified', 'community-supported', 'conflicting', 'rejected', 'superseded'
+];
+
 export interface LexiconEntry {
-  id: string;           // Edo word used as key
-  edoWord: string;      // Edo term
-  english: string;      // English meaning
-  phonetic: string;     // Pronunciation guide
-  category: string;     // Category from repository
-  audioUrl?: string;    // Admin-recorded audio URL from Firebase Storage
-  context?: string;     // Optional usage note
-  isSeeded: boolean;    // true = came from static repo, false = community added
+  id: string;
+  language: string;
+  dialect?: string;
+  writtenForm: string;
+  pronunciationGuide?: string;
+  pronunciation?: string;
+  phonology?: string;
+  phonemic?: string;
+  phoneticRepresentation?: string;
+  audioEvidence?: string;
+  meaning: string;
+  category: string;
+  partOfSpeech?: string;
+  grammaticalRole?: string;
+  semanticConcept?: string;
+  exampleSentence?: string;
+  translation?: string;
+  alternateForms?: string[];
+  aliases?: string[];
+  register?: string;
+  usageNotes?: string;
+  source?: string;
+  provenance?: string;
+  confidence?: number;
+  validationStatus?: LexiconValidationStatus;
+  createdBy?: string;
+  createdAt?: string | number | null;
+  updatedAt?: string | number | null;
+  version?: number;
+  edoWord?: string;
+  english?: string;
+  phonetic?: string;
+  audioUrl?: string;
+  context?: string;
+  isSeeded: boolean;
 }
 
 export interface LexiconCategory {
   category: string;
   entries: LexiconEntry[];
+}
+
+export function normalizeLexiconKey(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9\s]/g, '')
+    .trim()
+    .toLowerCase();
+}
+
+export function createLexiconEntryRecord(input: Partial<LexiconEntry> & { id?: string; writtenForm?: string; meaning?: string; category?: string; language?: string; }): LexiconEntry {
+  const language = input.language || 'edo';
+  const category = input.category || 'General';
+  const writtenForm = input.writtenForm || input.edoWord || input.translation || '';
+  const meaning = input.meaning || input.english || input.translation || '';
+  const normalizedPhonology = typeof input.phonology === 'string' && input.phonology.trim().length > 0 ? input.phonology.trim() : undefined;
+  const normalizedPronunciationGuide = typeof input.pronunciationGuide === 'string' && input.pronunciationGuide.trim().length > 0
+    ? input.pronunciationGuide.trim()
+    : (typeof input.pronunciation === 'string' && input.pronunciation.trim().length > 0 ? input.pronunciation.trim() : (input.phonetic || undefined));
+  return {
+    id: input.id || writtenForm || `${language}-${Date.now()}`,
+    language,
+    dialect: input.dialect,
+    writtenForm,
+    pronunciationGuide: normalizedPronunciationGuide,
+    pronunciation: normalizedPronunciationGuide,
+    phonology: normalizedPhonology,
+    meaning,
+    category,
+    partOfSpeech: input.partOfSpeech,
+    grammaticalRole: input.grammaticalRole,
+    semanticConcept: input.semanticConcept,
+    exampleSentence: input.exampleSentence,
+    translation: input.translation || meaning,
+    alternateForms: input.alternateForms ?? [],
+    aliases: input.aliases ?? [],
+    register: input.register,
+    usageNotes: input.usageNotes || input.context,
+    source: input.source || 'admin-training',
+    provenance: input.provenance || 'admin-training',
+    confidence: input.confidence ?? 0.5,
+    validationStatus: input.validationStatus ?? 'candidate',
+    createdBy: input.createdBy,
+    createdAt: input.createdAt ?? Date.now(),
+    updatedAt: input.updatedAt ?? Date.now(),
+    version: input.version ?? 1,
+    edoWord: writtenForm,
+    english: meaning,
+    phonetic: normalizedPronunciationGuide || '',
+    audioUrl: input.audioUrl,
+    context: input.context || input.usageNotes,
+    isSeeded: Boolean(input.isSeeded),
+  };
+}
+
+export function isLexiconEntryEligibleForCompiler(entry: Partial<LexiconEntry>): boolean {
+  const status = entry.validationStatus ?? 'candidate';
+  if (status === 'candidate' || status === 'under-review' || status === 'conflicting' || status === 'rejected' || status === 'superseded') {
+    return false;
+  }
+  const written = (entry.writtenForm || entry.edoWord || '').trim();
+  const meaning = (entry.meaning || entry.english || '').trim();
+  return Boolean(written && meaning && entry.language);
+}
+
+export function detectDuplicateLexiconEntry(entries: LexiconEntry[], candidate: Partial<LexiconEntry>): boolean {
+  const comparison = normalizeLexiconKey((candidate.writtenForm || candidate.edoWord || '').trim());
+  if (!comparison) return false;
+  const targetCategory = candidate.category || 'General';
+  const targetLanguage = candidate.language || 'edo';
+  const targetDialect = candidate.dialect || 'default';
+  return entries.some((entry) => {
+    const sameLanguage = (entry.language || 'edo') === targetLanguage;
+    const sameDialect = (entry.dialect || 'default') === targetDialect;
+    const sameCategory = (entry.category || 'General') === targetCategory;
+    return sameLanguage && sameDialect && sameCategory && normalizeLexiconKey((entry.writtenForm || entry.edoWord || '').trim()) === comparison;
+  });
 }
 
 /**
@@ -47,25 +172,27 @@ export function useLexicon() {
   useEffect(() => {
     let active = true;
 
-    // Single persistent baseMap — never recreated, only updated
     const baseMap = new Map<string, LexiconEntry>();
 
-    // Seed static repository into baseMap first
     for (const cat of LINGUISTIC_REPOSITORY) {
       for (const item of cat.items) {
-        baseMap.set(item.term, {
+        const seedEntry = createLexiconEntryRecord({
           id: item.term,
-          edoWord: item.term,
-          english: item.translation,
-          phonetic: item.phonetic,
+          language: 'edo',
+          writtenForm: item.term,
+          meaning: item.translation,
+          pronunciationGuide: item.phonetic,
           category: cat.category,
+          source: 'linguistic-repository',
+          provenance: 'linguistic-repository',
+          validationStatus: 'verified',
           context: item.context,
           isSeeded: true,
         });
+        baseMap.set(item.term, seedEntry);
       }
     }
 
-    // Subscribe to coreVocabAudio — fires immediately with current data
     const unsubCore = onSnapshot(collection(db, 'coreVocabAudio'), (snap) => {
       if (!active) return;
       snap.docs.forEach(d => {
@@ -76,28 +203,41 @@ export function useLexicon() {
           return;
         }
         const existing = baseMap.get(staticId);
-        const edoWord = data.translation || existing?.edoWord || staticId;
-        const audioUrl = data.audioUrl || existing?.audioUrl;
-
-        // Always update the global audio cache — this is the key line
-        if (audioUrl && edoWord) {
-          customAudioCache[edoWord.toLowerCase().trim()] = audioUrl;
-          // Also cache by English word for broader matching
-          if (data.word) {
-            customAudioCache[data.word.toLowerCase().trim()] = audioUrl;
-          }
-        }
-
-        baseMap.set(staticId, {
+        const merged = createLexiconEntryRecord({
           id: staticId,
-          edoWord,
-          english: data.word || existing?.english || '',
-          phonetic: data.phonetic || existing?.phonetic || '',
+          language: data.language || existing?.language || 'edo',
+          dialect: data.dialect || existing?.dialect,
+          writtenForm: data.writtenForm || data.translation || existing?.writtenForm || existing?.edoWord || staticId,
+          pronunciationGuide: typeof data.pronunciationGuide === 'string' ? data.pronunciationGuide : (typeof data.pronunciation === 'string' ? data.pronunciation : data.phonetic || existing?.pronunciationGuide),
+          phonology: typeof data.phonology === 'string' ? data.phonology : undefined,
+          meaning: data.meaning || data.word || existing?.meaning || existing?.english || '',
           category: data.category || existing?.category || 'General',
-          audioUrl,
+          partOfSpeech: data.partOfSpeech || existing?.partOfSpeech,
+          grammaticalRole: data.grammaticalRole || existing?.grammaticalRole,
+          semanticConcept: data.semanticConcept || existing?.semanticConcept,
+          exampleSentence: data.exampleSentence || existing?.exampleSentence,
+          translation: data.translation || data.word || existing?.translation || existing?.english || '',
+          alternateForms: Array.isArray(data.alternateForms) ? data.alternateForms : existing?.alternateForms || [],
+          aliases: Array.isArray(data.aliases) ? data.aliases : existing?.aliases || [],
+          register: data.register || existing?.register,
+          usageNotes: data.usageNotes || data.context || existing?.usageNotes || existing?.context,
+          source: data.source || existing?.source || 'coreVocabAudio',
+          provenance: data.provenance || existing?.provenance || 'coreVocabAudio',
+          confidence: typeof data.confidence === 'number' ? data.confidence : existing?.confidence ?? 0.6,
+          validationStatus: data.validationStatus || existing?.validationStatus || 'candidate',
+          createdBy: data.createdBy || existing?.createdBy,
+          createdAt: data.createdAt || existing?.createdAt,
+          updatedAt: data.updatedAt || existing?.updatedAt,
+          version: data.version || existing?.version || 1,
+          audioUrl: data.audioUrl || existing?.audioUrl,
           context: data.context || existing?.context,
           isSeeded: true,
         });
+        if (merged.audioUrl && merged.writtenForm) {
+          customAudioCache[merged.writtenForm.toLowerCase().trim()] = merged.audioUrl;
+          if (merged.meaning) customAudioCache[merged.meaning.toLowerCase().trim()] = merged.audioUrl;
+        }
+        baseMap.set(staticId, merged);
       });
       rebuild(baseMap);
     }, (error) => {
@@ -107,31 +247,32 @@ export function useLexicon() {
       if (active) rebuild(baseMap);
     });
 
-    // Subscribe to communityVocab
     const unsubCommunity = onSnapshot(collection(db, 'communityVocab'), (snap) => {
       if (!active) return;
       snap.docs.forEach(d => {
         const data = d.data();
-        if (!data.translation) return;
-        const edoWord = data.translation;
-        const audioUrl = data.audioUrl;
-
-        if (audioUrl) {
-          customAudioCache[edoWord.toLowerCase().trim()] = audioUrl;
-          if (data.word) {
-            customAudioCache[data.word.toLowerCase().trim()] = audioUrl;
-          }
-        }
-
-        baseMap.set(data.translation, {
-          id: data.translation,
-          edoWord,
-          english: data.word || '',
-          phonetic: data.phonetic || '',
+        if (!data.writtenForm && !data.translation) return;
+        const entry = createLexiconEntryRecord({
+          id: d.id,
+          language: data.language || 'edo',
+          dialect: data.dialect,
+          writtenForm: data.writtenForm || data.translation,
+          pronunciationGuide: data.pronunciationGuide || data.pronunciation || data.phonetic,
+          phonology: typeof data.phonology === 'string' ? data.phonology : undefined,
+          meaning: data.meaning || data.word || data.translation || '',
           category: data.category || 'Community',
-          audioUrl,
+          source: 'communityVocab',
+          provenance: 'communityVocab',
+          validationStatus: data.validationStatus || 'candidate',
+          audioUrl: data.audioUrl,
+          context: data.context,
           isSeeded: false,
         });
+        if (entry.audioUrl && entry.writtenForm) {
+          customAudioCache[entry.writtenForm.toLowerCase().trim()] = entry.audioUrl;
+          if (entry.meaning) customAudioCache[entry.meaning.toLowerCase().trim()] = entry.audioUrl;
+        }
+        baseMap.set(entry.id, entry);
       });
       rebuild(baseMap);
     }, (error) => {
@@ -145,7 +286,7 @@ export function useLexicon() {
       const entries = Array.from(map.values());
       setAllEntries(entries);
 
-      const catOrder = LINGUISTIC_REPOSITORY.map(c => c.category);
+      const catOrder = [...new Set([...LINGUISTIC_REPOSITORY.map(c => c.category), ...LEXICON_CATEGORIES])];
       const catMap = new Map<string, LexiconEntry[]>();
       for (const entry of entries) {
         const cat = entry.category || 'General';
@@ -173,7 +314,7 @@ export function useLexicon() {
       unsubCore();
       unsubCommunity();
     };
-  }, []); // Empty deps — subscribe once, never re-initialize
+  }, []);
 
   // Subscribe to admin training data
   useEffect(() => {
@@ -199,7 +340,7 @@ export function useLexicon() {
 
   // Build a plain text vocab context string for the AI assistant
   const vocabContextString = allEntries
-    .map(e => `${e.english} = ${e.edoWord} (/${e.phonetic}/)`)
+    .map(e => `${e.meaning || e.english} = ${e.writtenForm || e.edoWord}${e.pronunciationGuide ? ` (pronunciation guide: ${e.pronunciationGuide})` : ''}${e.phonology ? ` (verified phonology: ${e.phonology})` : ''}`)
     .join('\n');
 
   return { categories, allEntries, loading, vocabContextString, trainingContext };

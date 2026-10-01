@@ -10,7 +10,7 @@ import { knowledgeEngine } from './platform/knowledgeEngine';
 import { trackChatRequest } from './platform/analytics';
 import { recoveryService, QueuedRequest } from './platform/recoveryService';
 import { hasBrowserCapability } from './inHouseEngine';
-import { getEngineRouteOrder, sanitizeUserFacingText } from './providerAdapter';
+import { classifyUserIntent, getEngineRouteOrder, sanitizeUserFacingText } from './providerAdapter';
 import { defaultCognitiveBrain, defaultLanguageCoordinationEngine } from '../../core/language-intelligence';
 import { routeResearchRequest } from '../../core/research';
 import { engineManager } from './engineManager';
@@ -235,8 +235,9 @@ export async function* unifiedChatStream(messages: ChatMessageLike[], temperatur
     // This provides differential diagnosis and safety screening for health concerns
     if (lastUserMessage) {
       try {
-        const isSeriousMedicalQuery = /\b(?:symptom|diagnosis|disease|illness|infection|treatment|therapy|pain|fever|sick|cough|bleeding|injury)\b/i.test(lastUserMessage.content)
-          && !/\b(?:train|teach|learn|course|study|explain|what is)\b/i.test(lastUserMessage.content);
+        const intent = classifyUserIntent(lastUserMessage.content);
+        const isSeriousMedicalQuery = intent.capability === 'research'
+          || /\b(?:epilepsy|seizure|anti[- ]?seizure|cenobamate|clinical trials?|newest medicines?|latest treatments?)\b/i.test(lastUserMessage.content);
         
         if (isSeriousMedicalQuery) {
           const researchResponse = await routeResearchRequest(lastUserMessage.content);

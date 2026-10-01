@@ -1,4 +1,24 @@
 import { defaultCognitiveBrain, defaultLanguageCoordinationEngine } from '../language-intelligence';
+import { defaultResearchEngine, type ResearchResult } from '../../src/lib/researchEngine';
+
+export type TemporalIntent = 'static' | 'historical' | 'current' | 'recent' | 'real_time' | 'unknown';
+
+export interface MedicalEvidence {
+  source: string;
+  sourceType: 'regulatory' | 'literature' | 'clinical-trial' | 'guideline' | 'general' | 'unknown';
+  title: string;
+  url: string;
+  publicationDate?: string;
+  retrievedAt: number;
+  jurisdiction?: string;
+  drugName?: string;
+  indication?: string;
+  approvalStatus?: 'approved' | 'investigational' | 'unknown';
+  evidenceLevel?: string;
+  sourceReliability: 'high' | 'medium' | 'low' | 'unknown';
+  provenance: string;
+  snippet: string;
+}
 
 export type ResearchDomain = 'medical' | 'one_health' | 'veterinary' | 'plant' | 'environment' | 'general';
 
@@ -23,6 +43,19 @@ export interface ResearchResponse {
   hypotheses: ResearchHypothesis[];
   evidence: string[];
   provenance: string[];
+  temporalIntent?: TemporalIntent;
+  retrievalStatus?: 'retrieved' | 'no-results' | 'provider-failed' | 'unavailable';
+  medicalEvidence?: MedicalEvidence[];
+}
+
+export function classifyTemporalIntent(text: string): TemporalIntent {
+  const value = text.toLowerCase();
+  if (/\b(today|right now|real[- ]?time|live)\b/.test(value)) return 'real_time';
+  if (/\b(latest|newest|current|this year|2026|newly approved|recently approved)\b/.test(value)) return 'current';
+  if (/\b(recent|emerging|breakthrough|ongoing|latest research)\b/.test(value)) return 'recent';
+  if (/\b(historical|history|in \d{4}|previously|past)\b/.test(value)) return 'historical';
+  if (/\b(what is|define|meaning of|how does)\b/.test(value)) return 'static';
+  return 'unknown';
 }
 
 const MEDICAL_HINTS = [
@@ -30,6 +63,8 @@ const MEDICAL_HINTS = [
   'treatment', 'therapy', 'medication', 'medicine', 'clinical', 'health', 'fever', 'cough', 'pain',
   'rash', 'headache', 'fatigue', 'nausea', 'diarrhoea', 'diarrhea', 'doctor', 'hospital', 'clinic',
   'diagnose', 'patient', 'medical', 'screening', 'pathogen', 'outbreak', 'viral', 'bacterial', 'parasitic',
+  'epilepsy', 'seizure', 'anti-seizure', 'antiseizure', 'neurology', 'drug', 'drugs', 'medicine', 'medicines',
+  'clinical trial', 'clinical trials', 'drug-resistant', 'cenobamate',
 ];
 
 const ONE_HEALTH_HINTS = [
@@ -121,30 +156,13 @@ export class MedicalProblemSolver {
       },
     ];
 
-    const plan = await defaultCognitiveBrain.plan(problem, 'research-medical');
-    
-    // DISABLED: This interceptor was blocking practical medical advice
-    // Instead, let the main AI system prompts handle medical queries with proper balance of helpfulness + safety
-    // The system prompts already include Nigerian medicine recommendations with appropriate disclaimers
-    const summary = `Medical query detected in ${language}. Routing to main AI for practical guidance.`;
-    const response = null; // Let main AI handle with full context and proper prompts
-
-    return {
-      domain: ['medical'],
-      title: 'Medical problem-solving and differential review',
-      summary,
-      response,
-      language,
-      sourceLanguage: semantic.sourceLanguage,
-      confidence: 0.68,
-      safetyWarnings: [
-        'This is a general clinical reasoning aid, not a diagnosis.',
-        'Urgent symptoms require immediate medical evaluation.',
-      ],
-      hypotheses,
-      evidence: semantic.entities.map((entity) => `${entity.type}: ${entity.value}`),
-      provenance: plan.knowledge.map((record) => record.sourceType),
-    };
+      // NOTE: The MedicalProblemSolver is intentionally bypassed for everyday medical queries
+    // (e.g. "medicine for headache", "what to take for fever") so the main AI system prompt
+    // can give direct, practical Nigerian medicine advice (Panadol, Flagyl, Amoxil, etc.).
+    // This solver only runs for complex clinical/research queries where the main AI would
+    // need extra structure (epilepsy drug trials, one-health scenarios, etc.).
+    // Returning null here tells ai.ts to fall through to the normal chat flow.
+    return null;
   }
 }
 
@@ -219,13 +237,34 @@ export class OneHealthOrchestrator {
   }
 }
 
+// Simple/everyday medical queries that should go straight to the main AI
+// so the system prompt can give direct Nigerian medicine advice (Panadol, Flagyl, etc.)
+const SIMPLE_MEDICINE_PATTERNS = [
+  /\b(headache|head ache|migraine)\b/i,
+  /\b(fever|temperature|high temp)\b/i,
+  /\b(cough|cold|flu|catarrh|runny nose|blocked nose)\b/i,
+  /\b(stomach ache|stomach pain|belly ache|ulcer|indigestion|heartburn|bloating)\b/i,
+  /\b(malaria|typhoid|body ache|body pain|joint pain|weakness)\b/i,
+  /\b(medicine for|drug for|tablet for|what (should|can) i take|what medication|what to take)\b/i,
+  /\b(paracetamol|panadol|ibuprofen|amoxicillin|amoxil|flagyl|metronidazole|cotrimoxazole)\b/i,
+  /\b(diarrhoea|diarrhea|running stomach|stooling|vomiting|nausea)\b/i,
+  /\b(skin rash|rash|itching|boil|wound|cut|injury)\b/i,
+  /\b(pain|ache|sore|swelling|swollen)\b/i,
+];
+
 export async function routeResearchRequest(question: string): Promise<ResearchResponse | null> {
   const normalized = (question || '').trim();
   if (!normalized) return null;
 
+  // Skip research engine for everyday medicine/symptom questions.
+  // These go directly to the main AI so the system prompt can give
+  // direct, practical advice (e.g. "take Panadol Extra 2 tablets every 6hrs").
+  const isSimpleMedicine = SIMPLE_MEDICINE_PATTERNS.some((pattern) => pattern.test(normalized));
+  if (isSimpleMedicine) return null;
+
   const domains = classifyResearchDomains(normalized);
   if (domains.includes('general')) {
-    const explicitResearch = /(diagnosis|symptom|infectious|treatment|medical|veterinary|zoonotic|crop|plant health|environmental|water quality|one health)/i.test(normalized);
+    const explicitResearch = /(epilepsy|seizure|cenobamate|clinical trial|drug-resistant|zoonotic|one health|veterinary|plant health|environmental|water quality|antimicrobial resistance)/i.test(normalized);
     if (!explicitResearch) return null;
   }
 
@@ -238,7 +277,9 @@ export async function routeResearchRequest(question: string): Promise<ResearchRe
     return new OneHealthOrchestrator().analyze(normalized);
   }
 
-  if (domains.includes('medical') || /(symptom|diagnosis|disease|patient|medicine|treatment|clinic|doctor|health)/i.test(normalized)) {
+  // Only invoke MedicalProblemSolver for serious/complex clinical research queries —
+  // NOT for everyday "medicine for headache" type questions (handled above by simple check)
+  if (domains.includes('medical') || /(epilepsy|seizure|cenobamate|clinical trial|drug-resistant|antimicrobial resistance)/i.test(normalized)) {
     return new MedicalProblemSolver().solve(normalized);
   }
 
