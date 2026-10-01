@@ -11,6 +11,7 @@ module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
+    const startTime = Date.now();
     // Read raw body
     const raw = await new Promise((resolve, reject) => {
       let data = '';
@@ -94,20 +95,81 @@ module.exports = async (req, res) => {
       }
     }
 
-    // ── Run search ───────────────────────────────────────────────────────────
-    console.log('[Chat] Searching:', userQuery.substring(0, 80));
-    const searchResults = await tavilySearch(userQuery);
+    // ── Smart search gate: only run Tavily for real knowledge queries ────────
+    function needsWebSearch(query) {
+      const q = (query || '').trim().toLowerCase();
 
-    if (searchResults) {
-      console.log('[Chat] Got search results, chars:', searchResults.length);
-    } else {
-      console.warn('[Chat] No search results, using training data only');
+      // Very short messages are conversational, not queries
+      if (q.length < 15) return false;
+
+      // Pure greetings and casual openers
+      const casualPatterns = [
+        /^(hi|hello|hey|how are you|how you dey|how far|wetin dey|good morning|good afternoon|good evening|good night|sup|what.?s up|wagwan|oya|na me|morning|evening)[\.!?\s]*$/i,
+        /^(i dey fine|i dey o|fine|okay|ok|yes|no|yep|nope|lol|haha|hehe|thanks|thank you|e don do|na you|appreciate|carry go|no wahala)[\.!?\s]*$/i,
+        /^(i dey (bored|stress|hungry|tired|fine)|i wan chop|i dey get|i no dey|e don)\b/i,
+      ];
+      if (casualPatterns.some(p => p.test(q))) return false;
+
+      // Emotional / personal expressions (no search needed)
+      if (/^(i feel|i am (sad|happy|tired|stressed|worried|confused|excited)|i dey (feel|try)|wahala|problem|issue)\b/i.test(q)) return false;
+
+      // Food / basic life
+      if (/^(i wan chop|i dey hungry|wetin.*chop|what.*eat|what.*cook|cook.*recipe)\b/i.test(q)) return false;
+
+      // Knowledge / factual indicators — DO search
+      if (/\b(what is|what are|who is|who are|when did|when is|where is|where are|how does|how do|why does|why do|explain|define|tell me about|what happened|latest|news|update|price of|rate of|cost of|how much is)\b/i.test(q)) return true;
+
+      // News / events / live data
+      if (/\b(news|breaking|latest|today.*happen|happen.*today|wetin.*happen.*today|current|trending|update|stock|forex|exchange rate|weather forecast)\b/i.test(q)) return true;
+
+      // Medical / legal / technical (substantive questions)
+      if (/\b(medicine|drug|treatment|dose|symptom|diagnosis|hospital|doctor|law|section|act|case|engineer|formula|calculation|algorithm|code|program)\b/i.test(q)) return true;
+
+      // Default: skip search for everything else not matched above
+      return false;
     }
 
-    // ── Build enriched messages ──────────────────────────────────────────────
+    // ── Run search — only for genuine knowledge queries ──────────────────────
+    const shouldSearch = needsWebSearch(userQuery);
+    let searchResults = null;
+    if (shouldSearch) {
+      console.log('[Chat] Searching:', userQuery.substring(0, 80));
+      searchResults = await tavilySearch(userQuery);
+      if (searchResults) {
+        console.log('[Chat] Got search results, chars:', searchResults.length);
+      } else {
+        console.warn('[Chat] No search results, using training data only');
+      }
+    } else {
+      console.log('[Chat] Skipping search for casual/short message:', userQuery.substring(0, 40));
+    }
+
+    // ── Trim message history — keep last 8 user+assistant pairs ────────────
+    const isCasualMessage = !shouldSearch && userQuery.trim().length < 60;
+
+    // Separate system messages from conversation messages
+    const conversationMessages = messages.filter(m => m.role !== 'system');
+    const recentMessages = conversationMessages.slice(-16); // last 8 pairs (user+assistant)
+
+    // ── Build system prompt ──────────────────────────────────────────────────
     const today = new Date().toISOString().split('T')[0];
-    const systemContent = searchResults
-      ? `You are BLACK AI — Africa's most intelligent AI. Created by Obosa Thompson Emuze. Today: ${today}.
+
+    let systemContent;
+    if (isCasualMessage) {
+      // Short prompt for casual/conversational messages — fast and focused
+      systemContent = `You are BLACK AI — Africa's smartest AI companion. Created by Obosa Thompson Emuze. Today: ${today}.
+
+You are having a REAL CONVERSATION. Casual message = casual reply. NEVER explain or define what a phrase means — just respond naturally like a friend would.
+
+LANGUAGE LOCK: Reply ONLY in the language the user writes in. Pidgin → Pidgin only. English → English only. NEVER mix.
+
+KEY RULES:
+- Greeting gets a greeting back. "How you dey?" → "I dey fine o! You nko?" NOT a definition.
+- "i dey hungry" / "i wan chop" → ask what they want to eat, suggest options.
+- "thank you" / "e don do" → acknowledge naturally, offer to help more.
+- SHORT replies — 1-3 sentences for casual chat.`;
+    } else if (searchResults) {
+      systemContent = `You are BLACK AI — Africa's most intelligent AI. Created by Obosa Thompson Emuze. Today: ${today}.
 
 You are a SPECIALIST in every field: medicine, law, engineering, finance, science, agriculture, psychology, technology, cooking, fitness, history, and all other disciplines. You give deep, specific, expert-level answers — not generic, cautious, or watered-down responses.
 
@@ -140,8 +202,9 @@ IMPORTANT RULES:
 - Give direct, confident, specialist-level answers
 - Do NOT say you lack internet access
 - Do NOT say your information may be outdated
-- Be specific, accurate, and genuinely helpful`
-      : `You are BLACK AI — Africa's most intelligent AI. Created by Obosa Thompson Emuze. Today: ${today}.
+- Be specific, accurate, and genuinely helpful`;
+    } else {
+      systemContent = `You are BLACK AI — Africa's most intelligent AI. Created by Obosa Thompson Emuze. Today: ${today}.
 
 You are a SPECIALIST in every field: medicine, law, engineering, finance, science, agriculture, psychology, technology, cooking, fitness, history, and all other disciplines.
 
@@ -165,14 +228,9 @@ SPECIALIST RULES (for knowledge questions only):
 - ALL FIELDS: Go deep and specific. NEVER just say "consult a professional" without first giving the actual expert answer
 
 Web search is temporarily unavailable. Answer from your training data with full specialist depth.`;
-
-    let finalMessages = [...messages];
-    const sysIdx = finalMessages.findIndex(m => m.role === 'system');
-    if (sysIdx >= 0) {
-      finalMessages[sysIdx] = { role: 'system', content: systemContent };
-    } else {
-      finalMessages = [{ role: 'system', content: systemContent }, ...finalMessages];
     }
+
+    let finalMessages = [{ role: 'system', content: systemContent }, ...recentMessages];
 
     // ── Call Groq ─────────────────────────────────────────────────────────────
     const callGroq = async (model) => {
