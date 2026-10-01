@@ -52,21 +52,26 @@ async function tryTesseractOcr(preprocessedImage: string): Promise<OcrResult | n
   try {
     const { createWorker } = await import('tesseract.js');
     console.log('[OCR] Starting Tesseract.js worker...');
+    // createWorker(lang) — OEM mode and logger options handled via second arg object in v5+
     const worker = await createWorker('eng', 1, {
-      logger: (m) => console.log('[Tesseract]', m),
+      logger: (m: any) => {
+        if (m.status === 'recognizing text') {
+          console.log(`[Tesseract] ${Math.round((m.progress || 0) * 100)}%`);
+        }
+      },
     });
-    
+
     console.log('[OCR] Recognizing text...');
     const { data } = await worker.recognize(preprocessedImage);
     await worker.terminate();
-    
+
     const text = (data.text || '').trim();
-    console.log('[OCR] Extracted text:', text.substring(0, 100));
-    
+    console.log('[OCR] Extracted text preview:', text.substring(0, 100));
+
     if (text) {
       return {
         text,
-        confidence: data.confidence / 100,
+        confidence: (data.confidence ?? 0) / 100,
         provider: 'tesseract',
         source: 'tesseract',
       };
@@ -82,26 +87,31 @@ async function tryApiOcr(preprocessedImage: string): Promise<OcrResult | null> {
     const response = await fetch('/api/v1/ocr', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageUrl: preprocessedImage, language: 'eng', layout: true }),
+      body: JSON.stringify({ imageBase64: preprocessedImage, task: 'ocr', language: 'eng' }),
       signal: AbortSignal.timeout(20000),
     });
 
     if (!response.ok) return null;
-    const payload = await response.json().catch(() => ({})) as {
-      data?: { text?: string; confidence?: number; provider?: string };
-    };
 
-    const text = (payload.data?.text || '').trim();
+    // api/vision.js (which handles /api/v1/ocr) returns { text, description, provider, model }
+    // Some older backends wrap it as { data: { text } } — handle both shapes
+    const payload = await response.json().catch(() => ({})) as Record<string, any>;
+    const text = (
+      (typeof payload.text === 'string' ? payload.text : '') ||
+      (typeof payload.data?.text === 'string' ? payload.data.text : '') ||
+      (typeof payload.description === 'string' ? payload.description : '')
+    ).trim();
+
     if (text) {
       return {
         text,
-        confidence: payload.data?.confidence,
-        provider: payload.data?.provider || 'api',
+        confidence: payload.confidence ?? payload.data?.confidence,
+        provider: payload.provider ?? payload.data?.provider ?? 'api',
         source: 'api',
       };
     }
   } catch {
-    // ignore and continue to local fallback
+    // ignore and continue to empty result
   }
 
   return null;

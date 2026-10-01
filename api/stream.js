@@ -20,7 +20,7 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: 'messages array required' });
     }
 
-    const GROQ_KEY = process.env.GROQ_API_KEY || process.env.GROQ_KEY;
+    const GROQ_KEY = process.env.GROQ_API_KEY || process.env.GROQ_KEY || process.env.VITE_GROQ_KEY;
     if (!GROQ_KEY) {
       return res.status(500).json({ 
         error: 'API key not configured',
@@ -29,38 +29,59 @@ module.exports = async (req, res) => {
       });
     }
 
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${GROQ_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'openai/gpt-oss-120b',
-        messages: messages,
-        temperature: temperature,
-        max_tokens: maxTokens,
-        stream: false
-      })
-    });
+    const MODELS = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'gemma2-9b-it'];
+    let text = null;
+    let usedModel = null;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      return res.status(500).json({
+    for (const model of MODELS) {
+      try {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${GROQ_KEY}`
+          },
+          body: JSON.stringify({
+            model,
+            messages,
+            temperature,
+            max_tokens: maxTokens,
+            stream: false
+          }),
+          signal: AbortSignal.timeout(50000),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text().catch(() => '');
+          console.warn(`[Stream] ${model} returned ${response.status}:`, errorText.slice(0, 120));
+          continue;
+        }
+
+        const data = await response.json();
+        const candidate = data.choices?.[0]?.message?.content;
+        if (candidate && candidate.trim()) {
+          text = candidate;
+          usedModel = model;
+          break;
+        }
+      } catch (err) {
+        console.warn(`[Stream] ${model} threw:`, err.message);
+      }
+    }
+
+    if (!text) {
+      return res.status(503).json({
         error: 'AI provider error',
-        text: 'Service temporarily unavailable',
+        text: 'Service temporarily unavailable. Please try again.',
         provider: 'groq'
       });
     }
 
-    const data = await response.json();
-    const text = data.choices?.[0]?.message?.content || 'No response';
-    
     return res.status(200).json({
-      text: text,
+      text,
       provider: 'groq',
-      model: 'openai/gpt-oss-120b',
-      tokensUsed: data.usage?.total_tokens
+      model: usedModel,
+      tokensUsed: undefined,
     });
   } catch (error) {
     console.error('Stream error:', error);

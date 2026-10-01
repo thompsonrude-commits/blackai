@@ -13,13 +13,14 @@ export const GROQ_KEY = defineSecret('GROQ_KEY');
 const BASE_URL = 'https://api.groq.com/openai/v1';
 
 export const GROQ_MODELS = [
-  'openai/gpt-oss-20b',
   'openai/gpt-oss-120b',
+  'openai/gpt-oss-20b',
   'gemma2-9b-it',
 ];
 
 export const GROQ_VISION_MODELS = [
-  'qwen/qwen3.6-27b',
+  'qwen/qwen3.8-27b',
+  'meta-llama/llama-4-scout-17b-16e-instruct',
 ];
 
 // ── Non-streaming chat ─────────────────────────────────────────────────────

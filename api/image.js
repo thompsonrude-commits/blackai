@@ -1,413 +1,274 @@
-// Image generation with unlimited-first fallback chain
-// Priority: Stable Horde (photorealistic) → Jimeng → Craiyon → Z-Image
-// NO POLLINATIONS - per user request
+// BLACK AI — Image generation endpoint
+// Provider chain (fastest/most reliable first):
+//   1. Pollinations.ai  — free, no key, fast, FLUX model (5-15s)
+//   2. Stable Horde     — free, community GPU, good quality (30-90s)
+//   3. Craiyon          — free, slower, lower quality fallback (~60s)
+// Routes: /api/ai/image, /api/image, /api/v1/image/generate  (all via vercel.json)
 
-// Detect if prompt requests text on image (signs, posters, labels, etc.)
-function detectTextRequest(prompt) {
-  const lower = prompt.toLowerCase();
-  const textPatterns = [
-    /\b(sign|poster|banner|label|text|writing|words?|letters?|saying|reading|displaying)\b/i,
-    /\b(bearing|with|showing|that says|labeled|titled)\b.*["']/i,
-    /["'].*["']/  // Quoted text
-  ];
-  return textPatterns.some(pattern => pattern.test(lower));
+// ── Prompt helpers ──────────────────────────────────────────────────────────
+
+function enhancePrompt(raw) {
+  const cleaned = (raw || 'beautiful African scenery').trim();
+
+  // Don't double-enhance if already has quality keywords
+  if (/\b(photorealistic|ultra detailed|8k|professional photograph|masterpiece)\b/i.test(cleaned)) {
+    return cleaned;
+  }
+
+  const lower = cleaned.toLowerCase();
+
+  if (/\b(person|man|woman|people|human|portrait|face|professional|executive)\b/i.test(lower)) {
+    return cleaned + ', professional portrait photography, photorealistic, natural skin texture, studio lighting, ultra high detail, 8k resolution, sharp focus, real person';
+  }
+  if (/\b(landscape|forest|mountain|beach|sunset|sunrise|nature|river|ocean|savanna|sky)\b/i.test(lower)) {
+    return cleaned + ', breathtaking landscape photography, photorealistic, golden hour lighting, vivid colors, National Geographic style, ultra sharp, 8k resolution';
+  }
+  if (/\b(animal|dog|cat|lion|tiger|elephant|bird|wildlife|horse|zebra|giraffe)\b/i.test(lower)) {
+    return cleaned + ', award-winning wildlife photography, photorealistic, ultra detailed fur texture, natural habitat, dramatic lighting, National Geographic quality, 8k';
+  }
+  if (/\b(building|architecture|house|office|room|interior|city|street|town)\b/i.test(lower)) {
+    return cleaned + ', professional architectural photography, photorealistic, perfect lighting, ultra detailed, sharp focus, 8k resolution';
+  }
+  if (/\b(food|dish|meal|cuisine|restaurant|plate|cook)\b/i.test(lower)) {
+    return cleaned + ', professional food photography, photorealistic, macro lens, soft lighting, vibrant colors, appetizing presentation, 8k';
+  }
+  if (/\b(logo|icon|brand|symbol|emblem|badge)\b/i.test(lower)) {
+    return cleaned + ', vector style logo, clean modern design, professional, minimal, sharp edges, transparent background';
+  }
+  if (/\b(diagram|chart|infographic|flowchart|illustration|educational)\b/i.test(lower)) {
+    return cleaned + ', clean professional infographic, labeled diagram, educational illustration, high contrast, clear typography, white background';
+  }
+
+  return cleaned + ', photorealistic, ultra high detail, professional photography, perfect lighting, sharp focus, 8k resolution, masterpiece';
 }
 
-// Extract text content from prompt
-function extractTextContent(prompt) {
-  const matches = prompt.match(/["']([^"']+)["']/g);
-  if (matches) {
-    return matches.map(m => m.replace(/["']/g, '')).join(' ');
+// ── Helper: fetch image URL and convert to base64 data URL ─────────────────
+async function fetchAsDataUrl(url, timeoutMs = 20000) {
+  const resp = await fetch(url, {
+    method: 'GET',
+    headers: { 'User-Agent': 'BlackAI/2.0' },
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  const contentType = (resp.headers.get('content-type') || 'image/jpeg').split(';')[0].trim();
+  if (!contentType.startsWith('image/')) throw new Error(`Non-image content-type: ${contentType}`);
+  const buffer = Buffer.from(await resp.arrayBuffer());
+  if (!buffer.length) throw new Error('Empty response body');
+  return `data:${contentType};base64,${buffer.toString('base64')}`;
+}
+
+// ── Provider 1: Pollinations.ai ─────────────────────────────────────────────
+async function tryPollinations(prompt, seed) {
+  const encodedPrompt = encodeURIComponent(prompt);
+  const width = 1024;
+  const height = 1024;
+  const useSeed = seed || Math.floor(Math.random() * 1000000);
+
+  // Try FLUX first, then turbo as immediate fallback
+  const models = [
+    `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${useSeed}&model=flux&nologo=true&enhance=true`,
+    `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${useSeed}&model=turbo&nologo=true`,
+    `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${useSeed}&nologo=true`,
+  ];
+
+  for (const url of models) {
+    try {
+      const dataUrl = await fetchAsDataUrl(url, 30000);
+      return dataUrl;
+    } catch (err) {
+      console.warn('[Image] Pollinations attempt failed:', err.message);
+    }
   }
-  
-  // Also try common patterns like "bearing X", "saying X", "reading X"
-  const bearingMatch = prompt.match(/\b(?:bearing|saying|reading|displaying|showing|with text)\s+(.+?)(?:\s+street|$)/i);
-  if (bearingMatch) {
-    return bearingMatch[1].trim();
-  }
-  
   return null;
 }
 
-// Remove text-related phrases from prompt (AI can't generate readable text)
-function removeTextInstructions(prompt) {
-  let cleaned = prompt
-    .replace(/\b(bearing|saying|reading|displaying|showing|with text|that says|labeled|titled)\s+["']?[^"',\.]+["']?/gi, '')
-    .replace(/["'][^"']+["']/g, '')
-    .replace(/\s{2,}/g, ' ')
-    .trim();
-  
-  // Clean up artifacts
-  cleaned = cleaned.replace(/\s+of\s+a\s+of/, ' of');
-  cleaned = cleaned.replace(/\s+of\s+$/, '');
-  
-  return cleaned;
-}
-
-// Intelligent prompt enhancement for photorealism
-function enhancePrompt(userPrompt) {
-  let cleaned = userPrompt.trim();
-  const lower = cleaned.toLowerCase();
-  
-  // Check if user wants text on image
-  const hasTextRequest = detectTextRequest(cleaned);
-  const textContent = hasTextRequest ? extractTextContent(cleaned) : null;
-  
-  // Remove text instructions since AI can't generate readable text
-  if (hasTextRequest) {
-    cleaned = removeTextInstructions(cleaned);
-    console.log('[Image API] Removed text request. Original:', userPrompt);
-    console.log('[Image API] Cleaned prompt:', cleaned);
-    if (textContent) {
-      console.log('[Image API] ⚠️ Text content removed (AI cannot generate readable text):', textContent);
-    }
-  }
-  
-  const hasQualityKeywords = /\b(detailed|realistic|high quality|photorealistic|professional|photograph)\b/i.test(cleaned);
-  if (hasQualityKeywords) return { prompt: cleaned, hasText: hasTextRequest, textContent };
-  
-  const isSign = /\b(sign|signage|road sign|street sign|warning sign|billboard)\b/i.test(lower);
-  const isAnimal = /\b(dog|cat|horse|cow|lion|tiger|elephant|animal|bird|wildlife|pet|zebra|giraffe|bear)\b/i.test(lower);
-  const isPerson = /\b(person|man|woman|people|human|portrait|face|manager|executive|professional|businessman|businesswoman)\b/i.test(lower);
-  const isLandscape = /\b(landscape|scenery|forest|mountain|beach|sunset|sunrise|nature|river|ocean|savana|savanna|desert)\b/i.test(lower);
-  const isBuilding = /\b(building|office|house|room|interior|desk|workspace|architecture)\b/i.test(lower);
-  
-  let enhanced = cleaned;
-  
-  if (isSign) {
-    enhanced = cleaned + ', professional product photography, photorealistic, clean modern design, sharp focus, studio lighting, ultra detailed, 8k resolution, clear and legible';
-  } else if (isAnimal) {
-    enhanced = cleaned + ', award-winning wildlife photography, photorealistic, ultra detailed fur and skin texture, natural habitat, dramatic lighting, National Geographic quality, Canon EOS R5, 400mm lens, 8k, sharp focus, depth of field';
-  } else if (isPerson) {
-    enhanced = cleaned + ', professional portrait photography, photorealistic, natural skin texture with visible pores, studio lighting setup, real person, ultra high detail, full body in frame, Canon EOS 5D, 85mm f/1.4 lens, 8k resolution, perfect composition';
-  } else if (isLandscape) {
-    enhanced = cleaned + ', breathtaking landscape photography, photorealistic, golden hour lighting, vivid colors, National Geographic style, ultra sharp details, wide angle, 8k resolution, professional DSLR';
-  } else if (isBuilding) {
-    enhanced = cleaned + ', professional architectural photography, photorealistic, perfect lighting, ultra detailed, sharp focus, clean composition, 8k resolution, full frame visible';
-  } else {
-    enhanced = cleaned + ', professional photography, photorealistic, ultra high detail, perfect lighting, sharp focus, 8k resolution, masterpiece';
-  }
-  
-  return { prompt: enhanced, hasText: hasTextRequest, textContent };
-}
-
-module.exports = async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
-  if (req.method === 'OPTIONS') {
-    return res.status(204).send('');
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  const userPrompt = req.body?.prompt || 'beautiful scenery';
-  const promptResult = enhancePrompt(userPrompt);
-  const prompt = typeof promptResult === 'string' ? promptResult : promptResult.prompt;
-  const hasTextRequest = typeof promptResult === 'object' ? promptResult.hasText : false;
-  const textContent = typeof promptResult === 'object' ? promptResult.textContent : null;
-  const startTime = Date.now();
-  
-  console.log('[Image API] User prompt:', userPrompt);
-  console.log('[Image API] Enhanced:', prompt);
-  
-  if (hasTextRequest) {
-    console.log('[Image API] ⚠️ WARNING: User requested text on image');
-    console.log('[Image API] ⚠️ AI image generators cannot create readable text');
-    if (textContent) {
-      console.log('[Image API] ⚠️ Requested text:', textContent);
-    }
-  }
-  
-  // PRIORITY 1: Stable Horde (unlimited, photorealistic models)
+// ── Provider 2: Stable Horde (async job queue) ──────────────────────────────
+// Kept under 45s total to stay safely within Vercel's 60s function limit
+async function tryStableHorde(prompt) {
   try {
-    console.log('[Image API] Trying Stable Horde (photorealistic)');
-    const response = await fetch('https://stablehorde.net/api/v2/generate/async', {
+    const submitResp = await fetch('https://stablehorde.net/api/v2/generate/async', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': '0000000000',
+        'apikey': '0000000000', // anonymous key
       },
       body: JSON.stringify({
-        prompt: prompt,
+        prompt,
         params: {
           n: 1,
           width: 768,
           height: 768,
-          steps: 40,
-          cfg_scale: 9,
+          steps: 25,
+          cfg_scale: 7,
           sampler_name: 'k_dpmpp_2m',
           karras: true,
-          hires_fix: true,
-          clip_skip: 2,
         },
         nsfw: false,
-        trusted_workers: true,
+        trusted_workers: false,
         slow_workers: true,
-        models: ['Realistic_Vision_V5.1', 'Deliberate', 'DreamShaper'],
+        models: ['Realistic_Vision_V5.1', 'Deliberate', 'DreamShaper', 'stable_diffusion'],
         r2: true,
       }),
       signal: AbortSignal.timeout(8000),
     });
 
-    if (response.ok) {
-      const data = await response.json();
-      const jobId = data.id;
+    if (!submitResp.ok) {
+      console.warn('[Image] StableHorde submit failed:', submitResp.status);
+      return null;
+    }
 
-      // Poll for completion (max 15 seconds then try next)
-      for (let i = 0; i < 5; i++) {
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        
-        const statusResponse = await fetch(`https://stablehorde.net/api/v2/generate/check/${jobId}`, {
-          signal: AbortSignal.timeout(3000),
+    const { id: jobId } = await submitResp.json();
+    if (!jobId) return null;
+
+    // Poll for up to 40 seconds (8 × 5s intervals)
+    for (let i = 0; i < 8; i++) {
+      await new Promise(r => setTimeout(r, 5000));
+
+      try {
+        const checkResp = await fetch(`https://stablehorde.net/api/v2/generate/check/${jobId}`, {
+          signal: AbortSignal.timeout(4000),
         });
-        const status = await statusResponse.json();
+        if (!checkResp.ok) continue;
 
-        if (status.done) {
-          const resultResponse = await fetch(`https://stablehorde.net/api/v2/generate/status/${jobId}`, {
-            signal: AbortSignal.timeout(3000),
-          });
-          const result = await resultResponse.json();
-          
-          if (result.generations && result.generations[0]) {
-            console.log('[Image API] ✅ Stable Horde succeeded (photorealistic)');
-            return res.status(200).json({
-              imageUrl: result.generations[0].img,
-              provider: 'stablehorde',
-              model: 'Realistic_Vision_V5.1',
-              latencyMs: Date.now() - startTime,
-              warning: hasTextRequest ? 'AI cannot generate readable text. Text was removed from prompt.' : undefined,
-              requestedText: textContent || undefined,
-            });
+        const status = await checkResp.json();
+        if (!status.done) {
+          console.log(`[Image] StableHorde queue position: ${status.queue_position}, wait: ${status.wait_time}s`);
+          continue;
+        }
+
+        const resultResp = await fetch(`https://stablehorde.net/api/v2/generate/status/${jobId}`, {
+          signal: AbortSignal.timeout(4000),
+        });
+        if (!resultResp.ok) return null;
+
+        const result = await resultResp.json();
+        const imgData = result.generations?.[0]?.img;
+        if (!imgData) return null;
+
+        // Stable Horde returns either base64 or a URL depending on r2 flag
+        if (imgData.startsWith('http')) {
+          try {
+            return await fetchAsDataUrl(imgData, 10000);
+          } catch {
+            return `data:image/webp;base64,${imgData}`;
           }
         }
+        // Already base64 (no data: prefix)
+        return `data:image/webp;base64,${imgData}`;
+      } catch (pollErr) {
+        console.warn('[Image] StableHorde poll error:', pollErr.message);
       }
-      console.log('[Image API] Stable Horde timed out, trying next provider');
     }
-  } catch (error) {
-    console.log('[Image API] Stable Horde failed:', error.message);
-  }
-  
-  // PRIORITY 2: Jimeng (fast fallback)
-  try {
-    console.log('[Image API] Trying Jimeng (fast)');
-    const encodedPrompt = encodeURIComponent(prompt);
-    const response = await fetch(`https://jimeng.jianying.com/ai-platform/api/v1/text2image?prompt=${encodedPrompt}&model=jimeng-4.5&resolution=4k&ratio=1:1`, {
-      method: 'GET',
-      headers: {
-        'User-Agent': 'Mozilla/5.0',
-        'Accept': 'application/json',
-      },
-      signal: AbortSignal.timeout(12000),
-    });
 
-    if (response.ok) {
-      const data = await response.json();
-      if (data?.data && data.data[0] && data.data[0].url) {
-        return res.status(200).json({
-          imageUrl: data.data[0].url,
-          provider: 'jimeng',
-          model: 'jimeng-4.5',
-          latencyMs: Date.now() - startTime,
-          warning: hasTextRequest ? 'AI cannot generate readable text. Text was removed from prompt.' : undefined,
-          requestedText: textContent || undefined,
-        });
-      }
-    }
-  } catch (error) {
-    console.log('[Image API] Jimeng failed:', error.message);
+    return null; // timed out
+  } catch (err) {
+    console.warn('[Image] StableHorde failed:', err.message);
+    return null;
   }
-  
-  // PRIORITY 1: Stable Horde (unlimited, community-powered)
+}
+
+// ── Provider 3: Craiyon ─────────────────────────────────────────────────────
+async function tryCraiyon(prompt) {
   try {
-    console.log('[Image API] Trying Stable Horde (unlimited)');
-    const response = await fetch('https://stablehorde.net/api/v2/generate/async', {
+    const resp = await fetch('https://api.craiyon.com/v3', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': '0000000000', // Anonymous key
-      },
-      body: JSON.stringify({
-        prompt: prompt,
-        params: {
-          n: 1,
-          width: 512,
-          height: 512,
-          steps: 30,
-          cfg_scale: 7.5,
-        },
-        nsfw: false,
-        trusted_workers: false,
-        slow_workers: true,
-        models: ['stable_diffusion'],
-      }),
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      const jobId = data.id;
-
-      // Poll for completion (max 3 minutes)
-      for (let i = 0; i < 36; i++) {
-        await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5s between polls
-        
-        const statusResponse = await fetch(`https://stablehorde.net/api/v2/generate/check/${jobId}`);
-        const status = await statusResponse.json();
-
-        if (status.done) {
-          const resultResponse = await fetch(`https://stablehorde.net/api/v2/generate/status/${jobId}`);
-          const result = await resultResponse.json();
-          
-          if (result.generations && result.generations[0]) {
-            return res.status(200).json({
-              imageUrl: result.generations[0].img,
-              provider: 'stablehorde',
-              model: 'stable-diffusion',
-              latencyMs: Date.now() - startTime,
-              warning: hasTextRequest ? 'AI cannot generate readable text. Text was removed from prompt.' : undefined,
-              requestedText: textContent || undefined,
-            });
-          }
-        }
-      }
-    }
-  } catch (error) {
-    console.log('[Image API] Stable Horde failed:', error.message);
-  }
-
-  // PRIORITY 2: Craiyon (unlimited, ad-supported)
-  try {
-    console.log('[Image API] Trying Craiyon (unlimited fallback)');
-    const response = await fetch('https://api.craiyon.com/v3', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        prompt: prompt,
-        model: 'none',
-        negative_prompt: '',
-        version: '35s5hfwn9n78gb06',
-      }),
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      if (data.images && data.images.length > 0) {
-        return res.status(200).json({
-          imageUrl: `data:image/png;base64,${data.images[0]}`,
-          provider: 'craiyon',
-          model: 'dall-e-mini',
-          latencyMs: Date.now() - startTime,
-          warning: hasTextRequest ? 'AI cannot generate readable text. Text was removed from prompt.' : undefined,
-          requestedText: textContent || undefined,
-        });
-      }
-    }
-  } catch (error) {
-    console.log('[Image API] Craiyon failed:', error.message);
-  }
-
-  // PRIORITY 3: Z-Image (2,000/day, high quality)
-  try {
-    console.log('[Image API] Trying Z-Image (2K/day limit)');
-    const response = await fetch('https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-DashScope-Async': 'enable',
-      },
-      body: JSON.stringify({
-        model: 'wanx-v1',
-        input: {
-          prompt: prompt,
-        },
-        parameters: {
-          size: '1024*1024',
-          n: 1,
-        },
-      }),
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      const taskId = data.output?.task_id;
-
-      if (taskId) {
-        // Poll for completion (max 60s)
-        for (let i = 0; i < 12; i++) {
-          await new Promise(resolve => setTimeout(resolve, 5000));
-          
-          const statusResponse = await fetch(`https://dashscope.aliyuncs.com/api/v1/tasks/${taskId}`, {
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
-          
-          const status = await statusResponse.json();
-          
-          if (status.output?.task_status === 'SUCCEEDED' && status.output?.results?.[0]?.url) {
-            return res.status(200).json({
-              imageUrl: status.output.results[0].url,
-              provider: 'zimage',
-              model: 'z-image-turbo',
-              latencyMs: Date.now() - startTime,
-              warning: hasTextRequest ? 'AI cannot generate readable text. Text was removed from prompt.' : undefined,
-              requestedText: textContent || undefined,
-            });
-          }
-        }
-      }
-    }
-  } catch (error) {
-    console.log('[Image API] Z-Image failed:', error.message);
-  }
-
-  // PRIORITY 4: Jimeng AI (80-100/day, ByteDance)
-  try {
-    console.log('[Image API] Trying Jimeng (80-100/day limit)');
-    const response = await fetch('https://jimeng.jianying.com/ai-platform/api/v1/text2image', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         prompt,
-        model: 'jimeng-4.5',
-        width: 1024,
-        height: 1024,
-        steps: 30,
-        guidance_scale: 7.5,
+        model: 'none',
+        negative_prompt: 'blurry, low quality, ugly, deformed',
+        version: '35s5hfwn9n78gb06',
       }),
+      signal: AbortSignal.timeout(55000),
     });
 
-    if (response.ok) {
-      const data = await response.json();
-      const imageUrl = data.data?.image_url || data.image_url;
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    const first = data.images?.[0];
+    if (!first) return null;
+    return `data:image/png;base64,${first}`;
+  } catch (err) {
+    console.warn('[Image] Craiyon failed:', err.message);
+    return null;
+  }
+}
 
-      if (imageUrl) {
-        return res.status(200).json({
-          imageUrl: imageUrl,
-          provider: 'jimeng',
-          model: 'jimeng-4.5',
-          latencyMs: Date.now() - startTime,
-          warning: hasTextRequest ? 'AI cannot generate readable text. Text was removed from prompt.' : undefined,
-          requestedText: textContent || undefined,
-        });
-      }
-    }
-  } catch (error) {
-    console.log('[Image API] Jimeng failed:', error.message);
+// ── Main handler ────────────────────────────────────────────────────────────
+module.exports = async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') return res.status(204).send('');
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  // Parse body (Vercel may pre-parse or leave raw)
+  let bodyObj = req.body || {};
+  if (!bodyObj.prompt) {
+    try {
+      const raw = await new Promise((resolve, reject) => {
+        let d = '';
+        req.on('data', c => { d += c.toString(); });
+        req.on('end', () => resolve(d));
+        req.on('error', reject);
+      });
+      if (raw) bodyObj = JSON.parse(raw);
+    } catch (_) {}
+  }
+
+  const userPrompt = (bodyObj.prompt || 'beautiful African scenery').trim();
+  const prompt = enhancePrompt(userPrompt);
+  const startTime = Date.now();
+
+  console.log('[Image] User prompt:', userPrompt.slice(0, 80));
+  console.log('[Image] Enhanced:', prompt.slice(0, 120));
+
+  // ── Try providers in order ──────────────────────────────────────────────
+
+  // 1. Pollinations (fastest — 5-15s, free, no key required)
+  console.log('[Image] Trying Pollinations.ai (FLUX)...');
+  const pollinationsResult = await tryPollinations(prompt, bodyObj.seed);
+  if (pollinationsResult) {
+    console.log('[Image] ✅ Pollinations succeeded in', Date.now() - startTime, 'ms');
+    return res.status(200).json({
+      imageUrl: pollinationsResult,
+      provider: 'pollinations',
+      model: 'flux',
+      latencyMs: Date.now() - startTime,
+    });
+  }
+
+  // 2. Stable Horde (community GPUs, good quality but can be slow)
+  console.log('[Image] Trying Stable Horde...');
+  const hordeResult = await tryStableHorde(prompt);
+  if (hordeResult) {
+    console.log('[Image] ✅ Stable Horde succeeded in', Date.now() - startTime, 'ms');
+    return res.status(200).json({
+      imageUrl: hordeResult,
+      provider: 'stablehorde',
+      model: 'Realistic_Vision_V5.1',
+      latencyMs: Date.now() - startTime,
+    });
+  }
+
+  // 3. Craiyon (slower but reliable last resort)
+  console.log('[Image] Trying Craiyon...');
+  const craiyonResult = await tryCraiyon(prompt);
+  if (craiyonResult) {
+    console.log('[Image] ✅ Craiyon succeeded in', Date.now() - startTime, 'ms');
+    return res.status(200).json({
+      imageUrl: craiyonResult,
+      provider: 'craiyon',
+      model: 'dall-e-mini',
+      latencyMs: Date.now() - startTime,
+    });
   }
 
   // All providers failed
+  console.error('[Image] All providers failed after', Date.now() - startTime, 'ms');
   return res.status(503).json({
-    error: 'All image providers unavailable',
-    message: 'Tried: Stable Horde, Craiyon, Z-Image, Jimeng - all failed',
-    attempted: ['stablehorde', 'craiyon', 'zimage', 'jimeng'],
+    error: 'All image providers are currently unavailable. Please try again in a few minutes.',
+    attempted: ['pollinations', 'stablehorde', 'craiyon'],
+    latencyMs: Date.now() - startTime,
   });
 };

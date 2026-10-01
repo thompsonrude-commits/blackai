@@ -107,9 +107,19 @@ module.exports = async (req, res) => {
     // ── Build enriched messages ──────────────────────────────────────────────
     const today = new Date().toISOString().split('T')[0];
     const systemContent = searchResults
-      ? `You are BLACK AI, Africa's most intelligent AI assistant. Today's date is ${today}.
+      ? `You are BLACK AI — Africa's most intelligent AI. Created by Obosa Thompson Emuze. Today: ${today}.
 
-You have real-time web search results below. These are CURRENT, UP-TO-DATE facts fetched right now from the live web. Always use these as your primary source of truth over your training data.
+You are a SPECIALIST in every field: medicine, law, engineering, finance, science, agriculture, psychology, technology, cooking, fitness, history, and all other disciplines. You give deep, specific, expert-level answers — not generic, cautious, or watered-down responses.
+
+SPECIALIST RULES:
+- MEDICINE: Give brand names, exact doses, mechanisms, side effects, treatment protocols — like a consultant doctor
+- LAW: Cite specific laws, sections, case law — like a senior barrister
+- ENGINEERING: Show formulas, calculations, specifications — like a chief engineer
+- FINANCE: Give specific numbers, strategies, instruments — like a CFO
+- SCIENCE: Show derivations, formulas, data — like a research professor
+- ALL FIELDS: Go deep and specific. NEVER just say "consult a professional" without first giving the actual expert answer
+
+You have REAL-TIME web search results below. These are CURRENT facts from the live web. Always use these as primary source of truth.
 
 LIVE WEB SEARCH RESULTS:
 ===
@@ -118,13 +128,23 @@ ${searchResults}
 
 IMPORTANT RULES:
 - Use the search results above as your main source of truth
-- Give direct, confident answers based on what you found
-- Do NOT say you lack internet access - you have current results
-- Do NOT say your information may be outdated - use the search results
-- Be concise, accurate, and helpful`
-      : `You are BLACK AI, Africa's most intelligent AI assistant. Today's date is ${today}.
+- Give direct, confident, specialist-level answers
+- Do NOT say you lack internet access
+- Do NOT say your information may be outdated
+- Be specific, accurate, and genuinely helpful`
+      : `You are BLACK AI — Africa's most intelligent AI. Created by Obosa Thompson Emuze. Today: ${today}.
 
-Web search is temporarily unavailable. Answer from your training data but be transparent - tell the user your answer is based on training data and they should verify time-sensitive information from official sources.`;
+You are a SPECIALIST in every field: medicine, law, engineering, finance, science, agriculture, psychology, technology, cooking, fitness, history, and all other disciplines. You give deep, specific, expert-level answers — not generic, cautious, or watered-down responses.
+
+SPECIALIST RULES:
+- MEDICINE: Give brand names, exact doses, mechanisms, side effects, treatment protocols — like a consultant doctor
+- LAW: Cite specific laws, sections, case law — like a senior barrister
+- ENGINEERING: Show formulas, calculations, specifications — like a chief engineer
+- FINANCE: Give specific numbers, strategies, instruments — like a CFO
+- SCIENCE: Show derivations, formulas, data — like a research professor
+- ALL FIELDS: Go deep and specific. NEVER just say "consult a professional" without first giving the actual expert answer
+
+Web search is temporarily unavailable. Answer from your training data with full specialist depth. Be transparent that the answer is from training data for time-sensitive topics.`;
 
     let finalMessages = [...messages];
     const sysIdx = finalMessages.findIndex(m => m.role === 'system');
@@ -136,32 +156,43 @@ Web search is temporarily unavailable. Answer from your training data but be tra
 
     // ── Call Groq ─────────────────────────────────────────────────────────────
     const callGroq = async (model) => {
-      const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${GROQ_KEY}`
-        },
-        body: JSON.stringify({
-          model,
-          messages: finalMessages,
-          temperature,
-          max_tokens: maxTokens,
-          stream: false
-        })
-      });
-      if (!r.ok) {
-        console.error(`[Chat] ${model} error ${r.status}:`, await r.text());
+      try {
+        const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${GROQ_KEY}`
+          },
+          body: JSON.stringify({
+            model,
+            messages: finalMessages,
+            temperature,
+            max_tokens: maxTokens,
+            stream: false
+          }),
+          signal: AbortSignal.timeout(50000),
+        });
+        if (!r.ok) {
+          const errText = await r.text().catch(() => '');
+          console.error(`[Chat] ${model} error ${r.status}:`, errText.slice(0, 200));
+          return null;
+        }
+        const d = await r.json();
+        return d.choices?.[0]?.message?.content || null;
+      } catch (err) {
+        console.warn(`[Chat] ${model} threw:`, err.message);
         return null;
       }
-      const d = await r.json();
-      return d.choices?.[0]?.message?.content || null;
     };
 
     let text = await callGroq('openai/gpt-oss-120b');
     if (!text || text.trim() === '') {
-      console.warn('[Chat] Primary model empty, trying groq/compound...');
-      text = await callGroq('groq/compound');
+      console.warn('[Chat] Primary model empty, trying openai/gpt-oss-20b...');
+      text = await callGroq('openai/gpt-oss-20b');
+    }
+    if (!text || text.trim() === '') {
+      console.warn('[Chat] Second model empty, trying gemma2-9b-it...');
+      text = await callGroq('gemma2-9b-it');
     }
     if (!text || text.trim() === '') {
       text = "I'm sorry, I couldn't generate a response. Please try again.";
@@ -180,7 +211,7 @@ Web search is temporarily unavailable. Answer from your training data but be tra
       provider: 'groq',
       model: 'openai/gpt-oss-120b',
       searchUsed: !!searchResults,
-      latencyMs: 0,
+      latencyMs: Date.now() - startTime,
       cached: false
     });
 

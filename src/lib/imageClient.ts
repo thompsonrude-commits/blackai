@@ -37,6 +37,7 @@ export async function generateImage(
       method: 'POST',
       headers,
       body: JSON.stringify(bodyPayload),
+      signal: AbortSignal.timeout(90000), // 90s — Pollinations+Horde can be slow
     });
 
     if (!resp.ok) {
