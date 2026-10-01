@@ -99,7 +99,70 @@ export function getLocalFallbackResponse(input: string, languageCode?: string): 
     return search[code as keyof typeof search] || search.en;
   }
 
-  // ── Educational science topics ────────────────────────────────────────────
+  // ── Medical / symptoms — SPECIALIST knowledge in fallback ─────────────────
+  if (/\b(headache|head.*pain|pain.*head|head dey pain|head dey do|migraine|my head)\b/i.test(lower)) {
+    const r = {
+      en: '**For headache:** Take **Panadol Extra** (2 tablets) or **Ibuprofen/Felvin 400mg** (1 tablet with food). Rest in a quiet dark room, drink water. If pain is severe or lasts over 3 days, see a doctor.',
+      pcm: 'Take **Panadol Extra** — 2 tablets with water. If e strong pass, try **Felvin** (Ibuprofen 400mg) 1 tablet after food. Rest well, drink water. If e no stop after 3 days, go doctor.',
+    } as const;
+    return r[code as keyof typeof r] || r.pcm;
+  }
+
+  if (/\b(fever|temperature|hot body|body hot|malaria|dey shake|shaking|i dey shake)\b/i.test(lower)) {
+    const r = {
+      en: '**For fever:** Take **Panadol** 2 tablets every 6 hours. If you suspect malaria, take **Coartem** or **Lonart** (follow weight dosage on pack). Drink plenty water. Go hospital if fever exceeds 3 days.',
+      pcm: 'Take **Panadol** — 2 tablets every 6 hours. If na malaria, take **Coartem** or **Lonart** follow the pack instruction. Drink plenty water. If fever no stop after 3 days, go hospital quick.',
+    } as const;
+    return r[code as keyof typeof r] || r.pcm;
+  }
+
+  if (/\b(cough|cold|catarrh|running nose|sore throat|chest|breathe)\b/i.test(lower)) {
+    const r = {
+      en: '**For cough/cold:** Dry cough → **Coflin syrup** 10ml 3x daily. Wet cough with mucus → **Benylin Expectorant** 10ml 3x daily. Sore throat → **Strepsils** lozenges + warm salt water gargle.',
+      pcm: 'Dry cough: take **Coflin syrup** 10ml 3 times daily. Wet cough with mucus: **Benylin Expectorant** 10ml 3 times daily. Warm water with salt fit help sore throat. Drink plenty water.',
+    } as const;
+    return r[code as keyof typeof r] || r.pcm;
+  }
+
+  if (/\b(stomach|belle|belly|ulcer|indigestion|vomit|stool|diarrhea|purging|dey purge|running stomach)\b/i.test(lower)) {
+    const r = {
+      en: '**For stomach pain/ulcer:** Take **Omeprazole 20mg** once daily before food. For diarrhoea → **Loperamide (Imodium)** 2 capsules then 1 after each loose stool. Drink ORS (oral rehydration salts) to replace fluids.',
+      pcm: 'Stomach pain or ulcer: take **Omeprazole** 20mg before food in the morning. If na running stomach, take **Loperamide** 2 capsules first, then 1 after every loose stool. Drink ORS (Oral Rehydration Salt) mix — buy am for pharmacy.',
+    } as const;
+    return r[code as keyof typeof r] || r.pcm;
+  }
+
+  if (/\b(body pain|body ache|joint pain|back pain|waist pain|muscle pain)\b/i.test(lower)) {
+    const r = {
+      en: '**For body/joint pain:** Take **Ibuprofen (Felvin/Advil) 400mg** 1 tablet 3x daily with food, or **Diclofenac (Voltaren) 50mg** twice daily with food. Warm compress on painful area helps too.',
+      pcm: 'Take **Felvin** (Ibuprofen 400mg) — 1 tablet 3 times daily after food. Or **Diclofenac** (Voltaren) 50mg 2 times daily after food. Put warm cloth on the pain area. No take am for empty stomach.',
+    } as const;
+    return r[code as keyof typeof r] || r.pcm;
+  }
+
+  if (/\b(blood pressure|bp|hypertension|heart|chest pain|dizzy|dizziness)\b/i.test(lower)) {
+    const r = {
+      en: '⚠️ **Chest pain or dizziness** needs medical attention. For known high BP: continue your prescribed medicine (Amlodipine/Lisinopril). Reduce salt, rest. Go to hospital if chest pain is severe.',
+      pcm: '⚠️ If your chest dey pain you, go hospital fast — no waste time. If na high BP wey you don know, take your prescribed medicine (Amlodipine or Lisinopril). Reduce salt for food, rest well.',
+    } as const;
+    return r[code as keyof typeof r] || r.pcm;
+  }
+
+  if (/\b(diabetes|sugar|blood sugar|insulin|metformin)\b/i.test(lower)) {
+    const r = {
+      en: '**Diabetes management:** Take **Metformin 500mg** twice daily with meals (Type 2, first line). Avoid sugar, white rice, bread. Exercise daily. Monitor blood sugar regularly. Never stop medication without doctor approval.',
+      pcm: '**Diabetes:** Take **Metformin** 500mg 2 times daily with food. Avoid too much sugar, white rice, bread. Do small exercise every day. Check your blood sugar regular. No stop your medicine without doctor say so.',
+    } as const;
+    return r[code as keyof typeof r] || r.pcm;
+  }
+
+  if (/\b(infection|bacteria|antibiotic|amoxicillin|typhoid|uti|wound)\b/i.test(lower)) {
+    const r = {
+      en: '**For bacterial infection:** Mild → **Amoxicillin 500mg** 3x daily for 5-7 days. Stronger → **Augmentin 625mg** twice daily. Typhoid → **Ciprofloxacin 500mg** twice daily for 7-10 days. Complete the full course.',
+      pcm: 'For infection: mild one — take **Amoxicillin** 500mg 3 times daily for 5-7 days. Strong infection — **Augmentin** 625mg 2 times daily. Typhoid — **Ciprofloxacin** 500mg 2 times daily for 7-10 days. Make sure you finish the full course even if you feel better.',
+    } as const;
+    return r[code as keyof typeof r] || r.pcm;
+  }
   if (/\b(photosynthesis|water cycle|heart|pulley|computer|cell|atom|ecosystem|battery|machine|kidney|brain)\b/i.test(lower)) {
     if (code === 'pcm') {
       if (/photosynthesis/i.test(lower)) return normalizePidginGrammar('Photosynthesis na the process wey plants use sunlight, water, and CO2 to make food and release oxygen.');
