@@ -190,7 +190,21 @@ async function buildGeneralSystemPrompt(learningContext = '', personalizationCon
   
  // Get current year and actual date info
  const currentYear = now.getFullYear();
- const currentMonth = now.toLocaleString('en-NG', { month: 'long' });
+
+ // Nigerian public holidays / significant dates
+ const m = now.getMonth() + 1;
+ const d = now.getDate();
+ const nigerianHolidays: Record<string, string> = {
+   '1-1': 'New Year\'s Day — a public holiday in Nigeria.',
+   '5-1': 'Workers\' Day (Labour Day) — a public holiday in Nigeria.',
+   '5-27': 'Children\'s Day — a public holiday in Nigeria.',
+   '6-12': 'Democracy Day — a major Nigerian public holiday honouring June 12 and MKO Abiola.',
+   '10-1': `🇳🇬 NIGERIA INDEPENDENCE DAY — Today, October 1st, is Nigeria's Independence Day! Nigeria gained independence from Britain on October 1, 1960. Today Nigeria is ${currentYear - 1960} years old as an independent nation. This is one of the biggest national celebrations in Nigeria — parades, flag ceremonies, presidential speeches, and national events are happening across the country.`,
+   '12-25': 'Christmas Day — a major public holiday in Nigeria.',
+   '12-26': 'Boxing Day — a public holiday in Nigeria.',
+ };
+ const holidayKey = `${m}-${d}`;
+ const todayHoliday = nigerianHolidays[holidayKey] || '';
   
  // Add self-aware AI capabilities
  const selfAwareContext = await buildSelfAwarePrompt();
@@ -204,7 +218,7 @@ You are BLACK AI — Africa's most intelligent AI companion. Built in ${currentY
 # CURRENT CONTEXT (Real-time)
 - **Today**: ${dateStr}
 - **Time**: ${timeStr} WAT | **Device**: ${deviceTime}
-- **Location**: ${locationCity}, ${locationCountry}
+- **Location**: ${locationCity}, ${locationCountry}${todayHoliday ? `\n- 🗓️ **Today's Significance**: ${todayHoliday}` : ''}
 - **Season**: ${season} | **Year**: ${currentYear}
 
 # YOU ARE A COMPANION AND FRIEND — MOST IMPORTANT RULE

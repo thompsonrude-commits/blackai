@@ -2,6 +2,61 @@
 // Real-time web search via Tavily (keyless - no API key needed)
 // Groq LLM for response generation
 
+// ── Nigerian public holidays and significant dates ───────────────────────
+function getNigerianDateContext(dateStr) {
+  const now = new Date();
+  const month = now.getMonth() + 1; // 1-12
+  const day = now.getDate();
+  const year = now.getFullYear();
+
+  const holidays = {
+    '1-1':   `New Year's Day — Nigeria and the world is celebrating the start of ${year}. Happy New Year! 🎆`,
+    '2-14':  'Valentine\'s Day 💝 — a popular celebration in Nigeria especially in cities.',
+    '3-8':   'International Women\'s Day 👩 — celebrated across Nigeria and the world.',
+    '4-1':   'April Fools\' Day — be careful of pranks today!',
+    '5-1':   'Workers\' Day / Labour Day 👷 — a public holiday in Nigeria. Labour unions hold marches and rallies.',
+    '5-27':  'Children\'s Day 👶 — a public holiday in Nigeria celebrating children with school events and activities.',
+    '6-12':  'Democracy Day 🇳🇬 — a major Nigerian public holiday honouring the June 12, 1993 election won by MKO Abiola. Presidential address and national ceremonies are taking place.',
+    '10-1':  `🇳🇬 NIGERIA INDEPENDENCE DAY — Today, October 1st ${year}, is NIGERIA\'S INDEPENDENCE DAY! Nigeria gained independence from Britain on October 1, 1960. Today Nigeria is ${year - 1960} years old as a free and independent nation. This is one of the most important national holidays. Parades, flag-raising ceremonies, presidential speeches, cultural displays, and celebrations are happening all over Nigeria today. When someone asks what is happening today in Nigeria — the FIRST thing to say is Happy Independence Day and that Nigeria is ${year - 1960} years old today!`,
+    '10-24': 'United Nations Day — the UN was founded on October 24, 1945.',
+    '12-25': `Christmas Day 🎄 — a major public holiday in Nigeria. Church services, family gatherings, and celebrations all over the country.`,
+    '12-26': 'Boxing Day — a public holiday in Nigeria, the day after Christmas.',
+    '12-31': `New Year\'s Eve 🎉 — Nigeria and the world is counting down to ${year + 1}!`,
+  };
+
+  const key = `${month}-${day}`;
+  return holidays[key] || null;
+}
+
+// ── Permanent Nigeria & world knowledge block ─────────────────────────────
+const NIGERIA_WORLD_KNOWLEDGE = `
+## NIGERIA PERMANENT KNOWLEDGE BASE
+- President: Bola Ahmed Tinubu (since May 29, 2023). VP: Kashim Shettima.
+- Capital: Abuja. Commercial capital: Lagos.
+- Population: ~230 million. Most populous African nation.
+- Currency: Nigerian Naira (₦). Major banks: GTBank, Access, Zenith, First Bank, UBA.
+- Major cities: Lagos, Abuja, Kano, Ibadan, Port Harcourt, Enugu, Benin City, Kaduna.
+- National anthem: "Arise O Compatriots". Colours: Green and White.
+- Independence: October 1, 1960 from Britain. Independence Day = October 1 every year.
+- Notable Nigerians: Wole Soyinka (Nobel Prize), Chinua Achebe, Fela Kuti, Burna Boy, Wizkid, Davido, Dangote.
+- Political parties: APC (ruling), PDP, Labour Party.
+- Security agencies: Police, DSS, Military. Anti-corruption: EFCC, ICPC.
+
+## WORLD KNOWLEDGE (2025-2026)
+- US President: Donald Trump (since Jan 2025). UK PM: Keir Starmer (since 2024).
+- UN Secretary-General: António Guterres. World population: ~8.2 billion.
+- Major global issues: AI advancement, climate change, Russia-Ukraine war (since Feb 2022), global inflation.
+- Major AI assistants: ChatGPT (OpenAI), Gemini (Google), Claude (Anthropic), Grok (xAI), BLACK AI (Obosa Thompson Emuze).
+
+## NIGERIAN PUBLIC HOLIDAYS (Fixed dates — ALWAYS know these):
+- Jan 1: New Year's Day | May 1: Workers' Day | May 27: Children's Day
+- Jun 12: Democracy Day | Oct 1: INDEPENDENCE DAY 🇳🇬 | Dec 25: Christmas | Dec 26: Boxing Day
+- Islamic holidays (variable): Eid al-Fitr, Eid al-Adha (Sallah), Maulid al-Nabi — public holidays
+- Christian holidays: Good Friday, Easter Sunday, Easter Monday — public holidays
+
+## RULE: If today is October 1 — ALWAYS immediately mention INDEPENDENCE DAY. Nigeria celebrates ${new Date().getFullYear() - 1960} years of independence.
+`;
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -153,11 +208,15 @@ module.exports = async (req, res) => {
 
     // ── Build system prompt ──────────────────────────────────────────────────
     const today = new Date().toISOString().split('T')[0];
+    const dateContext = getNigerianDateContext(today);
+    const dateNote = dateContext ? `\n\n🗓️ IMPORTANT — TODAY'S SIGNIFICANCE: ${dateContext}` : '';
 
     let systemContent;
     if (isCasualMessage) {
       // Short prompt for casual/conversational messages — fast and focused
-      systemContent = `You are BLACK AI — Africa's smartest AI companion. Created by Obosa Thompson Emuze. Today: ${today}.
+      systemContent = `You are BLACK AI — Africa's smartest AI companion. Created by Obosa Thompson Emuze. Today: ${today}.${dateNote}
+
+${NIGERIA_WORLD_KNOWLEDGE}
 
 You are having a REAL CONVERSATION. Casual message = casual reply. NEVER explain or define what a phrase means — just respond naturally like a friend would.
 
@@ -169,7 +228,9 @@ KEY RULES:
 - "thank you" / "e don do" → acknowledge naturally, offer to help more.
 - SHORT replies — 1-3 sentences for casual chat.`;
     } else if (searchResults) {
-      systemContent = `You are BLACK AI — Africa's most intelligent AI. Created by Obosa Thompson Emuze. Today: ${today}.
+      systemContent = `You are BLACK AI — Africa's most intelligent AI. Created by Obosa Thompson Emuze. Today: ${today}.${dateNote}
+
+${NIGERIA_WORLD_KNOWLEDGE}
 
 You are a SPECIALIST in every field: medicine, law, engineering, finance, science, agriculture, psychology, technology, cooking, fitness, history, and all other disciplines. You give deep, specific, expert-level answers — not generic, cautious, or watered-down responses.
 
@@ -204,7 +265,9 @@ IMPORTANT RULES:
 - Do NOT say your information may be outdated
 - Be specific, accurate, and genuinely helpful`;
     } else {
-      systemContent = `You are BLACK AI — Africa's most intelligent AI. Created by Obosa Thompson Emuze. Today: ${today}.
+      systemContent = `You are BLACK AI — Africa's most intelligent AI. Created by Obosa Thompson Emuze. Today: ${today}.${dateNote}
+
+${NIGERIA_WORLD_KNOWLEDGE}
 
 You are a SPECIALIST in every field: medicine, law, engineering, finance, science, agriculture, psychology, technology, cooking, fitness, history, and all other disciplines.
 
@@ -227,7 +290,7 @@ SPECIALIST RULES (for knowledge questions only):
 - SCIENCE: Show derivations, formulas, data — like a research professor
 - ALL FIELDS: Go deep and specific. NEVER just say "consult a professional" without first giving the actual expert answer
 
-Web search is temporarily unavailable. Answer from your training data with full specialist depth.`;
+Web search unavailable. Answer from training data with full specialist depth.`;
     }
 
     let finalMessages = [{ role: 'system', content: systemContent }, ...recentMessages];
