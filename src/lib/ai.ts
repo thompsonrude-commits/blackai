@@ -97,183 +97,33 @@ export async function* unifiedChatStream(messages: ChatMessageLike[], temperatur
   try {
     const lastUserMessage = [...messages].reverse().find((message) => message.role === 'user');
     const conversationLanguage = getCurrentConversationLanguage();
-    let knowledgeContext = '';
 
+    // ── OPT-IN PROFESSIONAL TRAINING (only on explicit "train me" commands) ──
     if (lastUserMessage) {
       try {
-        // Use both platform knowledge engine and new core knowledge engine
-        const knowledgeResults = await knowledgeEngine.search(lastUserMessage.content, {
-          topK: 3,
-          minSimilarity: 0.6,
-        });
-
-        if (knowledgeResults.length > 0) {
-          knowledgeContext = '\n\n[Relevant Knowledge]:\n' + knowledgeResults
-            .slice(0, 3)
-            .map((result) => `- ${result.entry.content.slice(0, 600)} (${result.entry.metadata.language})`)
-            .join('\n')
-            .slice(0, 2200);
-        }
-        
-        // KNOWLEDGE ENGINE: Add as background context enhancement (non-blocking)
-        if (engineManager.isInitialized) {
-          try {
-            const coreKnowledgeResults = await engineManager.queryKnowledge(
-              lastUserMessage.content,
-              { maxResults: 2, language: conversationLanguage }
-            );
-            
-            if (coreKnowledgeResults.length > 0) {
-              const coreContext = coreKnowledgeResults
-                .slice(0, 2)
-                .map((doc) => `- ${doc.title}: ${doc.content.slice(0, 400)}`)
-                .join('\n');
-              knowledgeContext += knowledgeContext ? '\n' + coreContext : '\n\n[Relevant Knowledge]:\n' + coreContext;
-              console.log(`[AI] Knowledge engine added ${coreKnowledgeResults.length} docs as background context`);
-            }
-          } catch (err) {
-            console.warn('[AI] Knowledge engine query failed (non-blocking):', err);
-          }
+        const { detectTrainingRequest, getTrainingIntroduction } = await import('./professionalTraining');
+        const trainingRequest = detectTrainingRequest(lastUserMessage.content);
+        if (trainingRequest.shouldStartTraining && trainingRequest.trainingType) {
+          const intro = getTrainingIntroduction(trainingRequest.trainingType);
+          yield* wordStream(intro);
+          return;
         }
       } catch (err) {
-        console.warn('[AI] Knowledge search failed:', err);
+        console.warn('[AI] Training detection failed (non-blocking):', err);
       }
     }
 
-    // NLIE ENGINE: Enhanced language detection as background info (non-blocking)
-    let nlieDetection;
-    try {
-      if (lastUserMessage && engineManager.isInitialized) {
-        nlieDetection = await engineManager.detectLanguage(lastUserMessage.content);
-        if (nlieDetection && nlieDetection.confidence > 0.7) {
-          console.log(`[AI] NLIE detected: ${nlieDetection.language} (${(nlieDetection.confidence * 100).toFixed(0)}% confidence, code-switching: ${nlieDetection.isCodeSwitched})`);
-        }
-      }
-    } catch (err) {
-      console.warn('[AI] NLIE detection failed (non-blocking, using default):', err);
-    }
-
-    const detectedLanguage = lastUserMessage
-      ? defaultLanguageCoordinationEngine.detectLanguage(lastUserMessage.content)
-      : undefined;
-    const cognitivePlan = lastUserMessage
-      ? await defaultCognitiveBrain.plan(lastUserMessage.content, 'default', messages.map((message) => ({
-          role: message.role,
-          content: message.content,
-        })))
-      : undefined;
-    
-    // Build language context (uses both default detection + NLIE as enhancement)
-    const languageContext = detectedLanguage?.reliable
-      ? {
-          role: 'system' as const,
-          content: `Language coordination: preserve the user's original expression and respond in or appropriately explain ${detectedLanguage?.languageId}. ${nlieDetection && nlieDetection.confidence > 0.7 ? `Enhanced detection (NLIE): ${nlieDetection.language}, code-switching: ${nlieDetection.isCodeSwitched ? 'detected' : 'none'}.` : ''} Code-switching: ${detectedLanguage?.codeSwitching ? 'present' : 'not detected'}. Capability: ${cognitivePlan?.capability ?? 'chat'}. Verification: ${cognitivePlan?.verification.passed ? 'passed' : 'uncertain'}. Do not claim a translation is verified unless supported by supplied knowledge.`,
-        }
-      : undefined;
-    const enrichedMessages = lastUserMessage
-      ? [
-          ...messages.slice(0, -1),
-          ...(languageContext ? [languageContext] : []),
-          ...(knowledgeContext
-            ? [{
-                role: 'user' as const,
-                content: lastUserMessage.content.slice(0, 4000) + knowledgeContext,
-              }]
-            : [lastUserMessage]),
-        ]
-      : messages;
-
-    const boundedMessages = buildBoundedContext(enrichedMessages);
-
-    // If visual explanation is needed, attempt to generate a diagram/image first and attach it to the chat context
-    let messagesForChat = boundedMessages;
-    try {
-      const lastUserText = lastUserMessage?.content;
-      if (requiresExplicitVisualRequest(lastUserText)) {
-        const visualPrompt = `Create a clear labeled diagram or educational visual for: ${lastUserText}. Include labels for major parts and a concise caption describing each part.`;
-        const vc = await proxyVisualOrchestrator({ prompt: visualPrompt, selectedLanguage: conversationLanguage, conversationLanguage });
-        if (vc && vc.ok && vc.visual && (vc.visual.imageUrl || vc.visual.dataUrl)) {
-          const imageUrl = vc.visual.imageUrl || vc.visual.dataUrl;
-          // Attach the generated image as an assistant message so the chat model treats it as available context
-          messagesForChat = [
-            ...boundedMessages,
-            { role: 'assistant' as const, content: `__IMAGE__${imageUrl}` },
-            // Also attach structured visual metadata the model can consume
-            { role: 'assistant' as const, content: `__VISUAL_META__${JSON.stringify(vc.visual)}` },
-            { role: 'system' as const, content: `An educational diagram was generated, attached, and metadata is available. The assistant must reference the visual explicitly, describe labeled parts, use numbered labels (Label 1, Label 2), and avoid saying it cannot display images.` },
-          ];
-        }
-      }
-    } catch (err) {
-      console.warn('[AI] Visual generation attempt failed:', err);
-      // Continue without image — fallback to text-only explanation
-    }
-
-    const requestPlan = buildRequestPlan(lastUserMessage?.content ?? '', conversationLanguage);
-
-    // OPT-IN PROFESSIONAL TRAINING: Only activates on explicit "train me" commands
-    // Check if user explicitly requested professional training
-    if (lastUserMessage) {
-      const { detectTrainingRequest, getTrainingIntroduction } = await import('./professionalTraining');
-      const trainingRequest = detectTrainingRequest(lastUserMessage.content);
-      
-      if (trainingRequest.shouldStartTraining && trainingRequest.trainingType) {
-        console.log(`[AI] Professional training requested: ${trainingRequest.trainingType}`);
-        const intro = getTrainingIntroduction(trainingRequest.trainingType);
-        yield* wordStream(intro);
-        return;
-      }
-    }
-
-    // DISABLED: Auto-triggered agent system was breaking normal responses
-    // Complex queries now go directly to main AI 
-    // if (lastUserMessage && shouldUseAgentSystem(lastUserMessage.content)) {
-    //   ...
-    // }
-
-    // RESEARCH ENGINE: Only for serious medical/health queries (not training, not simple questions)
-    // This provides differential diagnosis and safety screening for health concerns
-    if (lastUserMessage) {
-      try {
-        const intent = classifyUserIntent(lastUserMessage.content);
-        const isSeriousMedicalQuery = intent.capability === 'research'
-          || /\b(?:epilepsy|seizure|anti[- ]?seizure|cenobamate|clinical trials?|newest medicines?|latest treatments?)\b/i.test(lastUserMessage.content);
-        
-        if (isSeriousMedicalQuery) {
-          const researchResponse = await routeResearchRequest(lastUserMessage.content);
-          
-          // Only use research response if it provides actual diagnostic value
-          // Must have domain and reasonable response (not just weather data)
-          if (researchResponse && 
-              researchResponse.response && 
-              researchResponse.domain && 
-              researchResponse.response.length > 100 &&
-              !/weather|temperature|humidity/i.test(researchResponse.response)) {
-            
-            const text = sanitizeUserFacingText(researchResponse.response);
-            console.log('[AI] Research engine provided medical analysis');
-            recoveryService.recordSuccess('research-medical', 0, 0.8, 'research');
-            yield* wordStream(text);
-            return;
-          } else {
-            console.log('[AI] Research engine skipped (no valuable output or training request)');
-          }
-        }
-      } catch (err) {
-        console.warn('[AI] Research engine failed (non-blocking):', err);
-      }
-    }
-
-    // DISABLED: Previously this was intercepting all medical queries including training
-    // Now training requests go through professionalTraining.ts opt-in system
+    // ── DIRECT API CALL — no pre-processing delays ────────────────────────────
+    // Bound context to prevent overflow
+    const boundedMessages = buildBoundedContext(messages);
 
     const result = await _proxyChat({
-      messages: messagesForChat,
+      messages: boundedMessages,
       temperature,
-      maxTokens: 1024,
-      preferredProviders: requestPlan.providerOrder,
+      maxTokens: 2048,
       targetLanguage: conversationLanguage,
     });
+
     const latency = Date.now() - startTime;
 
     if (result.text) {
@@ -281,13 +131,12 @@ export async function* unifiedChatStream(messages: ChatMessageLike[], temperatur
       recoveryService.evaluateOfflineMode('chat');
       trackChatRequest(result.provider, true, latency);
 
-      if (lastUserMessage) defaultCognitiveBrain.rememberResponse('default', result.text);
-
-      yield* wordStream(result.text);
+      yield* wordStream(sanitizeUserFacingText(result.text));
       return;
     }
 
     throw new Error(result.error ?? 'Empty response from proxy');
+
   } catch (err: any) {
     const latency = Date.now() - startTime;
     const failureMessage = err?.message || 'unknown failure';
@@ -295,7 +144,6 @@ export async function* unifiedChatStream(messages: ChatMessageLike[], temperatur
     trackChatRequest('proxy', false, latency);
     console.warn('[AI] Proxy chat failed:', failureMessage);
 
-    const lastUserMessage = [...messages].reverse().find((message) => message.role === 'user');
     const queuedRequest: QueuedRequest = {
       id: `chat-${Date.now()}`,
       messages,
@@ -305,13 +153,9 @@ export async function* unifiedChatStream(messages: ChatMessageLike[], temperatur
     recoveryService.enqueueRequest(queuedRequest);
     recoveryService.evaluateOfflineMode('chat');
 
-    const routeOrder = getEngineRouteOrder('chat');
-    const browserReady = hasBrowserCapability('chat');
-    const availableLocal = routeOrder.includes('local') || routeOrder.includes('browser') || browserReady;
+    const lastUserMessage = [...messages].reverse().find((message) => message.role === 'user');
     const languageCode = getCurrentConversationLanguage();
-    const fallbackText = availableLocal
-      ? getLocalFallbackResponse(lastUserMessage?.content ?? 'How can I help?', languageCode)
-      : 'The live AI provider is temporarily unavailable. Please try again when the connection is restored.';
+    const fallbackText = getLocalFallbackResponse(lastUserMessage?.content ?? 'How can I help?', languageCode);
 
     yield* wordStream(sanitizeUserFacingText(fallbackText));
     return;
