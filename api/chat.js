@@ -242,6 +242,13 @@ SPECIALIST RULES (for knowledge questions only):
 Web search unavailable. Answer from training data with full specialist depth.`;
 
     let finalMessages = [...messages];
+
+    // Trim history to last 10 messages (+ system) to avoid context overflow
+    const systemMessages = finalMessages.filter(m => m.role === 'system');
+    const nonSystemMessages = finalMessages.filter(m => m.role !== 'system');
+    const trimmedNonSystem = nonSystemMessages.slice(-10); // keep last 10 exchanges
+    finalMessages = [...systemMessages, ...trimmedNonSystem];
+
     const sysIdx = finalMessages.findIndex(m => m.role === 'system');
     if (sysIdx >= 0) {
       finalMessages[sysIdx] = { role: 'system', content: systemContent };
