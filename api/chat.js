@@ -2,6 +2,65 @@
 // Real-time web search via Tavily (keyless - no API key needed)
 // Groq LLM for response generation
 
+// ── Location-aware guidance builder ─────────────────────────────────────────
+function buildLocationGuidance(country, city) {
+  const c = (country || 'Nigeria').toLowerCase();
+
+  // Medicine brands by country
+  const medicine = (() => {
+    if (/nigeria|lagos|abuja|kano|ibadan/.test(c)) return 'Paracetamol→Panadol/Emzor/M&B | Ibuprofen→Felvin/Advil | Antibiotic→Amoxil/Augmentin | Malaria→Coartem/Lonart | Cough→Coflin/Benylin | Antacid→Omeprazole/Maalox | Ulcer→Flagyl+Omeprazole';
+    if (/india|mumbai|delhi|bangalore|chennai|kolkata|hyderabad/.test(c)) return 'Paracetamol→Crocin/Dolo 650/Calpol | Ibuprofen→Combiflam/Zerodol/Brufen | Antibiotic→Azithral/Ciprobid/Amoxycillin | Malaria→Lariago/Falcigo | Cough→Benadryl/Ascoril | Antacid→Pan-D/Gelusil/Eno';
+    if (/uk|england|scotland|wales|britain|london|manchester/.test(c)) return 'Paracetamol→Paracetamol(own-brand)/Calpol | Ibuprofen→Nurofen/Brufen | Antibiotic→Amoxicillin/Augmentin | Cough→Benylin/Lemsip | Antacid→Gaviscon/Rennie | Cold→Lemsip/Beechams';
+    if (/usa|united states|america|new york|california|texas|florida/.test(c)) return 'Paracetamol→Tylenol/Panadol | Ibuprofen→Advil/Motrin/Aleve | Antibiotic→Amoxicillin/Z-Pack | Cough→Robitussin/DayQuil | Cold→NyQuil/DayQuil | Antacid→Tums/Pepto-Bismol/Nexium';
+    if (/ghana|accra|kumasi/.test(c)) return 'Paracetamol→Panadol/Hedex | Ibuprofen→Brufen | Antibiotic→Amoxicillin/Co-trimoxazole | Malaria→Coartem/Artesunate | Cough→Benylin/Actifed';
+    if (/kenya|nairobi|mombasa|east africa/.test(c)) return 'Paracetamol→Panadol/Hedex | Ibuprofen→Brufen | Antibiotic→Amoxicillin/Doxycycline | Malaria→ALu(Coartem)/SP | Cough→Benylin';
+    if (/south africa|johannesburg|cape town|durban/.test(c)) return 'Paracetamol→Panado/Disprin | Ibuprofen→Voltaren/Ibuprofen | Antibiotic→Amoxicillin/Augmentin | Cough→Benylin/Actifed | Antacid→Gaviscon/Rennies';
+    if (/australia|sydney|melbourne|brisbane/.test(c)) return 'Paracetamol→Panadol/Panamax | Ibuprofen→Nurofen/Advil | Antibiotic→Amoxycillin/Augmentin | Cough→Benadryl/Robitussin | Cold→Codral';
+    if (/canada|toronto|vancouver|montreal/.test(c)) return 'Paracetamol→Tylenol/Tempra | Ibuprofen→Advil/Motrin | Antibiotic→Amoxicillin/Biaxin | Cough→Robitussin/Buckley\'s | Cold→NyQuil';
+    if (/uae|dubai|abu dhabi/.test(c)) return 'Paracetamol→Panadol/Adol | Ibuprofen→Brufen/Advil | Antibiotic→Amoxicillin/Augmentin | Cough→Benylin/Piriton';
+    return `Generic names: Paracetamol, Ibuprofen, Amoxicillin — advise user to ask local pharmacist for brand name available in ${country}`;
+  })();
+
+  // Currency
+  const currency = (() => {
+    if (/nigeria/.test(c)) return '₦ Nigerian Naira. Banks: GTBank, Access, Zenith, First Bank, Kuda, OPay.';
+    if (/india/.test(c)) return '₹ Indian Rupee. UPI apps: PhonePe, Google Pay, Paytm. Banks: SBI, HDFC, ICICI.';
+    if (/uk|england|britain/.test(c)) return '£ British Pound. Banks: Barclays, HSBC, Lloyds, Monzo, Revolut.';
+    if (/usa|united states|america/.test(c)) return '$ US Dollar. Banks: Chase, Bank of America, Wells Fargo. Apps: Zelle, Venmo, Cash App.';
+    if (/ghana/.test(c)) return 'GH₵ Ghanaian Cedi. Mobile: MTN MoMo, Vodafone Cash. Banks: GCB, Ecobank.';
+    if (/kenya/.test(c)) return 'KES Kenyan Shilling. Mobile: M-Pesa (Safaricom). Banks: KCB, Equity Bank.';
+    if (/south africa/.test(c)) return 'R South African Rand. Banks: FNB, Standard Bank, Absa, Capitec.';
+    if (/australia/.test(c)) return 'AUD Australian Dollar. Banks: Commonwealth, ANZ, NAB, Westpac.';
+    if (/canada/.test(c)) return 'CAD Canadian Dollar. Banks: RBC, TD Bank, Scotiabank, Interac e-Transfer.';
+    if (/uae|emirates/.test(c)) return 'AED UAE Dirham. Banks: Emirates NBD, ADCB, Abu Dhabi Islamic Bank.';
+    if (/europe|germany|france|spain|italy|netherlands/.test(c)) return '€ Euro. Banks vary by country.';
+    return `Local currency of ${country}. Advise user to confirm local banking options.`;
+  })();
+
+  // Emergency numbers
+  const emergency = (() => {
+    if (/nigeria/.test(c)) return '112 (general), 767/199 (police), 115 (FRSC road), 08032003454 (NEMA)';
+    if (/india/.test(c)) return '112 (general), 100 (police), 108 (ambulance), 101 (fire), 1098 (child helpline)';
+    if (/uk|england|britain/.test(c)) return '999 (emergency), 111 (non-urgent NHS medical)';
+    if (/usa|united states|america/.test(c)) return '911 (all emergencies)';
+    if (/ghana/.test(c)) return '191 (police), 192 (ambulance), 193 (fire)';
+    if (/kenya/.test(c)) return '999 or 112 (general), 0800 720 999 (police)';
+    if (/south africa/.test(c)) return '10111 (police), 10177 (ambulance), 107 (fire)';
+    if (/australia/.test(c)) return '000 (all emergencies)';
+    if (/canada/.test(c)) return '911 (all emergencies)';
+    if (/uae|emirates/.test(c)) return '999 (police), 998 (ambulance), 997 (fire)';
+    return `Use local emergency number for ${country}`;
+  })();
+
+  return `
+LOCATION CONTEXT — USER IS IN: ${city ? city + ', ' : ''}${country}
+Use ONLY locally available brands and services for this location.
+Medicine brands: ${medicine}
+Currency: ${currency}
+Emergency numbers: ${emergency}
+For any location-sensitive topic (medicine, law, finance, food, weather), adapt specifically to ${country}. Do NOT give Nigerian brands to non-Nigerian users. Do NOT give US brands to Nigerian users. Match brands to location.`;
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -104,6 +163,23 @@ module.exports = async (req, res) => {
       console.warn('[Chat] No search results, using training data only');
     }
 
+    // ── Extract user country from system message ─────────────────────────────
+    // The frontend injects "Location: City, Country" into the system prompt
+    let userCountry = 'Nigeria'; // default
+    let userCity = '';
+    const systemMsg = messages.find(m => m.role === 'system');
+    if (systemMsg && systemMsg.content) {
+      const locationMatch = systemMsg.content.match(/\*\*Location\*\*:\s*([^,\n]+),?\s*([^\n|*]+)?/i)
+        || systemMsg.content.match(/Location[:\s]+([^,\n]+),?\s*([^\n|*]+)?/i);
+      if (locationMatch) {
+        userCity = (locationMatch[1] || '').trim();
+        userCountry = (locationMatch[2] || locationMatch[1] || 'Nigeria').trim().replace(/\*+/g, '').trim();
+      }
+    }
+
+    // Build location-aware medicine/law/currency context
+    const locationGuidance = buildLocationGuidance(userCountry, userCity);
+
     // ── Build enriched messages ──────────────────────────────────────────────
     const today = new Date().toISOString().split('T')[0];
     const systemContent = searchResults
@@ -122,11 +198,13 @@ LANGUAGE LOCK — ABSOLUTE RULE:
 - User writes English → reply 100% in English. Zero Pidgin words.
 - NEVER mix languages. NEVER switch unless the user switches first.
 
+${locationGuidance}
+
 SPECIALIST RULES (for knowledge questions only):
-- MEDICINE: Give brand names, exact doses, mechanisms, side effects, treatment protocols — like a consultant doctor
-- LAW: Cite specific laws, sections, case law — like a senior barrister
+- MEDICINE: Give brands available in ${userCountry}, exact doses, mechanisms — like a consultant doctor
+- LAW: Cite laws of ${userCountry} — like a senior barrister
+- FINANCE: Use ${userCountry} currency and local institutions — like a CFO
 - ENGINEERING: Show formulas, calculations, specifications — like a chief engineer
-- FINANCE: Give specific numbers, strategies, instruments — like a CFO
 - SCIENCE: Show derivations, formulas, data — like a research professor
 - ALL FIELDS: Go deep and specific. NEVER just say "consult a professional" without first giving the actual expert answer
 
@@ -135,12 +213,7 @@ LIVE WEB SEARCH RESULTS:
 ${searchResults}
 ===
 
-IMPORTANT RULES:
-- Use the search results above as your main source of truth
-- Give direct, confident, specialist-level answers
-- Do NOT say you lack internet access
-- Do NOT say your information may be outdated
-- Be specific, accurate, and genuinely helpful`
+Use search results as primary source of truth. Be specific, accurate, and genuinely helpful.`
       : `You are BLACK AI — Africa's most intelligent AI. Created by Obosa Thompson Emuze. Today: ${today}.
 
 You are a SPECIALIST in every field: medicine, law, engineering, finance, science, agriculture, psychology, technology, cooking, fitness, history, and all other disciplines.
@@ -156,15 +229,17 @@ LANGUAGE LOCK — ABSOLUTE RULE:
 - User writes English → reply 100% in English. Zero Pidgin words.
 - NEVER mix languages. NEVER switch unless the user switches first.
 
+${locationGuidance}
+
 SPECIALIST RULES (for knowledge questions only):
-- MEDICINE: Give brand names, exact doses, mechanisms, side effects, treatment protocols — like a consultant doctor
-- LAW: Cite specific laws, sections, case law — like a senior barrister
+- MEDICINE: Give brands available in ${userCountry}, exact doses, mechanisms — like a consultant doctor
+- LAW: Cite laws of ${userCountry} — like a senior barrister
+- FINANCE: Use ${userCountry} currency and local institutions — like a CFO
 - ENGINEERING: Show formulas, calculations, specifications — like a chief engineer
-- FINANCE: Give specific numbers, strategies, instruments — like a CFO
 - SCIENCE: Show derivations, formulas, data — like a research professor
 - ALL FIELDS: Go deep and specific. NEVER just say "consult a professional" without first giving the actual expert answer
 
-Web search is temporarily unavailable. Answer from your training data with full specialist depth.`;
+Web search unavailable. Answer from training data with full specialist depth.`;
 
     let finalMessages = [...messages];
     const sysIdx = finalMessages.findIndex(m => m.role === 'system');
