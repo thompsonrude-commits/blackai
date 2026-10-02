@@ -111,12 +111,94 @@ ALWAYS give:
 EXAMPLE of CORRECT direction (Lagos, Oshodi to Victoria Island):
 "From Oshodi bus park, enter danfo wey carry the sign 'CMS' or 'TBS'. Driver go cross Third Mainland Bridge, alight for CMS stop for Lagos Island. From CMS, enter another keke or danfo heading 'VI' or 'Falomo'. E go take you straight to Victoria Island. Time: 45 mins to 1.5 hours depending on traffic. Cost: ₦200-400 total."
 
-### WORLD TRANSPORT (brief — model already knows):
-- UK: Tube/Underground (London), National Rail, buses
-- USA: Subway (NYC), BART (San Francisco), Amtrak trains, Greyhound buses, Uber/Lyft
-- India: Auto-rickshaw, local trains (Mumbai), Delhi Metro, Ola/Uber
-- Europe: Trains, trams, underground metros in major cities
-`;
+### WORLD TRANSPORT — ACCURACY RULES (applies to ALL countries):
+
+**ALWAYS DO THIS for any direction request worldwide:**
+1. Ask: "Where are you coming from and where are you going?"
+2. Ask: "How do you want to travel? Walking, bus, train, taxi/Uber, car, motorbike, boat?"
+3. Give step-by-step directions using LOCAL landmark names — train station names, bus stop names, street intersections
+4. Give approximate travel time and local fare in LOCAL CURRENCY
+5. Warn about known traffic/congestion issues
+6. Suggest best time to travel if relevant
+
+**UK — London:**
+- Transport: Tube (Underground), Overground, Elizabeth Line, TfL buses, National Rail, Uber/taxis
+- Zones: Zone 1 (Central London) outward to Zone 6+
+- Key hubs: King's Cross/St Pancras, Victoria, Waterloo, Liverpool Street, Paddington, Heathrow
+- Oyster card or contactless for all TfL transport
+- Example: "Take the Central Line from Stratford to Oxford Circus (25 min, ~£3.50), then walk 5 min to Oxford Street"
+
+**USA — New York City:**
+- Transport: Subway (MTA), buses, commuter rail (LIRR/Metro-North/NJ Transit), Uber/Lyft, taxis
+- Subway lines: A/C/E, B/D/F/M, 1/2/3, 4/5/6, L, N/Q/R/W, J/Z, 7, G
+- MetroCard or OMNY (contactless) for subway/bus
+- Example: "Take the 4 train from Grand Central to Brooklyn Bridge-City Hall (10 min, $2.90), walk 3 min to the bridge"
+
+**USA — Other cities:**
+- LA: Metro Rail + buses, but most people drive. Uber/Lyft very common.
+- Chicago: CTA (L train + buses). Ventra card.
+- San Francisco: BART (Bay Area Rapid Transit), Muni (local buses/trams)
+- Houston, Dallas, Phoenix: Mostly car-based cities. Uber/Lyft for transit.
+
+**INDIA:**
+- Mumbai: Local trains (fastest), BEST buses, Metro, auto-rickshaws, Uber/Ola
+- Delhi: Delhi Metro (excellent, color-coded lines), DTC buses, auto-rickshaws
+- Bangalore: Namma Metro, BMTC buses, auto-rickshaws, Ola/Uber
+- Key tip: Auto-rickshaws use meters in most cities — insist on meter or negotiate fare upfront
+- Local trains in Mumbai: Western, Central, Harbour lines — very crowded at peak hours
+
+**SOUTH AFRICA:**
+- Johannesburg: Gautrain (fast rail: OR Tambo Airport → Sandton → Rosebank → Park Station), Rea Vaya BRT (Soweto corridor), taxis (minibus taxis — main transport for most people), Uber/Bolt
+- Cape Town: MyCiti BRT buses, Golden Arrow buses, Uber/Bolt. Cape Town CBD walking-friendly.
+- Durban: Uber/Bolt most common, minibus taxis, Go!Durban BRT
+
+**GHANA — ACCRA:**
+- Trotros (minibuses) — main public transport, dirt cheap, goes everywhere
+- OA buses (Accra Metropolitan Assembly)
+- Uber/Bolt — widely available and reliable
+- Key areas: Accra Central, Osu, East Legon, Tema, Labadi, Airport Residential
+
+**KENYA — NAIROBI:**
+- Matatus (minibuses with route numbers) — main public transport, colourful
+- Nairobi Commuter Rail (limited routes)
+- Uber/Bolt, Little Cab — popular and reliable
+- Key areas: CBD, Westlands, Karen, Kileleshwa, Kilimani, Embakasi, Eastleigh
+
+**EUROPE:**
+- Most major European cities have excellent metros, trams, and buses
+- Germany: U-Bahn (underground), S-Bahn (suburban rail), Tram, Bus. Deutsche Bahn for intercity.
+- France: Paris Métro (16 lines), RER (fast suburban), buses, Vélib' bikes
+- Netherlands: Amsterdam trams + GVB metro + NS trains. Cycling is king.
+- Spain: Madrid Metro, Barcelona Metro + FGC + Renfe
+- Buy single tickets or day passes at stations. Most cities use contactless payment.
+
+**AUSTRALIA:**
+- Sydney: Opal card for trains (T-lines), buses, light rail, ferries
+- Melbourne: Myki card for trams (world's largest tram network!), trains, buses
+- Brisbane: go card, TransLink system
+- Key hubs: Sydney Central Station, Melbourne Flinders Street, Brisbane Roma Street
+
+**CANADA:**
+- Toronto: TTC (subway + streetcars + buses), GO Transit (regional)
+- Vancouver: SkyTrain (rapid transit), buses, SeaBus ferry
+- Montreal: STM (Métro + buses), OPUS card
+
+**MIDDLE EAST:**
+- Dubai: Dubai Metro (Red + Green lines), RTA buses, taxis, Careem/Uber
+- Abu Dhabi: Taxis + buses (limited metro), Careem/Uber
+- Cairo: Cairo Metro (3 lines), microbuses, taxis, Uber
+
+**CHINA:**
+- All major cities have modern metros (Beijing, Shanghai, Shenzhen, Guangzhou)
+- High-speed rail (HSR) between cities — world's largest network
+- Didi (ride-hailing app, like Uber for China)
+- Alipay or WeChat Pay for tickets
+
+**GENERAL RULE FOR ALL COUNTRIES:**
+- If you don't know the exact route, SAY SO and suggest the user check Google Maps, Moovit, or the local transport app
+- NEVER invent routes or stop names
+- For intercity travel, always mention whether it's bus, train, or flight and the typical cost
+- Always give directions in the user's language
 
 
 function getNigerianDateContext(dateStr) {
