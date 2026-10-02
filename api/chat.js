@@ -2,7 +2,123 @@
 // Real-time web search via Tavily (keyless - no API key needed)
 // Groq LLM for response generation
 
-// ── Nigerian public holidays and significant dates ───────────────────────
+// ── Nigerian Transport & Navigation Knowledge Base ────────────────────────
+const NIGERIA_TRANSPORT_KNOWLEDGE = `
+## 🚌 NIGERIA TRANSPORT & NAVIGATION — CRITICAL ACCURACY RULES
+
+### WHEN GIVING DIRECTIONS — ALWAYS DO THIS FIRST:
+1. Ask the user's starting point (from where?)
+2. Ask mode of transport: walking 🚶, okada (motorcycle) 🏍️, keke (tricycle) 🛺, danfo (bus) 🚌, BRT, car 🚗, train 🚆, boat ⛵
+3. Give step-by-step landmarks — NOT just street names. Use bus stops, markets, churches, banks, bridges as reference points.
+4. Give estimated time and fare.
+5. Warn about known traffic hotspots (e.g. Oshodi, Ojota, Carter Bridge, Third Mainland Bridge).
+
+### LAGOS — CRITICAL GEOGRAPHY (MUST KNOW — DO NOT MIX THESE UP):
+**MAINLAND areas** (NOT on the Island):
+- Mile 2 = Amuwo-Odofin, mainland. Major motor park/bus hub. NOT Victoria Island.
+- Oshodi = Major transport hub, mainland. Interchange for many routes.
+- Ojota = Major bus park, mainland. Near Ogudu.
+- Ikorodu = Far east mainland. Has BRT terminus.
+- Ikeja = Lagos State capital, mainland. Allen Ave, Computer Village nearby.
+- Apapa = Port area, mainland. Near Mile 2.
+- Surulere = Mainland residential/commercial area.
+- Agege = Northwest mainland.
+- Mushin = Mainland dense residential area.
+- Festac = South mainland near Mile 2.
+- Abule-Egba = Far west mainland.
+
+**ISLAND areas** (accessible by bridge):
+- Lagos Island = Oldest part. CMS, Broad Street, Marina, Idumota market, Lagos Island General Hospital.
+- Victoria Island (VI) = Upscale business/residential area on the island. Eko Hotel, Silverbird, Bar Beach end. Accessed via Falomo Bridge or Carter/Eko Bridge from Lagos Island.
+- Ikoyi = Between Lagos Island and VI. Residential. Federal Secretariat area.
+- Lekki = Beyond VI, going east. Lekki Phase 1, Chevron, Sangotedo, Ajah, Epe.
+- Ajah = Further east of Lekki.
+- Badagry = Extreme west, coastal, mainland.
+
+**KEY BRIDGES connecting Mainland to Island:**
+- Carter Bridge = Oldest bridge, connects Apapa/Ebute Metta to Lagos Island.
+- Eko Bridge = Connects Apapa/Costain area to Lagos Island.
+- Third Mainland Bridge = Longest bridge, connects Lagos Mainland (Oworo/Oworonshoki) to Lagos Island.
+- Falomo Bridge = Connects Lagos Island to Ikoyi/VI.
+- Lekki-Epe Expressway = Goes from VI through Lekki to Epe.
+
+**HOW TO GET TO VICTORIA ISLAND (CORRECT ROUTES):**
+From Mainland to Victoria Island:
+1. From Oshodi/Ikeja: Take BRT or danfo to CMS (Lagos Island), then take danfo/keke to VI via Falomo.
+2. From Apapa/Mile 2: Take danfo across Eko Bridge to Lagos Island (CMS area), then keke/danfo to VI.
+3. From Ikorodu: Take BRT to CMS/TBS, then danfo to VI.
+4. From Lagos Island (CMS/Marina): Take danfo/keke heading "VI" via Awolowo Road/Falomo.
+5. Direct: From Oshodi/Lagos Island, board danfo with sign "V.I" or "Lekki/VI" — will cross Third Mainland Bridge or Eko Bridge.
+
+NEVER say "Mile 2" is Victoria Island. Mile 2 is a completely different place on the mainland.
+NEVER say "alight at Mile 2 for Victoria Island". This is WRONG.
+
+**LAGOS BRT ROUTES (accurate):**
+- BRT Blue Line: Ikorodu → CMS (via Ketu, Ojota, Onipanu, Fadeyi, Yaba, CMS)
+- BRT Corridor: Some routes go through Oshodi, Ikeja
+- BRT stops on Lagos Island: CMS/TBS is the main Island terminus for most BRT lines
+- From CMS to VI: Take danfo/keke from CMS → Falomo → Ozumba Mbadiwe → VI
+
+**POPULAR DANFO ROUTES & SIGNS:**
+- "CMS–Ikorodu" = Lagos Island to mainland north
+- "Ojuelegba–Oshodi" = Surulere area to Oshodi
+- "Oshodi–Apapa" = Mainland south connector
+- "CMS–Lekki/VI" = Island connector
+- "Iyana-Ipaja–Ikeja" = Western mainland
+- "Ojota–CMS" = Through Third Mainland Bridge
+
+**COMMON LANDMARKS FOR GIVING DIRECTIONS:**
+- CMS = Christ's Missionary Society stop, Lagos Island. Major hub.
+- TBS = Tafawa Balewa Square, Lagos Island.
+- Idumota = Major market, Lagos Island.
+- Oshodi = Major interchange, mainland.
+- Computer Village = Ikeja, mainland tech market.
+- Alaba = Ojo, south mainland electronics market.
+- Trade Fair = Near Mile 2, south mainland.
+- Ojuelegba = Surulere area connector.
+
+### ABUJA TRANSPORT:
+- Abuja is a planned city with numbered zones: Central Area, Maitama, Wuse, Garki, Asokoro, Gwarinpa, Kubwa
+- Mass Transit: FCTA buses, private minibuses, motorcycles
+- BRT routes exist but less developed than Lagos
+- Key areas: Aso Rock (Presidential Villa), National Assembly (Three Arms Zone), Unity Fountain, Millennium Park
+- Getting around: Uber/Bolt common, taxis, keke, private cars
+- Districts numbered: Wuse 1, Wuse 2, Garki 1, Garki 2, Maitama, Asokoro, Guzape, Jabi, Life Camp
+
+### PORT HARCOURT TRANSPORT:
+- Mini buses ("Boli bus"), keke, okada, Uber/Bolt
+- Key areas: GRA (Government Residential Area), Trans Amadi, Rumuola, D-Line, Mile 1, Mile 3, Diobu, Rumuokurushi
+- Mile 1 is NOT the same as Lagos Mile 2 — it's a major market/bus hub in PH.
+
+### KANO TRANSPORT:
+- Minibuses (painted yellow), keke, okada
+- Key areas: Sabon Gari, Nassarawa, Bompai, Fagge, Gwale, Tarauni
+- Emir's Palace area = historic center
+
+### IBADAN TRANSPORT:
+- Molue (old buses), keke, okada, Uber/Bolt
+- Key areas: UI (University of Ibadan), Bodija, Dugbe (city center), Ring Road, Oke-Ado, Challenge, Agodi
+
+### HOW TO GIVE GOOD NIGERIAN DIRECTIONS:
+ALWAYS give:
+- Starting point → specific junction/bus stop names
+- Mode of transport (danfo/BRT/keke/okada/car)
+- Key stops along the way
+- Final landmark to identify destination
+- Estimated time and approximate fare (₦)
+- Tip: ask conductor/driver to drop you at exact place
+
+EXAMPLE of CORRECT direction (Lagos, Oshodi to Victoria Island):
+"From Oshodi bus park, enter danfo wey carry the sign 'CMS' or 'TBS'. Driver go cross Third Mainland Bridge, alight for CMS stop for Lagos Island. From CMS, enter another keke or danfo heading 'VI' or 'Falomo'. E go take you straight to Victoria Island. Time: 45 mins to 1.5 hours depending on traffic. Cost: ₦200-400 total."
+
+### WORLD TRANSPORT (brief — model already knows):
+- UK: Tube/Underground (London), National Rail, buses
+- USA: Subway (NYC), BART (San Francisco), Amtrak trains, Greyhound buses, Uber/Lyft
+- India: Auto-rickshaw, local trains (Mumbai), Delhi Metro, Ola/Uber
+- Europe: Trains, trams, underground metros in major cities
+`;
+
+
 function getNigerianDateContext(dateStr) {
   const now = new Date();
   const month = now.getMonth() + 1; // 1-12
@@ -217,6 +333,7 @@ module.exports = async (req, res) => {
       systemContent = `You are BLACK AI — Africa's smartest AI companion. Created by Obosa Thompson Emuze. Today: ${today}.${dateNote}
 
 ${NIGERIA_WORLD_KNOWLEDGE}
+${NIGERIA_TRANSPORT_KNOWLEDGE}
 
 You are having a REAL CONVERSATION. Casual message = casual reply. NEVER explain or define what a phrase means — just respond naturally like a friend would.
 
@@ -231,6 +348,7 @@ KEY RULES:
       systemContent = `You are BLACK AI — Africa's most intelligent AI. Created by Obosa Thompson Emuze. Today: ${today}.${dateNote}
 
 ${NIGERIA_WORLD_KNOWLEDGE}
+${NIGERIA_TRANSPORT_KNOWLEDGE}
 
 You are a SPECIALIST in every field: medicine, law, engineering, finance, science, agriculture, psychology, technology, cooking, fitness, history, and all other disciplines. You give deep, specific, expert-level answers — not generic, cautious, or watered-down responses.
 
@@ -268,6 +386,7 @@ IMPORTANT RULES:
       systemContent = `You are BLACK AI — Africa's most intelligent AI. Created by Obosa Thompson Emuze. Today: ${today}.${dateNote}
 
 ${NIGERIA_WORLD_KNOWLEDGE}
+${NIGERIA_TRANSPORT_KNOWLEDGE}
 
 You are a SPECIALIST in every field: medicine, law, engineering, finance, science, agriculture, psychology, technology, cooking, fitness, history, and all other disciplines.
 
