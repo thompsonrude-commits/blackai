@@ -188,10 +188,116 @@ ALWAYS WORKS:
       }
     };
 
+    // ── OpenRouter fallback (free models available) ──────────────────────────
+    const callOpenRouter = async () => {
+      const OR_KEY = process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_KEY;
+      if (!OR_KEY) return null;
+      try {
+        const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OR_KEY}`,
+            'HTTP-Referer': 'https://blackai.vercel.app',
+            'X-Title': 'BLACK AI',
+          },
+          body: JSON.stringify({
+            model: 'meta-llama/llama-3.1-8b-instruct:free',
+            messages: finalMessages,
+            temperature,
+            max_tokens: maxTokens,
+          }),
+          signal: AbortSignal.timeout(40000),
+        });
+        if (!r.ok) return null;
+        const d = await r.json();
+        return d.choices?.[0]?.message?.content || null;
+      } catch (err) {
+        console.warn('[Chat] OpenRouter threw:', err.message);
+        return null;
+      }
+    };
+
+    // ── Together AI fallback (free tier) ─────────────────────────────────────
+    const callTogether = async () => {
+      const TG_KEY = process.env.TOGETHER_API_KEY || process.env.TOGETHER_KEY;
+      if (!TG_KEY) return null;
+      try {
+        const r = await fetch('https://api.together.xyz/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TG_KEY}` },
+          body: JSON.stringify({
+            model: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
+            messages: finalMessages,
+            temperature,
+            max_tokens: maxTokens,
+          }),
+          signal: AbortSignal.timeout(40000),
+        });
+        if (!r.ok) return null;
+        const d = await r.json();
+        return d.choices?.[0]?.message?.content || null;
+      } catch (err) {
+        console.warn('[Chat] Together threw:', err.message);
+        return null;
+      }
+    };
+
+    // ── Cloudflare Workers AI fallback (free, no key needed with binding) ────
+    const callCloudflare = async () => {
+      const CF_ACCOUNT = process.env.CLOUDFLARE_ACCOUNT_ID;
+      const CF_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
+      if (!CF_ACCOUNT || !CF_TOKEN) return null;
+      try {
+        const r = await fetch(
+          `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/ai/run/@cf/meta/llama-3.1-8b-instruct`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${CF_TOKEN}` },
+            body: JSON.stringify({ messages: finalMessages, max_tokens: maxTokens }),
+            signal: AbortSignal.timeout(40000),
+          }
+        );
+        if (!r.ok) return null;
+        const d = await r.json();
+        return d.result?.response || null;
+      } catch (err) {
+        console.warn('[Chat] Cloudflare threw:', err.message);
+        return null;
+      }
+    };
+
+    // ── Try all providers in order ────────────────────────────────────────────
+    // 1. Groq (primary — fastest)
     let text = await callGroq('openai/gpt-oss-120b');
-    if (!text?.trim()) text = await callGroq('openai/gpt-oss-20b');
-    if (!text?.trim()) text = await callGroq('gemma2-9b-it');
-    if (!text?.trim()) text = "I'm having trouble connecting right now. Please try again.";
+    if (!text?.trim()) {
+      console.warn('[Chat] gpt-oss-120b failed, trying gpt-oss-20b');
+      text = await callGroq('openai/gpt-oss-20b');
+    }
+    if (!text?.trim()) {
+      console.warn('[Chat] gpt-oss-20b failed, trying gemma2-9b-it');
+      text = await callGroq('gemma2-9b-it');
+    }
+    // 2. OpenRouter (free Llama models)
+    if (!text?.trim()) {
+      console.warn('[Chat] All Groq models failed, trying OpenRouter');
+      text = await callOpenRouter();
+    }
+    // 3. Together AI (free tier)
+    if (!text?.trim()) {
+      console.warn('[Chat] OpenRouter failed, trying Together AI');
+      text = await callTogether();
+    }
+    // 4. Cloudflare Workers AI (free)
+    if (!text?.trim()) {
+      console.warn('[Chat] Together failed, trying Cloudflare');
+      text = await callCloudflare();
+    }
+    // 5. Honest final fallback
+    if (!text?.trim()) {
+      console.error('[Chat] All providers failed');
+      text = "All AI providers are currently busy. Please try again in a moment.";
+    }
 
     // Strip internal reasoning sections
     text = text
