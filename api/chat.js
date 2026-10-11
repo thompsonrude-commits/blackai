@@ -243,7 +243,8 @@ ALWAYS WORKS:
       }
     };
 
-    // ── Cloudflare Workers AI fallback (free, no key needed with binding) ────
+    // ── Cloudflare Workers AI (free 10K neurons/day — needs CF account) ──────
+    // Sign up free: dash.cloudflare.com — no credit card
     const callCloudflare = async () => {
       const CF_ACCOUNT = process.env.CLOUDFLARE_ACCOUNT_ID;
       const CF_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
@@ -255,7 +256,7 @@ ALWAYS WORKS:
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${CF_TOKEN}` },
             body: JSON.stringify({ messages: finalMessages, max_tokens: maxTokens }),
-            signal: AbortSignal.timeout(40000),
+            signal: AbortSignal.timeout(35000),
           }
         );
         if (!r.ok) return null;
@@ -267,35 +268,152 @@ ALWAYS WORKS:
       }
     };
 
-    // ── Try all providers in order ────────────────────────────────────────────
-    // 1. Groq (primary — fastest)
-    let text = await callGroq('openai/gpt-oss-120b');
+    // ── Google Gemini AI Studio (FREE 1,500 req/day — best free tier) ─────────
+    // Get key FREE at: aistudio.google.com — no credit card, no billing needed
+    // Add to Vercel env vars as: GEMINI_API_KEY
+    const callGemini = async () => {
+      const GEMINI_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_KEY;
+      if (!GEMINI_KEY) return null;
+      try {
+        const r = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${GEMINI_KEY}` },
+          body: JSON.stringify({
+            model: 'gemini-2.5-flash',
+            messages: finalMessages,
+            temperature,
+            max_tokens: maxTokens,
+          }),
+          signal: AbortSignal.timeout(35000),
+        });
+        if (!r.ok) { console.warn('[Chat] Gemini status:', r.status); return null; }
+        const d = await r.json();
+        return d.choices?.[0]?.message?.content || null;
+      } catch (err) {
+        console.warn('[Chat] Gemini threw:', err.message);
+        return null;
+      }
+    };
+
+    // ── Cerebras (FREE tier — extremely fast, Llama 70B) ─────────────────────
+    // Get key FREE at: cloud.cerebras.ai — no credit card needed
+    // Add to Vercel env vars as: CEREBRAS_API_KEY
+    const callCerebras = async () => {
+      const CEREBRAS_KEY = process.env.CEREBRAS_API_KEY;
+      if (!CEREBRAS_KEY) return null;
+      try {
+        const r = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${CEREBRAS_KEY}` },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b',
+            messages: finalMessages,
+            temperature,
+            max_tokens: maxTokens,
+          }),
+          signal: AbortSignal.timeout(35000),
+        });
+        if (!r.ok) { console.warn('[Chat] Cerebras status:', r.status); return null; }
+        const d = await r.json();
+        return d.choices?.[0]?.message?.content || null;
+      } catch (err) {
+        console.warn('[Chat] Cerebras threw:', err.message);
+        return null;
+      }
+    };
+
+    // ── Mistral AI (FREE tier — console.mistral.ai) ───────────────────────────
+    // Get key FREE at: console.mistral.ai — no credit card needed
+    // Add to Vercel env vars as: MISTRAL_API_KEY
+    const callMistral = async () => {
+      const MISTRAL_KEY = process.env.MISTRAL_API_KEY;
+      if (!MISTRAL_KEY) return null;
+      try {
+        const r = await fetch('https://api.mistral.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${MISTRAL_KEY}` },
+          body: JSON.stringify({
+            model: 'mistral-small-latest',
+            messages: finalMessages,
+            temperature,
+            max_tokens: maxTokens,
+          }),
+          signal: AbortSignal.timeout(35000),
+        });
+        if (!r.ok) { console.warn('[Chat] Mistral status:', r.status); return null; }
+        const d = await r.json();
+        return d.choices?.[0]?.message?.content || null;
+      } catch (err) {
+        console.warn('[Chat] Mistral threw:', err.message);
+        return null;
+      }
+    };
+
+    // ── Hugging Face Serverless Inference (FREE monthly credits) ─────────────
+    // Get key FREE at: huggingface.co/settings/tokens — no credit card
+    // Add to Vercel env vars as: HUGGINGFACE_API_KEY
+    const callHuggingFace = async () => {
+      const HF_KEY = process.env.HUGGINGFACE_API_KEY || process.env.HF_TOKEN;
+      if (!HF_KEY) return null;
+      try {
+        const r = await fetch(
+          'https://api-inference.huggingface.co/models/meta-llama/Llama-3.1-8B-Instruct/v1/chat/completions',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${HF_KEY}` },
+            body: JSON.stringify({
+              model: 'meta-llama/Llama-3.1-8B-Instruct',
+              messages: finalMessages,
+              temperature,
+              max_tokens: maxTokens,
+            }),
+            signal: AbortSignal.timeout(35000),
+          }
+        );
+        if (!r.ok) { console.warn('[Chat] HuggingFace status:', r.status); return null; }
+        const d = await r.json();
+        return d.choices?.[0]?.message?.content || null;
+      } catch (err) {
+        console.warn('[Chat] HuggingFace threw:', err.message);
+        return null;
+      }
+    };
+
+    // ── Full provider waterfall (8 providers) ────────────────────────────────
+    // Each provider is SKIPPED automatically if its env key isn't set.
+    // Add keys in Vercel Dashboard → Settings → Environment Variables.
+
+    let text = null;
+
+    // 1. Groq — primary (fastest, best quality). Key: GROQ_API_KEY
+    text = await callGroq('openai/gpt-oss-120b');
+    if (!text?.trim()) text = await callGroq('openai/gpt-oss-20b');
+    if (!text?.trim()) text = await callGroq('gemma2-9b-it');
+
+    // 2. Google Gemini — 1,500 req/day free. Key: GEMINI_API_KEY (aistudio.google.com)
+    if (!text?.trim()) { console.warn('[Chat] Groq exhausted → Gemini'); text = await callGemini(); }
+
+    // 3. Cerebras — extremely fast Llama 70B free. Key: CEREBRAS_API_KEY (cloud.cerebras.ai)
+    if (!text?.trim()) { console.warn('[Chat] Gemini failed → Cerebras'); text = await callCerebras(); }
+
+    // 4. OpenRouter — 200 req/day free per model. Key: OPENROUTER_API_KEY (openrouter.ai)
+    if (!text?.trim()) { console.warn('[Chat] Cerebras failed → OpenRouter'); text = await callOpenRouter(); }
+
+    // 5. Mistral — free tier. Key: MISTRAL_API_KEY (console.mistral.ai)
+    if (!text?.trim()) { console.warn('[Chat] OpenRouter failed → Mistral'); text = await callMistral(); }
+
+    // 6. Together AI — free tier. Key: TOGETHER_API_KEY (together.ai)
+    if (!text?.trim()) { console.warn('[Chat] Mistral failed → Together'); text = await callTogether(); }
+
+    // 7. Hugging Face — free monthly credits. Key: HUGGINGFACE_API_KEY (huggingface.co)
+    if (!text?.trim()) { console.warn('[Chat] Together failed → HuggingFace'); text = await callHuggingFace(); }
+
+    // 8. Cloudflare Workers AI — 10K free/day. Keys: CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_API_TOKEN
+    if (!text?.trim()) { console.warn('[Chat] HuggingFace failed → Cloudflare'); text = await callCloudflare(); }
+
+    // 9. Nothing worked
     if (!text?.trim()) {
-      console.warn('[Chat] gpt-oss-120b failed, trying gpt-oss-20b');
-      text = await callGroq('openai/gpt-oss-20b');
-    }
-    if (!text?.trim()) {
-      console.warn('[Chat] gpt-oss-20b failed, trying gemma2-9b-it');
-      text = await callGroq('gemma2-9b-it');
-    }
-    // 2. OpenRouter (free Llama models)
-    if (!text?.trim()) {
-      console.warn('[Chat] All Groq models failed, trying OpenRouter');
-      text = await callOpenRouter();
-    }
-    // 3. Together AI (free tier)
-    if (!text?.trim()) {
-      console.warn('[Chat] OpenRouter failed, trying Together AI');
-      text = await callTogether();
-    }
-    // 4. Cloudflare Workers AI (free)
-    if (!text?.trim()) {
-      console.warn('[Chat] Together failed, trying Cloudflare');
-      text = await callCloudflare();
-    }
-    // 5. Honest final fallback
-    if (!text?.trim()) {
-      console.error('[Chat] All providers failed');
+      console.error('[Chat] All 8 providers failed');
       text = "All AI providers are currently busy. Please try again in a moment.";
     }
 
