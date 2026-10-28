@@ -23,6 +23,8 @@ import ImageGenerator from './ImageGenerator';
 import GeoMapViewer from './GeoMapViewer';
 import SvgImageGenerator from './SvgImageGenerator';
 import { generateImageWithFallback } from '../lib/imageService';
+import { usePacedTypewriter } from '../lib/usePacedTypewriter';
+import TypingIndicator from './TypingIndicator';
 
 interface LanguageAssistantProps {
   user?: FirebaseUser | null;
@@ -99,32 +101,6 @@ function CodeBlock({ children, className }: { children: string; className?: stri
   );
 }
 
-// ── Typewriter effect hook ───────────────────────────────────────────────
-function useTypewriter(text: string, speed: number = 30) {
-  const [displayedText, setDisplayedText] = useState('');
-
-  useEffect(() => {
-    if (!text) {
-      setDisplayedText('');
-      return;
-    }
-
-    let index = 0;
-    const interval = setInterval(() => {
-      if (index < text.length) {
-        setDisplayedText(text.substring(0, index + 1));
-        index++;
-      } else {
-        clearInterval(interval);
-      }
-    }, speed);
-
-    return () => clearInterval(interval);
-  }, [text, speed]);
-
-  return displayedText;
-}
-
 function MessageContent({ content }: { content: string }) {
   return (
     <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
@@ -151,31 +127,27 @@ function MessageContent({ content }: { content: string }) {
   );
 }
 
-function TypewriterMessage({ content, isModel }: { content: string; isModel: boolean }) {
-  const displayedText = useTypewriter(content, 15);
-  
-  if (isModel) {
-    return (
-      <div className="px-4 sm:px-5 py-3 sm:py-4 bg-white text-gray-900 rounded-xl sm:rounded-2xl rounded-tl-sm border border-gray-200 shadow-sm text-lg sm:text-lg md:text-xl w-full font-medium leading-relaxed">
-        <MessageContent content={displayedText} />
-      </div>
-    );
-  }
-  
-  return (
-    <div className="px-4 sm:px-5 py-3 sm:py-4 bg-[#008751] text-white rounded-xl sm:rounded-2xl rounded-tr-sm text-lg sm:text-lg md:text-xl whitespace-pre-wrap max-w-full font-semibold leading-relaxed">
-      {displayedText}
-    </div>
-  );
-}
-
-function StreamingBubble({ content }: { content: string }) {
-  const displayedText = useTypewriter(content, 15);
+function StreamingBubble({
+  content,
+  isGenerating,
+  scrollRef,
+  onComplete,
+}: {
+  content: string;
+  isGenerating: boolean;
+  scrollRef: React.RefObject<HTMLDivElement | null>;
+  onComplete: () => void;
+}) {
+  const { displayedText, isComplete } = usePacedTypewriter(content, {
+    isGenerating,
+    scrollRef,
+    onComplete,
+  });
   
   return (
     <div className="px-4 sm:px-5 py-3 sm:py-4 bg-white text-gray-900 rounded-xl sm:rounded-2xl rounded-tl-sm border border-gray-200 text-lg sm:text-lg md:text-xl font-medium leading-relaxed">
+      {(isGenerating || !isComplete) && <TypingIndicator className="text-[#008751]" />}
       <MessageContent content={displayedText} />
-      <span className="inline-block w-2 h-5 bg-[#008751] ml-0.5 animate-pulse rounded-sm align-middle" />
     </div>
   );
 }
@@ -550,7 +522,7 @@ export default function LanguageAssistant({ user, isAdmin, languageName, languag
         setStreamingContent(fullText);
       }
       historyRef.current.push({ role: 'assistant', content: fullText });
-      setIsStreaming(false); setStreamingContent('');
+      setIsStreaming(false);
       setMessages(prev => [...prev, { role: 'model', content: fullText, timestamp: Date.now() }]);
       // Focus input after response completes
       setTimeout(() => inputRef.current?.focus(), 50);
@@ -643,6 +615,7 @@ export default function LanguageAssistant({ user, isAdmin, languageName, languag
 
         <AnimatePresence initial={false}>
           {messages.map((msg, idx) => {
+            if ((isStreaming || streamingContent) && idx === messages.length - 1 && msg.role === 'model') return null;
             const modelIdx = modelIndexMap[idx];
             const isImg = msg.role === 'model' && msg.content.startsWith('__IMAGE__');
             const imgUrl = isImg ? msg.content.replace('__IMAGE__', '') : null;
@@ -671,8 +644,15 @@ export default function LanguageAssistant({ user, isAdmin, languageName, languag
                       />
                     )
                   ) : (
-                    <TypewriterMessage content={msg.content} isModel={msg.role === 'model'} />
-                  )}
+                    msg.role === 'model' ? (
+                      <div className="px-4 sm:px-5 py-3 sm:py-4 bg-white text-gray-900 rounded-xl sm:rounded-2xl rounded-tl-sm border border-gray-200 shadow-sm text-lg sm:text-lg md:text-xl w-full font-medium leading-relaxed">
+                        <MessageContent content={msg.content} />
+                      </div>
+                    ) : (
+                      <div className="px-4 sm:px-5 py-3 sm:py-4 bg-[#008751] text-white rounded-xl sm:rounded-2xl rounded-tr-sm text-lg sm:text-lg md:text-xl whitespace-pre-wrap max-w-full font-semibold leading-relaxed">
+                        {msg.content}
+                      </div>
+                    ))}
                   {/* Speaker — admin only */}
                   {msg.role === 'model' && !isImg && isAdmin && (
                     <div className="flex items-center gap-1.5 sm:gap-2 px-1">
@@ -691,19 +671,22 @@ export default function LanguageAssistant({ user, isAdmin, languageName, languag
               </motion.div>
             );
           })}
-          {isStreaming && (
+          {(isStreaming || streamingContent) && (
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex gap-2 sm:gap-3 mr-auto max-w-xs sm:max-w-3xl w-full">
               <div className="w-6 sm:w-8 h-6 sm:h-8 rounded-lg sm:rounded-xl bg-[#008751]/10 border border-[#008751]/20 flex items-center justify-center shrink-0 mt-0.5 sm:mt-1"><img src="/logo.png" alt="BLACK AI" className="w-6 sm:w-8 h-6 sm:h-8 rounded-lg object-cover" /></div>
-              <StreamingBubble content={streamingContent} />
+              <StreamingBubble
+                content={streamingContent}
+                isGenerating={isStreaming}
+                scrollRef={scrollRef}
+                onComplete={() => setStreamingContent('')}
+              />
             </motion.div>
           )}
           {isLoading && !isStreaming && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex gap-2 sm:gap-3 mr-auto">
               <div className="w-6 sm:w-8 h-6 sm:h-8 rounded-lg sm:rounded-xl bg-[#008751]/10 border border-[#008751]/20 flex items-center justify-center shrink-0 mt-0.5 sm:mt-1"><img src="/logo.png" alt="BLACK AI" className="w-6 sm:w-8 h-6 sm:h-8 rounded-lg object-cover" /></div>
               <div className="px-3 sm:px-5 py-2 sm:py-4 bg-white border border-[#008751]/15 rounded-lg sm:rounded-2xl rounded-tl-sm flex items-center gap-1">
-                <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-[#008751] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-[#008751] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-[#008751] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                <TypingIndicator className="text-[#008751]" />
               </div>
             </motion.div>
           )}

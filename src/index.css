@@ -74,6 +74,53 @@ body {
   50% { transform: translateY(-6px); }
 }
 
+@keyframes typingDotBounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-5px); }
+}
+
+.typing-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 1em;
+  margin-left: 0.35rem;
+  vertical-align: middle;
+}
+
+.typing-indicator--leading {
+  margin-left: 0;
+  margin-right: 0.4rem;
+}
+
+.typing-indicator__dot {
+  display: block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  animation: typingDotBounce 1.4s ease-in-out infinite;
+}
+
+.typing-indicator__dot--green {
+  background: #00ff88;
+}
+
+.typing-indicator__dot--white {
+  background: #ffffff;
+  animation-delay: 0.2s;
+}
+
+.typing-indicator__dot--green:last-child {
+  animation-delay: 0.4s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .typing-indicator__dot {
+    animation: none;
+  }
+}
+
 .animate-shimmer {
   animation: shimmer 3s infinite;
 }

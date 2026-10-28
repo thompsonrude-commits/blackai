@@ -60,6 +60,7 @@ import LoginBanner from './LoginBanner';
 import { saveChatSession, getSessionById } from '../lib/sessionManager';
 import { buildSelfAwarePrompt, detectUnavailableFeatureRequest } from '../lib/selfAwarePrompt';
 import { processFile } from '../lib/multimodalProcessor';
+import { usePacedTypewriter } from '../lib/usePacedTypewriter';
 import { initializeDefaultProviders } from '../lib/providerHealth';
 import { getLocalFallbackResponse } from '../lib/fallbackResponses';
 import { useAutoLearning } from './AutoLearning';
@@ -67,6 +68,7 @@ import { recordUsageEvent, trackMessage } from '../lib/analyticsService';
 import { detectImageType } from '../lib/imageTypeDetector';
 import type { ImageGenerationRequest } from '../lib/newImageEngine';
 import SpeakerCube from './SpeakerCube';
+import TypingIndicator from './TypingIndicator';
 import NewImageBubble from './NewImageBubble';
 import DocumentViewer from './DocumentViewer';
 import GoogleAd from './GoogleAd';
@@ -457,19 +459,6 @@ function buildImageResult(rawPrompt: string): { type: 'map'|'flag'|'ai'|'video';
   return { type: 'ai', url: `__GENERATE__${rawPrompt}`, label: `🎨 ${rawPrompt}` };
 }
 
-// ── Typewriter hook ───────────────────────────────────────────────────────
-function useTypewriter(text: string, speed = 31) {  // Reduced speed by 25% (was 25ms, now 31ms)
-  const [displayed, setDisplayed] = useState('');
-  const prevText = useRef('');
-  useEffect(() => {
-    if (text.length < prevText.current.length) { setDisplayed(''); prevText.current = ''; }
-    if (displayed.length >= text.length) return;
-    const timer = setTimeout(() => { setDisplayed(text.slice(0, displayed.length + 1)); prevText.current = text.slice(0, displayed.length + 1); }, speed);
-    return () => clearTimeout(timer);
-  }, [text, displayed, speed]);
-  return displayed;
-}
-
 // ── Typewriter bubble ─────────────────────────────────────────────────────
 function normalizePidginPronouns(value: string): string {
   // ONLY fix subject-position "me" before Pidgin verbs — never touch object position
@@ -515,14 +504,42 @@ function sanitizeDisplayText(value: string): string {
   return normalizePidginPronouns(sanitized);
 }
 
-function TypewriterBubble({ content, isNew }: { content: string; isNew: boolean }) {
+function TypewriterBubble({ content, isNew, scrollRef }: { content: string; isNew: boolean; scrollRef: React.RefObject<HTMLDivElement | null> }) {
   const safeContent = sanitizeDisplayText(content);
-  const displayed = useTypewriter(isNew ? safeContent : '', 31);  // Reduced speed by 25% (was 25ms, now 31ms)
+  const { displayedText: displayed } = usePacedTypewriter(isNew ? safeContent : '', {
+    enabled: isNew,
+    scrollRef,
+  });
   const text = isNew ? displayed : safeContent;
   return (
     <div className="max-w-[85%] bg-[#1a1a1a] border border-[#00ff88]/30 px-4 py-3 rounded-2xl rounded-tl-sm text-gray-100 text-base leading-[1.6] whitespace-pre-wrap shadow-[0_0_20px_rgba(0,255,136,0.1)] break-words overflow-visible">
+      {isNew && displayed.length < safeContent.length && <TypingIndicator className="text-[#00ff88]" />}
       {text}
-      {isNew && displayed.length < safeContent.length && <span className="inline-block w-2 h-4 bg-[#00ff88] ml-0.5 animate-pulse rounded-sm align-middle" />}
+    </div>
+  );
+}
+
+function StreamingBubble({
+  content,
+  isGenerating,
+  scrollRef,
+  onComplete,
+}: {
+  content: string;
+  isGenerating: boolean;
+  scrollRef: React.RefObject<HTMLDivElement | null>;
+  onComplete: () => void;
+}) {
+  const { displayedText, isComplete } = usePacedTypewriter(content, {
+    isGenerating,
+    scrollRef,
+    onComplete,
+  });
+
+  return (
+    <div className="max-w-[85%] bg-[#1a1a1a] border border-[#00ff88]/30 px-4 py-3 rounded-2xl rounded-tl-sm text-gray-100 text-base leading-[1.6] whitespace-pre-wrap shadow-[0_0_20px_rgba(0,255,136,0.1)] break-words overflow-visible">
+      {(isGenerating || !isComplete) && <TypingIndicator className="text-[#00ff88]" />}
+      {displayedText}
     </div>
   );
 }
@@ -1694,10 +1711,11 @@ Use these meanings when the source contains these Edo phrases.`;
       if (!stopped && !stoppedRef.current) {
         const language = getConversationLanguageContext() || selectedLanguage || 'en';
         const fallback = userMessage ? getLocalFallbackResponse(userMessage, language) : 'Network busy right now. Please try again.';
+        setStreamingContent('');
         setMessages(prev => [...prev, { role: 'model', content: fallback, timestamp: Date.now(), isNew: true }]);
       }
     } finally {
-      abortRef.current = null; setIsStreaming(false); setStreamingContent(''); setIsBusy(false);
+      abortRef.current = null; setIsStreaming(false); setIsBusy(false);
       setLogoState('success'); setTimeout(() => setLogoState('idle'), 2000); setTimeout(scrollToBottom, 100);
       // Mark speaking as done — cube stays visible until speaker is turned off
       setTimeout(() => { setIsSpeakingNow(false); }, 1500);
@@ -1832,7 +1850,7 @@ Use these meanings when the source contains these Edo phrases.`;
             {messages.map((msg, idx) => {
               // Hide the last model message while streaming — it's the same content as the streaming bubble
               const isLastModelMsg = msg.role === 'model' && idx === messages.length - 1;
-              if (isStreaming && isLastModelMsg) return null;
+              if ((isStreaming || streamingContent) && isLastModelMsg) return null;
 
               const isImg = msg.role === 'model' && (msg.content.startsWith('__IMAGE__') || msg.content.startsWith('__GENERATE__') || msg.content.startsWith('__MAP__') || msg.content.startsWith('__VIDEO__'));
               const imgUrl = isImg ? (msg.content.startsWith('__IMAGE__') ? msg.content.replace('__IMAGE__', '') : msg.content) : null;
@@ -1929,7 +1947,7 @@ Use these meanings when the source contains these Edo phrases.`;
                       <ImageBubble url={imgUrl || ''} originalContent={msg.content} prompt={msg.imagePrompt || 'AI image'} imgType={msg.imgType === 'flag' ? 'flag' : 'ai'} label={msg.imgLabel || `🎨 ${msg.imagePrompt}`} onImageReady={updateMessageImage} msgIndex={idx} user={user} />
                     ) : (
                       <>
-                        {textContent && (msg.role === 'model' ? <TypewriterBubble content={textContent} isNew={!!msg.isNew} /> : <div className="max-w-[85%] bg-[#00ff88]/15 border border-[#00ff88]/25 px-4 py-3 rounded-2xl rounded-tr-sm text-white text-base leading-relaxed whitespace-pre-wrap">{msg.content}</div>)}
+                        {textContent && (msg.role === 'model' ? <TypewriterBubble content={textContent} isNew={!!msg.isNew} scrollRef={scrollRef} /> : <div className="max-w-[85%] bg-[#00ff88]/15 border border-[#00ff88]/25 px-4 py-3 rounded-2xl rounded-tr-sm text-white text-base leading-relaxed whitespace-pre-wrap">{msg.content}</div>)}
                         {spreadsheetData && <SpreadsheetViewer data={spreadsheetData} title={spreadsheetData.title} />}
                         {documentData && <DocumentViewer title={documentData.title} content={documentData.content} format={documentData.format as any} />}
                         {projectData && <ProjectViewer projectName={projectData.projectName} structure={projectData.structure} />}
@@ -1960,11 +1978,14 @@ Use these meanings when the source contains these Edo phrases.`;
               );
             })}
 
-            {isStreaming && (
+            {(isStreaming || streamingContent) && (
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex justify-start">
-                <div className="max-w-[85%] bg-[#1a1a1a] border border-[#00ff88]/30 px-4 py-3 rounded-2xl rounded-tl-sm text-gray-100 text-base leading-[1.6] whitespace-pre-wrap shadow-[0_0_20px_rgba(0,255,136,0.1)] break-words overflow-visible">
-                  {sanitizeDisplayText(streamingContent)}<span className="inline-block w-2 h-4 bg-[#00ff88] ml-0.5 animate-pulse rounded-sm align-middle" />
-                </div>
+                <StreamingBubble
+                  content={sanitizeDisplayText(streamingContent)}
+                  isGenerating={isStreaming}
+                  scrollRef={scrollRef}
+                  onComplete={() => setStreamingContent('')}
+                />
               </motion.div>
             )}
           </AnimatePresence>
@@ -1974,14 +1995,10 @@ Use these meanings when the source contains these Edo phrases.`;
 
       {/* ── Thinking / typing indicator aligned with assistant bubble ─────────────────────────────────── */}
       <AnimatePresence>
-        {isBusy && (
+        {isBusy && !isStreaming && (
           <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }} className="flex justify-start pb-2 px-4">
             <div className="max-w-[85%] bg-[#1a1a1a] border border-[#00ff88]/20 px-4 py-3 rounded-2xl rounded-tl-sm text-white text-base leading-relaxed whitespace-pre-wrap flex items-center gap-3">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#00ff88] animate-dot-bounce inline-block" style={{ animationDelay: '0ms' }} />
-                <span className="w-2 h-2 rounded-full bg-white animate-dot-bounce inline-block" style={{ animationDelay: '200ms' }} />
-                <span className="w-2 h-2 rounded-full bg-[#00ff88] animate-dot-bounce inline-block" style={{ animationDelay: '400ms' }} />
-              </div>
+              <TypingIndicator className="text-[#00ff88]" />
               <div className="flex-1">
                 <div className="text-sm text-[#00ff88] font-medium">BLACK AI Reasoning...</div>
               </div>

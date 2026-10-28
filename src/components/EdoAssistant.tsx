@@ -15,6 +15,8 @@ import { ChatMessage } from '../types';
 import { recordAudioBlob, customAudioCache } from '../lib/voice';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { usePacedTypewriter } from '../lib/usePacedTypewriter';
+import TypingIndicator from './TypingIndicator';
 
 interface EdoAssistantProps {
   user: FirebaseUser | null;
@@ -184,13 +186,27 @@ function MessageContent({ content }: { content: string }) {
 }
 
 // ── Streaming message bubble — shows a blinking cursor while streaming ────
-function StreamingBubble({ content, done }: { content: string; done: boolean }) {
+function StreamingBubble({
+  content,
+  isGenerating,
+  scrollRef,
+  onComplete,
+}: {
+  content: string;
+  isGenerating: boolean;
+  scrollRef: React.RefObject<HTMLDivElement | null>;
+  onComplete: () => void;
+}) {
+  const { displayedText, isComplete } = usePacedTypewriter(content, {
+    isGenerating,
+    scrollRef,
+    onComplete,
+  });
+
   return (
-    <div className="px-5 py-4 bg-[#1A1A1A] text-[#E5E5E5] rounded-2xl rounded-tl-sm border border-[#2A2A2A] text-sm">
-      <MessageContent content={content} />
-      {!done && (
-        <span className="inline-block w-2 h-4 bg-[#5A5A40] ml-0.5 animate-pulse rounded-sm align-middle" />
-      )}
+    <div className="max-w-[85%] px-4 py-3 bg-gray-100 text-gray-900 rounded-2xl rounded-tl-sm text-base font-medium leading-relaxed">
+      {(isGenerating || !isComplete) && <TypingIndicator className="text-[#5A5A40]" />}
+      <MessageContent content={displayedText} />
     </div>
   );
 }
@@ -382,7 +398,6 @@ export default function EdoAssistant({ user, isAdmin }: EdoAssistantProps) {
       }
 
       setIsStreaming(false);
-      setStreamingContent('');
       const modelMsg: ChatMessage = {
         role: 'model',
         content: fullText,
@@ -554,6 +569,7 @@ export default function EdoAssistant({ user, isAdmin }: EdoAssistantProps) {
         )}
         <AnimatePresence initial={false}>
           {messages.map((msg, idx) => {
+            if ((isStreaming || streamingContent) && idx === messages.length - 1 && msg.role === 'model') return null;
             const modelIdx = modelIndexMap[idx];
             return (
               <motion.div key={idx} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}
@@ -578,18 +594,20 @@ export default function EdoAssistant({ user, isAdmin }: EdoAssistantProps) {
               </motion.div>
             );
           })}
-          {isStreaming && (
+          {(isStreaming || streamingContent) && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex justify-start">
-              <div className="max-w-[85%] px-4 py-3 bg-gray-100 text-gray-900 rounded-2xl rounded-tl-sm text-base font-medium leading-relaxed">
-                <MessageContent content={streamingContent} />
-                <span className="inline-block w-2 h-4 bg-[#008751] ml-0.5 animate-pulse rounded-sm align-middle" />
-              </div>
+              <StreamingBubble
+                content={streamingContent}
+                isGenerating={isStreaming}
+                scrollRef={scrollRef}
+                onComplete={() => setStreamingContent('')}
+              />
             </motion.div>
           )}
           {isLoading && !isStreaming && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex justify-start">
               <div className="flex items-center gap-1.5 px-4 py-3 rounded-2xl bg-gray-100">
-                {[0, 150, 300].map((d, i) => <span key={i} className="w-2 h-2 bg-[#008751] rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />)}
+                <TypingIndicator className="text-[#008751]" />
               </div>
             </motion.div>
           )}

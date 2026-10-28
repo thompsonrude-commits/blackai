@@ -2,9 +2,15 @@ import * as path from 'path';
 import * as dotenv from 'dotenv';
 import type { ProviderId } from '../types';
 
-const ENV_FILE = path.resolve(__dirname, '../../.env');
+const ENV_FILES = [
+  path.resolve(__dirname, '../../.env'),
+  path.resolve(__dirname, '../.env'),
+  path.resolve(__dirname, '../../functions/.env'),
+];
 if (process.env.NODE_ENV !== 'production') {
-  dotenv.config({ path: ENV_FILE, override: false });
+  for (const envFile of ENV_FILES) {
+    dotenv.config({ path: envFile, override: false });
+  }
 }
 
 interface SecretLike {
@@ -15,7 +21,7 @@ const BOOLEAN_FALSE_VALUES = new Set(['0', 'false', 'off', 'no', 'disabled']);
 
 const ENV_ALIASES: Record<string, string[]> = {
   GROK_KEY: ['XAI_API_KEY', 'GROK_API_KEY', 'GROK_KEY'],
-  GROQ_KEY: ['GROQ_API_KEY', 'GROQ_KEY'],
+  GROQ_KEY: ['GROQ_API_KEY', 'GROQ_KEY', 'VITE_GROQ_KEY'],
   HF_KEY: ['HUGGINGFACE_API_KEY', 'HF_API_KEY', 'HUGGINGFACE_TOKEN', 'HF_TOKEN'],
   OPENAI_KEY: ['OPENAI_API_KEY', 'OPENAI_TOKEN'],
 };

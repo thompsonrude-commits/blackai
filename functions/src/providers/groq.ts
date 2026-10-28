@@ -49,6 +49,7 @@ export async function groqChat(
       max_tokens: maxTokens,
       stream: false,
     }),
+    signal: AbortSignal.timeout(30000),
   });
 
   if (!res.ok) {
@@ -87,6 +88,7 @@ export async function groqStream(
       max_tokens: maxTokens,
       stream: true,
     }),
+    signal: AbortSignal.timeout(30000),
   });
 
   if (!res.ok) {
@@ -145,6 +147,7 @@ export async function groqTranscribe(
     method: 'POST',
     headers: { 'Authorization': `Bearer ${key}` },
     body: formData,
+    signal: AbortSignal.timeout(30000),
   });
 
   if (!res.ok) {
@@ -286,6 +289,7 @@ export async function groqVision(
       temperature,
       max_tokens: 1024,
     }),
+    signal: AbortSignal.timeout(30000),
   });
 
   if (!res.ok) {

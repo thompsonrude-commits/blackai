@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { normalizeChatMessages, normalizeChatMessagesForProvider } from './providerPayload';
+import { getSecretValue } from './providers/secretHelpers';
 
 describe('providerPayload utilities', () => {
   it('normalizes chat messages and preserves valid roles', () => {
@@ -31,5 +32,16 @@ describe('providerPayload utilities', () => {
       { role: 'user', content: 'Message' },
       { role: 'assistant', content: 'Valid assistant message' },
     ]);
+  });
+
+  it('resolves Groq secrets from the app environment alias', () => {
+    const original = process.env.VITE_GROQ_KEY;
+    process.env.VITE_GROQ_KEY = 'test-groq-key';
+    delete process.env.GROQ_KEY;
+
+    expect(getSecretValue('GROQ_KEY')).toBe('test-groq-key');
+
+    if (original === undefined) delete process.env.VITE_GROQ_KEY;
+    else process.env.VITE_GROQ_KEY = original;
   });
 });

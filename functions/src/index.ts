@@ -20,9 +20,15 @@ import { onRequest } from 'firebase-functions/v2/https';
 import { setGlobalOptions } from 'firebase-functions/v2';
 import * as crypto from 'crypto';
 
-const envPath = path.resolve(__dirname, '../../.env');
-if (fs.existsSync(envPath) && process.env.NODE_ENV !== 'production' && !process.env.GCLOUD_PROJECT) {
-  dotenv.config({ path: envPath, override: false });
+const envPaths = [
+  path.resolve(__dirname, '../../.env'),
+  path.resolve(__dirname, '../.env'),
+  path.resolve(__dirname, '../../functions/.env'),
+];
+for (const envPath of envPaths) {
+  if (fs.existsSync(envPath) && process.env.NODE_ENV !== 'production' && !process.env.GCLOUD_PROJECT) {
+    dotenv.config({ path: envPath, override: false });
+  }
 }
 
 // Provider-specific modules are lazy-imported at runtime inside handlers to avoid deployment-time initialization delays.

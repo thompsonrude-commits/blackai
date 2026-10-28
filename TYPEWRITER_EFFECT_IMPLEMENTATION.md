@@ -3,6 +3,16 @@
 **Date:** May 20, 2026  
 **Status:** ✅ Deployed to https://9jai.web.app
 
+## Current Chat Behavior
+
+The implementation details below describe the original rollout. Current chat responses use the shared `src/lib/usePacedTypewriter.ts` hook in the general, language, and Edo assistants:
+
+- Assistant responses appear progressively at roughly 150 ms per character, with additional pauses after punctuation.
+- Three animated dots stay anchored before response text while it is being generated and typed, bouncing in sequence in green, white, green.
+- The live response stays visible until typing finishes, including when the model stream ends first.
+- The chat follows new text only while the reader is near the bottom; scrolling upward pauses auto-follow.
+- Existing conversation history and user messages render immediately instead of replaying the animation.
+
 ---
 
 ## Overview
