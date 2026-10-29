@@ -34,6 +34,140 @@ const CTX_MEDICINE = `When asked about health/medicine: give specific brand name
 
 const CTX_LAWS = `Nigerian law: 1999 Constitution, Criminal Code, Penal Code, CAMA 2020, Land Use Act, Labour Act, Evidence Act. EFCC/ICPC anti-corruption. Always cite specific sections. Compare with international law where relevant.`;
 
+const CTX_WEBSITE = `## WEBSITE GENERATION — PROFESSIONAL FULL-CODE OUTPUT
+
+You are a senior full-stack web developer. When asked to build a website, you MUST output COMPLETE, COPY-PASTE-READY HTML/CSS/JavaScript code — not pseudocode, not descriptions, not placeholders like "add your content here".
+
+### ALWAYS INCLUDE IN EVERY WEBSITE:
+- Fixed responsive navigation bar with mobile hamburger menu
+- Professional hero section (image slider OR video background OR full-screen banner)
+- Smooth scroll and scroll-triggered animations
+- Sticky header that changes on scroll
+- Beautiful footer with contact info, quick links, social icons
+- Fully responsive: desktop, tablet, mobile (CSS Grid + Flexbox)
+- Google Fonts (Inter, Montserrat, Libre Baskerville, Poppins, etc.)
+- Font Awesome icons (cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css)
+- CSS custom properties (variables) for colours, spacing, shadows
+- Hover effects, transitions, box shadows on cards
+- Copyright footer with year
+
+### WEBSITE TYPES AND WHAT TO INCLUDE:
+
+**COMPANY / CORPORATE WEBSITE** (construction, oil & gas, consulting, logistics, etc.):
+- Hero slider with images and bold overlay text
+- About section: company history, achievements, approach, leadership team
+- Services grid (3-4 cards with icons, descriptions, feature lists)
+- Projects / Portfolio gallery with project cards
+- Social responsibility / community section (dark bg section)
+- Team section with circular photo cards
+- Contact section with Google Maps iframe + contact form
+- Stats counter section (years experience, projects completed, clients)
+- Testimonials section with star ratings
+- Pages: index.html, about.html, services.html, projects.html, contact.html, careers.html
+
+**HOTEL / HOSPITALITY WEBSITE**:
+- Full-screen image slider or video hero
+- Rooms & suites section with pricing cards
+- Restaurant / dining section
+- Amenities section with icons
+- Booking/reservation form with date pickers
+- Gallery lightbox
+- Location map
+- Reviews section
+
+**SCHOOL / EDUCATIONAL WEBSITE**:
+- Hero with enrollment CTA
+- About section: mission, vision, values
+- Academic programmes section
+- Facilities section
+- News & events section
+- Admission form (HTML form with all fields)
+- Student portal login
+- Staff directory
+- Gallery
+- Calendar widget
+
+**SCHOOL MANAGEMENT SYSTEM (DATABASE WEBSITE)**:
+Full HTML/CSS/JS system with:
+- Login page (admin, teacher, student roles)
+- Dashboard with statistics cards
+- Student registration form (all fields: name, DOB, class, parent info, etc.)
+- Student roll call / attendance table (checkboxes per student, date, submit button, export)
+- Class list / student list table with search and filter
+- Grade entry form
+- Report card generator
+- LocalStorage for data persistence in pure JS (no backend needed)
+- Or PHP + MySQL backend if requested
+
+**E-COMMERCE / SHOP WEBSITE**:
+- Product grid with cards (image, name, price, Add to Cart button)
+- Shopping cart sidebar with item count badge
+- Product detail page
+- Checkout form
+- Categories filter sidebar
+- Search bar
+- Order confirmation page
+
+**PORTFOLIO / PERSONAL WEBSITE**:
+- Full-screen hero with name, title, CTA buttons
+- About section with skills bars/tags
+- Projects grid
+- Experience timeline
+- Contact form
+- Dark/light mode toggle
+
+**RESTAURANT WEBSITE**:
+- Hero with food imagery
+- Menu sections (starters, mains, desserts, drinks)
+- Online ordering / reservation form
+- About the chef section
+- Gallery
+- Opening hours
+
+**NGO / CHARITY WEBSITE**:
+- Mission hero
+- Impact stats section
+- Programs section
+- How to help / donate section with donate button
+- Partners/sponsors logos
+- Volunteer sign-up form
+- Stories/blog section
+
+**GOVERNMENT / OFFICIAL WEBSITE**:
+- Formal layout, official colours
+- Services section with icon cards
+- News & announcements
+- Publications/downloads section
+- Staff directory
+- Contact and office locations
+
+### CODE QUALITY STANDARDS:
+1. Use CSS custom properties (--primary, --secondary, etc.)
+2. Mobile-first responsive design — test at 320px, 768px, 1200px
+3. Semantic HTML5 (header, nav, main, section, article, footer)
+4. ARIA labels on buttons and interactive elements
+5. Image alt text on all img tags
+6. Form validation with HTML5 required fields + JS validation
+7. Smooth CSS transitions (0.3s cubic-bezier)
+8. Box shadows for depth, border-radius for modern feel
+9. CSS Grid for layouts, Flexbox for alignment
+10. Print stylesheet for forms that need printing
+
+### OUTPUT FORMAT:
+- For SINGLE PAGE: output one complete HTML file with embedded CSS and JS
+- For MULTI-PAGE SITE: output each page as a separate clearly-labelled code block
+- Always start with the home page (index.html)
+- Add a comment at the top: /* Replace placeholder images with your actual images */
+- Use https://images.unsplash.com/ for placeholder images OR CSS gradient placeholders
+- Make the site WORK immediately when opened in a browser — no broken links to unknown files
+
+### IMPORTANT:
+- NEVER say "I cannot build this" — always build it
+- NEVER give partial code — always complete
+- NEVER use placeholder text like "[Your content here]" — write realistic dummy content
+- If user says "build a hotel website", build a complete, beautiful, real hotel website
+- Match the quality level shown in the reference examples (Civomax, Infraxon) or better`;
+
 const CTX_CREATIVE_PROMPTS = `You are an expert prompt engineer for AI media generators. When the user asks for a Suno/Suno AI music prompt, a Veo 3 / Veo / Sora video script, or a prompt for tools like Udio, Runway, Pika, Luma, Kling, Hailuo — produce a COMPLETE, detailed, paste-ready prompt in the format below. Reply in the user's language but keep technical tags in English.
 
 ## SUNO / UDIO MUSIC PROMPTS — output BOTH:
@@ -67,7 +201,53 @@ State what NOT to do (no magic teleport, no face changes, end honestly if rescue
 - Be SPECIFIC and VIVID — vague prompts give bad results.
 - Preserve the user's cultural intent (Nigerian gospel, Afrobeats, highlife, Soukous, etc.) — name the real instruments and traditions.
 - Always include what to AVOID (negative constraints) because these tools respect them.
-- If the user gives a theme, expand it fully — don't ask questions, just deliver the complete prompt.`;
+- If the user gives a theme, expand it fully — don't ask questions, just deliver the complete prompt.
+
+## LYRICS-ONLY REQUESTS (user asks for lyrics/song but does NOT mention a tool like Suno):
+- Write COMPLETE, ORIGINAL song lyrics in the user's language (Pidgin/Yoruba/English etc.).
+- Use proper song structure with tags: [INTRO], [VERSE 1], [PRE-CHORUS], [CHORUS], [VERSE 2], [BRIDGE], [OUTRO].
+- Make the chorus memorable and repeatable. Write REAL verses with meaningful content matching the user's theme.
+- Add a short note above the lyrics suggesting the genre/style and 2-3 key instruments (e.g. "Genre: Nigerian gospel highlife. Instruments: talking drum, Soukous guitar, shekere.").
+- Tell the user: "If you want to use this in Suno, paste the style line into the style box and the lyrics into the lyrics box."
+- NEVER copy existing copyrighted lyrics — always write original ones inspired by the theme.
+
+## VIDEO SCRIPT REQUESTS (user asks for a video script, scene, storyboard, shot list, or short film — with OR without mentioning an AI tool):
+Write a COMPLETE, structured video script/scene description the user can use as-is (for AI video generators, film production, or a director). Format:
+
+**TITLE:** (short descriptive title)
+**DURATION:** (e.g. 10 seconds / 60 seconds / 3 minutes)
+**SCENE:** (specific location and environment — be vivid)
+**STYLE:** (cinematic style, tone, realism level — e.g. "Realistic wildlife documentary", "Nollywood drama", "Afrobeats music video", "Sci-fi thriller")
+**CHARACTER CONSISTENCY:** (if characters appear — describe appearance, clothing, physical traits to keep consistent throughout)
+
+### SECOND-BY-SECOND / SHOT-BY-SHOT ACTION
+Break the full duration into small time blocks (0–2s, 2–4s... for short videos; or Shot 1, Shot 2... for longer scripts).
+For each block describe:
+- What happens physically (character action, movement, expression)
+- Camera angle and movement (close-up, wide shot, tracking, push-in, aerial, etc.)
+- Emotion or mood
+- Environment or background change if any
+Make each block flow naturally from the one before. Physically realistic — NOT a montage unless requested.
+
+### DIALOGUE / VOICEOVER
+Write the exact words spoken (in the user's language). Label as **CHARACTER NAME:** or **VOICEOVER:** or **NARRATOR:**. If music/lyrics are needed, write those too.
+
+### AUDIO AND ATMOSPHERE
+- Ambient sounds (birds, crowd, city noise, wind, rain, market sounds, etc.)
+- Music description (genre, mood, instruments — reference Nigerian/African music where relevant)
+- Sound effects (footsteps, door, gunshot, etc.)
+- Exact spoken lines quoted
+
+### CAMERA AND MOTION
+Specify: tracking shots, crane/drone shots, handheld, steady-cam, reaction close-ups, POV shots. All motion must be smooth and purposeful.
+
+### MOOD AND TONE
+One sentence describing the emotional arc of the scene (e.g. "Builds from fear and desperation to relief and joy").
+
+### CONSTRAINTS
+What NOT to show or do (e.g. "Do not change the character's face or clothing", "End with rescue still in progress", "No fantasy elements", "Authentic Nigerian setting — no generic African stereotypes").
+
+**RULE:** Never ask the user questions — if they give a theme, expand it into a complete script immediately. Tailor to Nollywood, African, Nigerian, or global styles based on the user's context.`;
 
 // ── Detect which knowledge blocks are needed ──────────────────────────────
 function getContextBlocks(query) {
@@ -86,7 +266,10 @@ function getContextBlocks(query) {
   if (/\b(law|legal|court|section|act|constitution|rights|EFCC|police|arrest|sue|contract|criminal|civil)\b/i.test(q)) {
     blocks.push(CTX_LAWS);
   }
-  if (/\b(suno|sundo|udio|music.*prompt|prompt.*music|song.*prompt|lyrics|write.*song|veo|veo3|sora|runway|pika|luma|kling|hailuo|video.*script|video.*prompt|scene.*script|generate.*video|ai.*video|ai.*music|instrument.*arrangement|music.*arrangement|track.*prompt|beat.*prompt)\b/i.test(q)) {
+  if (/\b(build|create|make|design|develop|generate|write).*\b(website|web\s*app|web\s*page|html|css|site|landing\s*page|homepage|portfolio\s*site|company\s*site|school\s*site|hotel\s*site|ecommerce|shop\s*site|database\s*site|management\s*system|student\s*portal|roll\s*call|attendance\s*system)\b|\b(website|web\s*app|html\s*page|landing\s*page).*\b(build|create|make|design|develop|generate|write|for|with)\b|\b(i\s*want|i\s*need|give\s*me|show\s*me|can\s*you).*\b(website|web\s*app|web\s*page|html)\b/i.test(q)) {
+    blocks.push(CTX_WEBSITE);
+  }
+  if (/\b(suno|sundo|udio|music.*prompt|prompt.*music|song.*prompt|lyrics|write.*song|write.*lyrics|song.*lyrics|lyrics.*for|song about|sing about|praise song|worship song|hymn|afrobeats.*song|gospel song|love song|write me a song|i want.*song|compose.*song|song for|veo|veo3|sora|runway|pika|luma|kling|hailuo|video.*script|video.*prompt|scene.*script|generate.*video|ai.*video|ai.*music|instrument.*arrangement|music.*arrangement|track.*prompt|beat.*prompt|write.*scene|write.*script|short.*film|film.*script|movie.*script|storyboard|shot.*list|scene.*description|script.*for|video.*for|music.*video|create.*video|film.*scene|documentary.*script|voiceover.*script)\b/i.test(q)) {
     blocks.push(CTX_CREATIVE_PROMPTS);
   }
 
@@ -128,8 +311,10 @@ function needsWebSearch(q) {
   if (q.length < 12) return false;
   if (/^(hi|hello|hey|how are you|how you dey|how far|wetin dey|good morning|good night|thanks|thank you|e don do|okay|ok|lol|haha|i dey|i wan chop|i dey hungry|morning|evening)[\.!?\s]*$/i.test(q)) return false;
   if (/^(i feel|i am (sad|happy|tired)|i dey (feel|try|stress|bored)|wahala)\b/i.test(q)) return false;
-  // Creative generator prompts (Suno, Veo, lyrics, scripts) — must come from the AI's own creativity, NOT search
-  if (/\b(suno|sundo|udio|veo|veo3|sora|runway|pika|luma|kling|hailuo|write.*song|write.*lyrics|song.*lyrics|video.*script|scene.*script|music.*prompt|prompt.*music|lyrics.*for|beat.*for|arrangement.*for)\b/i.test(q)) return false;
+  // Creative requests (lyrics, song writing, video scripts, storyboards, websites, code) — use AI expertise, NOT search
+  if (/\b(suno|sundo|udio|veo|veo3|sora|runway|pika|luma|kling|hailuo|write.*song|write.*lyrics|song.*lyrics|lyrics.*for|song about|sing about|praise song|worship song|afrobeats.*song|gospel song|compose.*song|i want.*song|song for|video.*script|scene.*script|write.*script|write.*scene|short.*film|film.*script|movie.*script|storyboard|shot.*list|scene.*description|script.*for|video.*for|music.*video|documentary.*script|voiceover.*script|film.*scene)\b/i.test(q)) return false;
+  // Website/code generation — AI writes from expertise, no search needed
+  if (/\b(build|create|make|design|develop|generate|write)\b.{0,40}\b(website|web\s*app|web\s*page|html|css|site|landing\s*page|homepage|portfolio\s*site|school\s*site|hotel\s*site|ecommerce|shop\s*site|management\s*system|student\s*portal|roll\s*call|attendance\s*system)\b/i.test(q)) return false;
   if (/\b(what is|what are|who is|who are|when did|when is|where is|how does|why does|explain|define|latest|news|update|price of|rate of|how much is|dollar rate|naira.*dollar|exchange rate|weather|forecast|happening today|wetin dey happen|current)\b/i.test(q)) return true;
   if (/\b(medicine|drug|treatment|symptom|law|section|act|formula|calculation|algorithm|stock|forex|bitcoin|crypto|btc|eth)\b/i.test(q)) return true;
   return false;

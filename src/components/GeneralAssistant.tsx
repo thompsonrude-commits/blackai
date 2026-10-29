@@ -1160,7 +1160,9 @@ export default function GeneralAssistant({ user, isAdmin, currentSessionId, onOp
     }
 
     const timeQuery = /\b(current\s+time|what\s+time|time\s+now|what\s+time\s+is\s+it|time\s+be\s+am|clock)\b/i.test(userMessage);
-    const weatherQuery = /\b(weather|forecast|rain|temperature|sunny|humid|storm|cloudy|cold|hot)\b/i.test(userMessage) && !/\b(generate|image|photo|logo|draw)\b/i.test(userMessage);
+    // Weather query must be EXPLICITLY about weather — never intercept build/code/website/hotel requests
+    const weatherQuery = /\b(weather|forecast|rain.*today|today.*rain|temperature.*outside|humid.*today|storm.*warning|cloudy.*today|wetin.*weather|weather.*for|check.*weather|weather.*update)\b/i.test(userMessage)
+      && !/\b(build|create|make|website|web\s*app|html|css|code|program|hotel|restaurant|shop|app|design|develop|project)\b/i.test(userMessage);
 
     if (timeQuery) {
       const languageCode = getConversationLanguageContext() || selectedLanguage || 'pcm';
