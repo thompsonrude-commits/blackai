@@ -34,6 +34,41 @@ const CTX_MEDICINE = `When asked about health/medicine: give specific brand name
 
 const CTX_LAWS = `Nigerian law: 1999 Constitution, Criminal Code, Penal Code, CAMA 2020, Land Use Act, Labour Act, Evidence Act. EFCC/ICPC anti-corruption. Always cite specific sections. Compare with international law where relevant.`;
 
+const CTX_CREATIVE_PROMPTS = `You are an expert prompt engineer for AI media generators. When the user asks for a Suno/Suno AI music prompt, a Veo 3 / Veo / Sora video script, or a prompt for tools like Udio, Runway, Pika, Luma, Kling, Hailuo — produce a COMPLETE, detailed, paste-ready prompt in the format below. Reply in the user's language but keep technical tags in English.
+
+## SUNO / UDIO MUSIC PROMPTS — output BOTH:
+### 1. STYLE PROMPT (one paragraph, 3-5 sentences)
+Describe: genre + sub-genre, instrumentation (name real African/world instruments: talking drum, dùndún, shekere, ogene, highlife guitar, Soukous lead, shaker, conga), vocal style (male/female, emotion, language), tempo/build, what to avoid. Be specific about which tradition dominates (e.g. "Nigerian praise must dominate, not Congolese Soukous. No EDM or robotic vocals.").
+
+### 2. LYRICS (structured with tags)
+Use these section tags, each in brackets: [INTRO], [VERSE 1], [PRE-CHORUS], [CHORUS], [VERSE 2], [BRIDGE], [BUILD-UP], [EXPLOSIVE HIGH PRAISE], [OUTRO].
+Inside sections use stage directions in italics *(...)* for performance notes (e.g. *(soft choir repeats the final line)*), and **LEAD:** / **CHOIR:** for call-and-response.
+Write real lyrics in the user's language (Pidgin/Yoruba/English etc.). Make the chorus memorable and repeatable. Build energy gradually — do NOT rush or repeat the chorus immediately.
+
+## VEO 3 / SORA / RUNWAY VIDEO PROMPTS — output a structured scene script:
+### HEADER
+**DURATION:** (e.g. 10 seconds) | **SCENE:** (location, environment) | **STYLE:** (cinematic style, realism level)
+**CHARACTER CONSISTENCY:** instruct to preserve the same character's appearance, clothing, fur, proportions throughout (reference image if provided).
+
+### SECOND-BY-SECOND ACTION
+Break the duration into 2-second blocks (0-2s, 2-4s, ...). For each block describe: what the character does, camera movement, emotion, environment change. Make movement physically realistic and continuous — NOT a montage. Each block must logically follow the previous.
+
+### AUDIO AND ATMOSPHERE
+List ambience sounds, music cues, dialogue/spoken lines (with the exact quote), and when each enters.
+
+### CAMERA AND MOTION
+Specify shot types (tracking, push-in, over-the-shoulder, close-up) and that all movement is smooth and continuous.
+
+### IMPORTANT CONSTRAINTS
+State what NOT to do (no magic teleport, no face changes, end honestly if rescue is in progress, etc.). Note it is ONE continuous sequence in the same location.
+
+## GENERAL RULES FOR ALL GENERATOR PROMPTS
+- Make prompts SELF-CONTAINED — the user must be able to copy-paste directly into the tool.
+- Be SPECIFIC and VIVID — vague prompts give bad results.
+- Preserve the user's cultural intent (Nigerian gospel, Afrobeats, highlife, Soukous, etc.) — name the real instruments and traditions.
+- Always include what to AVOID (negative constraints) because these tools respect them.
+- If the user gives a theme, expand it fully — don't ask questions, just deliver the complete prompt.`;
+
 // ── Detect which knowledge blocks are needed ──────────────────────────────
 function getContextBlocks(query) {
   const q = (query || '').toLowerCase();
@@ -50,6 +85,9 @@ function getContextBlocks(query) {
   }
   if (/\b(law|legal|court|section|act|constitution|rights|EFCC|police|arrest|sue|contract|criminal|civil)\b/i.test(q)) {
     blocks.push(CTX_LAWS);
+  }
+  if (/\b(suno|sundo|udio|music.*prompt|prompt.*music|song.*prompt|lyrics|write.*song|veo|veo3|sora|runway|pika|luma|kling|hailuo|video.*script|video.*prompt|scene.*script|generate.*video|ai.*video|ai.*music|instrument.*arrangement|music.*arrangement|track.*prompt|beat.*prompt)\b/i.test(q)) {
+    blocks.push(CTX_CREATIVE_PROMPTS);
   }
 
   return blocks.join('\n');
@@ -90,6 +128,8 @@ function needsWebSearch(q) {
   if (q.length < 12) return false;
   if (/^(hi|hello|hey|how are you|how you dey|how far|wetin dey|good morning|good night|thanks|thank you|e don do|okay|ok|lol|haha|i dey|i wan chop|i dey hungry|morning|evening)[\.!?\s]*$/i.test(q)) return false;
   if (/^(i feel|i am (sad|happy|tired)|i dey (feel|try|stress|bored)|wahala)\b/i.test(q)) return false;
+  // Creative generator prompts (Suno, Veo, lyrics, scripts) — must come from the AI's own creativity, NOT search
+  if (/\b(suno|sundo|udio|veo|veo3|sora|runway|pika|luma|kling|hailuo|write.*song|write.*lyrics|song.*lyrics|video.*script|scene.*script|music.*prompt|prompt.*music|lyrics.*for|beat.*for|arrangement.*for)\b/i.test(q)) return false;
   if (/\b(what is|what are|who is|who are|when did|when is|where is|how does|why does|explain|define|latest|news|update|price of|rate of|how much is|dollar rate|naira.*dollar|exchange rate|weather|forecast|happening today|wetin dey happen|current)\b/i.test(q)) return true;
   if (/\b(medicine|drug|treatment|symptom|law|section|act|formula|calculation|algorithm|stock|forex|bitcoin|crypto|btc|eth)\b/i.test(q)) return true;
   return false;
