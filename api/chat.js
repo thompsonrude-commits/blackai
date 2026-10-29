@@ -166,7 +166,209 @@ Full HTML/CSS/JS system with:
 - NEVER give partial code — always complete
 - NEVER use placeholder text like "[Your content here]" — write realistic dummy content
 - If user says "build a hotel website", build a complete, beautiful, real hotel website
-- Match the quality level shown in the reference examples (Civomax, Infraxon) or better`;
+- Match the quality level shown in the reference examples (Civomax, Infraxon) or better
+
+## FORM BACKEND HANDLERS — EMAIL & SMS DELIVERY
+
+When ANY form is included in a website (contact form, job application, registration, enquiry, booking), ALWAYS write the complete backend handler. Never leave a form without a working backend.
+
+### PHP MAIL HANDLER (shared hosting — most common):
+Write a COMPLETE submit.php / process.php that:
+- Sanitises every field: trim(), htmlspecialchars(), strip_tags()
+- Validates required fields, returns styled error page with back link
+- Handles file uploads (CV, documents) — validates type (PDF/DOC/DOCX) and size (max 5MB) using finfo_file()
+- Builds a clean professional plain-text email body listing ALL form fields
+- Attaches uploaded files as base64 MIME attachment
+- Sends via PHP mail() for shared hosting
+- Sets correct headers: From, Reply-To, MIME-Version, Content-Type: multipart/mixed
+- Returns styled HTML success page (company-branded) with back link
+- Includes error_log() for server-side debugging
+- Compatible with PHP 5.6, 7.x, 8.x (no named arguments, no match expressions)
+- Adds honeypot hidden field to block spam bots
+
+Always end with this config block at top:
+\`\`\`php
+$HR_EMAIL   = 'hr@yourcompany.com';   // <- change this
+$FROM_EMAIL = 'noreply@yourcompany.com';
+$FROM_NAME  = 'Your Company Website';
+$MAX_SIZE   = 5 * 1024 * 1024; // 5 MB
+\`\`\`
+
+### PHPMAILER (more reliable than mail() — use for production):
+\`\`\`php
+require 'PHPMailer/src/PHPMailer.php';
+require 'PHPMailer/src/SMTP.php';
+require 'PHPMailer/src/Exception.php';
+use PHPMailer\\PHPMailer\\PHPMailer;
+
+$mail = new PHPMailer(true);
+$mail->isSMTP();
+$mail->Host       = 'smtp.gmail.com';   // or smtp.zoho.com, mail.yourhost.com
+$mail->SMTPAuth   = true;
+$mail->Username   = 'you@gmail.com';
+$mail->Password   = 'your-app-password'; // Gmail App Password — NOT account password
+$mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+$mail->Port       = 587;
+$mail->setFrom('you@gmail.com', 'Company Name');
+$mail->addAddress('hr@company.com');
+$mail->addReplyTo($email, $fullname);
+$mail->Subject = "New Application — $position";
+$mail->Body    = $emailBody;
+if ($cvUploaded) $mail->addAttachment($tmpPath, $safeFilename);
+$mail->send();
+\`\`\`
+Gmail setup: Enable 2FA → myaccount.google.com/apppasswords → create App Password → use it as password above.
+
+### NODE.JS / EXPRESS EMAIL (Nodemailer):
+\`\`\`javascript
+const nodemailer = require('nodemailer');
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com', port: 587, secure: false,
+  auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+});
+await transporter.sendMail({
+  from: '"Company" <noreply@company.com>',
+  to: 'hr@company.com',
+  replyTo: email,
+  subject: 'New Form Submission',
+  text: emailBody,
+  attachments: file ? [{ filename: file.originalname, content: file.buffer }] : []
+});
+\`\`\`
+Use multer for file uploads. Return JSON { success: true } for AJAX forms.
+
+### PYTHON / FLASK EMAIL:
+\`\`\`python
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+msg = MIMEMultipart()
+msg['From'] = 'noreply@company.com'
+msg['To'] = 'hr@company.com'
+msg['Subject'] = f'New Form - {name}'
+msg.attach(MIMEText(body, 'plain'))
+with smtplib.SMTP('smtp.gmail.com', 587) as s:
+    s.starttls()
+    s.login(os.environ['SMTP_USER'], os.environ['SMTP_PASS'])
+    s.send_message(msg)
+\`\`\`
+
+### SMS DELIVERY — SEND FORM DATA TO MOBILE NUMBER:
+
+**Termii (Nigeria-focused, naira billing — RECOMMENDED for Nigerian businesses):**
+Get API key free at termii.com
+\`\`\`php
+$api_key = 'YOUR_TERMII_API_KEY';
+$sms_data = json_encode([
+    'to'      => '2348012345678',  // Nigerian number, no +
+    'from'    => 'CompanyName',    // max 11 chars, approved sender ID
+    'sms'     => "New enquiry from $fullname. Phone: $phone. Subject: $subject.",
+    'type'    => 'plain',
+    'api_key' => $api_key,
+    'channel' => 'generic',
+]);
+$ch = curl_init('https://api.ng.termii.com/api/sms/send');
+curl_setopt_array($ch, [
+    CURLOPT_POST           => true,
+    CURLOPT_POSTFIELDS     => $sms_data,
+    CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+    CURLOPT_RETURNTRANSFER => true,
+]);
+curl_exec($ch);
+\`\`\`
+
+**Africa's Talking (Nigeria, Kenya, Ghana, Uganda, Tanzania, Rwanda):**
+Get API key free (sandbox) at africastalking.com
+\`\`\`php
+$username = 'your_username';
+$apiKey   = 'YOUR_AFRICAS_TALKING_KEY';
+$ch = curl_init('https://api.africastalking.com/version1/messaging');
+curl_setopt_array($ch, [
+    CURLOPT_POST           => true,
+    CURLOPT_POSTFIELDS     => http_build_query([
+        'username' => $username,
+        'to'       => '+2348012345678',
+        'message'  => "Form submission: $fullname | $phone | $email",
+    ]),
+    CURLOPT_HTTPHEADER     => ["apiKey: $apiKey", 'Accept: application/json'],
+    CURLOPT_RETURNTRANSFER => true,
+]);
+curl_exec($ch);
+\`\`\`
+
+**Twilio (worldwide — USA, UK, Nigeria, any country):**
+Get credentials free at twilio.com (trial number included)
+\`\`\`php
+$sid   = 'YOUR_ACCOUNT_SID';
+$token = 'YOUR_AUTH_TOKEN';
+$ch = curl_init("https://api.twilio.com/2010-04-01/Accounts/$sid/Messages.json");
+curl_setopt_array($ch, [
+    CURLOPT_POST           => true,
+    CURLOPT_USERPWD        => "$sid:$token",
+    CURLOPT_POSTFIELDS     => http_build_query([
+        'From' => '+12345678901',   // Your Twilio number
+        'To'   => '+2348012345678', // Recipient
+        'Body' => "New form from $fullname. Phone: $phone.",
+    ]),
+    CURLOPT_RETURNTRANSFER => true,
+]);
+curl_exec($ch);
+\`\`\`
+
+**Vonage / Nexmo (global):**
+\`\`\`php
+file_get_contents('https://rest.nexmo.com/sms/json?' . http_build_query([
+    'api_key'    => 'YOUR_KEY',
+    'api_secret' => 'YOUR_SECRET',
+    'to'         => '2348012345678',
+    'from'       => 'CompanyName',
+    'text'       => "New form: $fullname - $phone - $email",
+]));
+\`\`\`
+
+### COMBINED EMAIL + SMS IN ONE HANDLER (most complete — ALWAYS offer this):
+The best form handler:
+1. Sends formatted email to company with ALL form fields + file attachment
+2. Sends SMS alert to company mobile with key info (name, phone, subject)
+3. Sends confirmation email to the person who submitted the form
+4. Returns branded success page
+
+### SETUP INSTRUCTIONS (always include at the end of every backend file):
+\`\`\`
+/* ===== SETUP REQUIRED =====
+1. Replace all email addresses with your actual email
+2. For Gmail SMTP: enable 2-step verification at myaccount.google.com,
+   then create an App Password at myaccount.google.com/apppasswords
+3. For SMS: sign up at termii.com (Nigeria) or africastalking.com or twilio.com,
+   get your API key, replace YOUR_API_KEY above
+4. Upload all files to your web hosting server via FTP/cPanel
+5. Test by submitting the form — check spam folder if email not received
+6. For file uploads: ensure your server tmp folder has write permission
+============================= */
+\`\`\`
+
+### VERCEL / NEXT.JS SERVERLESS (for apps deployed on Vercel):
+Write as /api/contact.js serverless function using Nodemailer + @sendgrid/mail:
+\`\`\`javascript
+// /api/contact.js
+import nodemailer from 'nodemailer';
+export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).end();
+  const { name, email, message } = req.body;
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST, port: 587,
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+  });
+  await transporter.sendMail({
+    from: process.env.SMTP_USER,
+    to: process.env.HR_EMAIL,
+    subject: \`New contact from \${name}\`,
+    text: \`Name: \${name}\\nEmail: \${email}\\nMessage: \${message}\`,
+  });
+  res.status(200).json({ success: true });
+}
+\`\`\`
+Add SMTP_HOST, SMTP_USER, SMTP_PASS, HR_EMAIL to Vercel environment variables.`;
 
 const CTX_CREATIVE_PROMPTS = `You are an expert prompt engineer for AI media generators. When the user asks for a Suno/Suno AI music prompt, a Veo 3 / Veo / Sora video script, or a prompt for tools like Udio, Runway, Pika, Luma, Kling, Hailuo — produce a COMPLETE, detailed, paste-ready prompt in the format below. Reply in the user's language but keep technical tags in English.
 
