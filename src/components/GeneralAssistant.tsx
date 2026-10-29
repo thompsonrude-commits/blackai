@@ -903,6 +903,7 @@ export default function GeneralAssistant({ user, isAdmin, currentSessionId, onOp
   const abortRef = useRef<(() => void) | null>(null);
   const stoppedRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const userScrolledUpRef = useRef(false); // tracks if user manually scrolled up
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const lastAIResponseRef = useRef<string>('');
@@ -991,22 +992,20 @@ export default function GeneralAssistant({ user, isAdmin, currentSessionId, onOp
     return () => { mounted = false; };
   }, [rebuildSystemPrompt]);
 
-  const scrollToBottom = useCallback(() => { 
+  const scrollToBottom = useCallback((force = false) => { 
     if (scrollRef.current) {
-      // Use requestAnimationFrame to ensure DOM has updated
       requestAnimationFrame(() => {
         if (scrollRef.current) {
-          // Smooth scroll to bottom without jarring jumps
           const scrollHeight = scrollRef.current.scrollHeight;
           const height = scrollRef.current.clientHeight;
           const maxScroll = scrollHeight - height;
-          
-          // Only scroll if we're near the bottom (within 200px) to prevent jarring
           const currentScroll = scrollRef.current.scrollTop;
-          const isNearBottom = maxScroll - currentScroll < 200;
+          const isNearBottom = maxScroll - currentScroll < 220;
           
-          if (isNearBottom || currentScroll === 0) {
+          // Only auto-scroll if: forced, user is near bottom, or user hasn't manually scrolled up
+          if (force || isNearBottom || !userScrolledUpRef.current) {
             scrollRef.current.scrollTop = maxScroll;
+            userScrolledUpRef.current = false;
           }
         }
       });
@@ -1019,11 +1018,30 @@ export default function GeneralAssistant({ user, isAdmin, currentSessionId, onOp
     setMessages(prev => prev.map((m, i) => i !== index ? m : { ...m, content: normalized, timestamp: m.timestamp || Date.now() } as any));
   }, []);
 
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = el;
+      const distFromBottom = scrollHeight - scrollTop - clientHeight;
+      userScrolledUpRef.current = distFromBottom > 250;
+      // Show/hide the floating scroll arrow
+      const btn = document.getElementById('scroll-to-bottom-btn');
+      const indicator = document.getElementById('typing-indicator-floating');
+      if (btn) btn.style.display = (userScrolledUpRef.current && (isStreaming || isBusy)) ? 'flex' : 'none';
+      if (indicator) indicator.style.display = (userScrolledUpRef.current && (isStreaming || isBusy)) ? 'flex' : 'none';
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [isStreaming, isBusy]);
+
   useEffect(() => { 
-    // Scroll immediately and again after a delay to handle layout shifts
-    scrollToBottom();
-    const timer = setTimeout(scrollToBottom, 50);
-    return () => clearTimeout(timer);
+    // Only auto-scroll on new messages if user hasn't scrolled up
+    if (!userScrolledUpRef.current) {
+      scrollToBottom();
+      const timer = setTimeout(scrollToBottom, 50);
+      return () => clearTimeout(timer);
+    }
   }, [messages, streamingContent, scrollToBottom]);
 
   // Mobile keyboard handling
@@ -1828,7 +1846,19 @@ Use these meanings when the source contains these Edo phrases.`;
       {showVision && <VisionEngine mode={visionMode} onClose={() => setShowVision(false)} onResult={(text) => { setShowVision(false); setMessages(prev => [...prev, { role: 'model', content: text, timestamp: Date.now(), isNew: true }]); }} />}
 
       {/* ── Messages ──────────────────────────────────────────────────── */}
-      <div ref={scrollRef} className="relative z-10 flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-4" style={{ WebkitOverflowScrolling: 'touch', scrollBehavior: 'smooth' }}>
+      <div className="relative flex-1 min-h-0">
+        <div
+          ref={scrollRef}
+          className="relative z-10 h-full overflow-y-auto overscroll-contain px-4 py-4"
+          style={{ WebkitOverflowScrolling: 'touch', scrollBehavior: 'smooth' }}
+          onScroll={() => {
+            if (!scrollRef.current) return;
+            const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+            const distFromBottom = scrollHeight - scrollTop - clientHeight;
+            // Mark as manually scrolled up if more than 250px from bottom
+            userScrolledUpRef.current = distFromBottom > 250;
+          }}
+        >
         {messages.length === 0 && !isStreaming && !isBusy ? (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center justify-center h-full text-center px-4 pb-32">
             <div className="mb-8"><NineJALogo state={logoState} size={200} /></div>
@@ -1981,6 +2011,45 @@ Use these meanings when the source contains these Edo phrases.`;
               </motion.div>
             )}
           </AnimatePresence>
+          </div>
+        )}
+      </div>
+
+        {/* ── Scroll-to-bottom arrow (shown when user scrolled up during streaming) ── */}
+        {(isStreaming || isBusy) && (
+          <button
+            onClick={() => { userScrolledUpRef.current = false; scrollToBottom(true); }}
+            className="absolute bottom-4 right-4 z-30 flex flex-col items-center gap-1 group"
+            title="Jump to latest response"
+            style={{ display: userScrolledUpRef.current ? 'flex' : 'none' }}
+            id="scroll-to-bottom-btn"
+          >
+            <span className="bg-[#00ff88] text-black text-xs font-bold px-2 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+              AI is typing below ↓
+            </span>
+            <div className="w-10 h-10 rounded-full bg-[#00ff88] text-black flex items-center justify-center shadow-lg shadow-[#00ff88]/30 hover:bg-[#00dd77] transition-all hover:scale-110">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 5v14M5 12l7 7 7-7"/>
+              </svg>
+            </div>
+          </button>
+        )}
+
+        {/* ── Bouncing dots — shows AI is still typing below visible area ── */}
+        {(isStreaming || isBusy) && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 pointer-events-none" id="typing-indicator-floating">
+            <div className="flex items-center gap-1.5 bg-[#0a0a0a]/90 border border-[#00ff88]/20 backdrop-blur-sm px-3 py-2 rounded-full shadow-lg">
+              <span className="text-[#666] text-xs">AI is typing</span>
+              <div className="flex gap-1">
+                {[0, 1, 2].map(i => (
+                  <span
+                    key={i}
+                    className="w-1.5 h-1.5 bg-[#00ff88] rounded-full animate-bounce"
+                    style={{ animationDelay: `${i * 0.15}s`, animationDuration: '0.8s' }}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </div>

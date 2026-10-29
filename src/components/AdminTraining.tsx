@@ -7,12 +7,13 @@ import {
 import { db, uploadAudio, auth } from "../lib/firebase";
 import {
   Sparkles, Mic, Square, Upload, Trash2, Play,
-  X, Plus, Volume2, Edit2, Save, ChevronDown, ChevronUp, Info, Users, Globe
+  X, Plus, Volume2, Edit2, Save, ChevronDown, ChevronUp, Info, Users, Globe, BookOpen
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { recordAudioBlob } from "../lib/voice";
 import { NIGERIAN_LANGUAGES } from "../lib/nigerianLanguages";
 import { useLexicon, LexiconEntry, LEXICON_CATEGORIES, LEXICON_VALIDATION_STATUSES, createLexiconEntryRecord, detectDuplicateLexiconEntry, isLexiconEntryEligibleForCompiler, normalizeLexiconKey } from "../lib/useLexicon";
+import LanguageWordTable from "./LanguageWordTable";
 import { extractTrainingEntries } from "../lib/trainingExtraction";
 import { repairMojibake } from "../lib/textEncoding";
 import { defaultLanguageCoordinationEngine, ingestTrainingEntries } from "../../core/language-intelligence";
@@ -432,6 +433,9 @@ export default function AdminTraining({ selectedLanguage }: { selectedLanguage?:
   const [languageFilter, setLanguageFilter] = useState<string>(selectedLanguage || "all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  // Get all lexicon entries for the comprehensive word table
+  const { allEntries: allLexiconEntries } = useLexicon();
+
   useEffect(() => {
     const fallbackTimer = window.setTimeout(() => {
       setEntries(current => current.length > 0 ? current : mergeTrainingEntries([]));
@@ -510,6 +514,18 @@ export default function AdminTraining({ selectedLanguage }: { selectedLanguage?:
       </div>
 
       <LexiconManager />
+
+      {/* ── Word Entry Table (comprehensive lexicon with all fields) ─────── */}
+      <div className="mt-8 p-4 bg-black/20 border border-white/10 rounded-2xl">
+        <div className="flex items-center gap-2 mb-4">
+          <BookOpen size={18} className="text-[#00ff88]" />
+          <h2 className="text-white font-bold text-base">Comprehensive Word Entry Table</h2>
+          <span className="px-2 py-0.5 bg-[#00ff88]/10 text-[#00ff88] text-xs rounded-full font-semibold">
+            All fields: local word, English, phonetics, antonym, singular/plural, sentences, slangs, proverbs
+          </span>
+        </div>
+        <LanguageWordTable entries={allLexiconEntries} selectedLanguage={languageFilter === 'all' ? 'edo' : languageFilter} />
+      </div>
 
       {/* Language Filter */}
       <div className="mb-6 p-4 bg-black/30 border border-white/10 rounded-2xl">

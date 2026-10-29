@@ -48,11 +48,23 @@ export interface LexiconEntry {
   grammaticalRole?: string;
   semanticConcept?: string;
   exampleSentence?: string;
+  exampleSentenceEnglish?: string;       // English translation of example sentence
+  exampleSentence2?: string;             // Second example sentence (local language)
+  exampleSentence2English?: string;      // Second example sentence (English)
+  singularForm?: string;                 // Singular form of the word
+  pluralForm?: string;                   // Plural form of the word
+  antonym?: string;                      // Opposite word in local language
+  antonymEnglish?: string;               // English meaning of the antonym
+  synonym?: string;                      // Similar word / synonym
+  relatedWords?: string[];               // Related vocabulary words
+  tonalPattern?: string;                 // Tonal marks / tone pattern (e.g. High-Low-High)
+  wordFamily?: string;                   // Word family / root word group
+  register?: string;                     // Formal / informal / sacred / colloquial
+  usageNotes?: string;                   // Notes on correct usage, common mistakes
+  culturalNote?: string;                 // Cultural context or significance
   translation?: string;
   alternateForms?: string[];
   aliases?: string[];
-  register?: string;
-  usageNotes?: string;
   source?: string;
   provenance?: string;
   confidence?: number;

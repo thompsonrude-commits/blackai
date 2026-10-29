@@ -65,13 +65,14 @@ export function usePacedTypewriter(
     return () => window.clearTimeout(timer);
   }, [wordIndex, totalTokens, enabled, isGenerating, text]);
 
-  // Auto-scroll the chat container so the newest text stays visible.
+  // Auto-scroll the chat container — only if user hasn't scrolled up
   useEffect(() => {
     const element = scrollRef?.current;
     if (!element) return;
-
-    const isNearBottom = element.scrollHeight - element.scrollTop - element.clientHeight < 220;
-    if (isNearBottom) {
+    const { scrollTop, scrollHeight, clientHeight } = element;
+    const distFromBottom = scrollHeight - scrollTop - clientHeight;
+    // Only auto-scroll if user is within 250px of the bottom
+    if (distFromBottom < 250) {
       element.scrollTop = element.scrollHeight;
     }
   }, [wordIndex, scrollRef]);

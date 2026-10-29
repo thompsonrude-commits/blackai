@@ -1,4 +1,4 @@
-﻿// BLACK AI - Vercel chat endpoint
+// BLACK AI - Vercel chat endpoint
 // Groq LLM + optional Tavily web search
 
 // ── Nigerian public holidays ──────────────────────────────────────────────
@@ -19,7 +19,64 @@ function getHolidayNote(today) {
 }
 
 // ── Context blocks (only injected when relevant) ──────────────────────────
-const CTX_NIGERIA = `Nigeria: President Tinubu (since May 2023), VP Shettima. Capital Abuja, commercial capital Lagos. Population ~230m. Currency ₦ Naira. Banks: GTBank, Access, Zenith, First Bank, UBA. Independence Oct 1 1960. Anthem "Arise O Compatriots".`;
+const CTX_NIGERIA = `Nigeria: President Tinubu (since May 2023), VP Shettima. Capital Abuja, commercial capital Lagos. Population ~230m. Currency ₦ Naira. Banks: GTBank, Access, Zenith, First Bank, UBA. Independence Oct 1 1960. Anthem "Arise O Compatriots".
+
+## NIGERIAN NICKNAMES & SLANG NAMES FOR PLACES (always recognise these):
+- Nigeria = Naija, 9ja, Giant of Africa, The 9
+- Lagos = Eko, Lagos city, The Centre of Excellence, Lasgidi, LAS
+- Ajegunle = A.J, AJ, Jungle City, Ghetto
+- Victoria Island = VI
+- Surulere = Suru
+- Oshodi = O-town
+- Ikeja = Computer Village area
+- Ikoyi = Rich area, Highbrow Ikoyi
+- Alaba = Alaba International
+- Abuja = 6 (the six), FCT, Abujah
+- Port Harcourt = PH, Garden City, PHC
+- Kano = Ancient city, Kano State
+- Ibadan = The Brown Roof City, Oluyole, Agodi
+- Benin City = Edo, Benin, City of Walls, Ancient Kingdom
+- Warri = Waffi, the Warri area
+- Enugu = Coal City
+- Owerri = World Bank (party city), the Imo capital
+- Calabar = Canaan City
+- Jos = J-Town, Plateau State, Tin City
+- Kaduna = Kaduna State, Kauna
+- South Africa = Southy, Mzansi, SA, ZA, South Afrique
+- Ghana = Accra boys, Gold Coast
+- Kenya = Nai (Nairobi), 254
+- United Kingdom = Jand, Abroad, UK, Great Britain
+- United States = Yankee, Naija-yankee, US, America
+- Canada = Kanada, 416/647 (Toronto codes)
+
+## NIGERIAN SLANGS (understand these, reply accordingly):
+- Omo = Wow / friend / exclamation
+- E don do = It's done / finished / over
+- Na me = It's me / That's me
+- E be like = It seems like / It looks like
+- Sabi = Know / know how to / be good at
+- No cap = Seriously / for real
+- Shayo / Ayo = Alcohol / drinks / party
+- Jollof wars = Nigeria vs Ghana debate on who makes the best jollof rice
+- Slay / slay mama = Looking good / stylish person
+- Guy man = Clever / streetwise person
+- Ajebutter / Ajebo = Soft life person / well brought up person
+- Agbero = Street thug / bus park touts
+- 419 = Scam / fraud (from advance fee fraud section of Nigerian law)
+- Chop = Eat / take (money etc.)
+- Hustle = Work hard / grind for money
+- Pepper dem = Show off / prove them wrong / make them jealous
+- This year we move = Motivational slang for making progress
+- God when = Asking God for a blessing you've seen someone else get
+- Abi = Right? / isn't it? (confirmation request)
+- Shey = Right? / Is that not so?
+- Ehen = I see / oh yes / proceed / acknowledgement
+- Lamba = Hype / exaggeration / lies
+- Packaging = Fronting / pretending to be something you're not
+- Soft life = Living comfortably / luxury lifestyle
+- BBC = Big Big Car (not British Broadcasting Corporation in street context)`;
+
+
 
 const CTX_WORLD = `World 2025-2026: US President Donald Trump (Jan 2025). UK PM Keir Starmer. UN SG António Guterres. World pop ~8.2bn. Russia-Ukraine war ongoing since Feb 2022. Major AIs: ChatGPT, Gemini, Claude, Grok, BLACK AI.`;
 
@@ -31,6 +88,56 @@ Ibadan: UI, Bodija, Dugbe, Ring Road. Keke, Uber.
 World transport: UK=Tube(Oyster/contactless)+National Rail. NYC=MTA subway (lines A/C/E,1/2/3,4/5/6,L,N/Q/R/W)+MetroCard. India=Delhi Metro+Mumbai local trains+auto-rickshaw. South Africa=Gautrain+minibus taxis+Uber. Ghana=Trotros+Uber. Kenya=Matatus+Uber. Europe=U-Bahn/S-Bahn+Métro+trams. Australia=Opal/Myki cards. Dubai=Metro Red+Green+Careem. China=city metros+HSR+Didi. ALWAYS ask transport mode and starting point before giving directions. NEVER invent route names — say "check Google Maps" if unsure.`;
 
 const CTX_MEDICINE = `When asked about health/medicine: give specific brand names + generic name, exact dose, frequency, duration. Nigerian brands: Panadol/Emzor(paracetamol), Felvin/Advil(ibuprofen), Amoxil/Augmentin(antibiotic), Coartem/Lonart(malaria), Coflin/Benylin(cough), Omeprazole/Maalox(stomach), Loperamide/ORS(diarrhoea). Give first-line, second-line options. Mention when to see a doctor. NEVER just say "see a doctor" without first giving the actual medical information.`;
+
+const CTX_CULTURE = `## AFROBEATS — ARTISTS, SONGS, ALBUMS
+Top artists: Burna Boy (Damini Ogulu), Wizkid (Ayodeji Balogun), Davido (David Adeleke), Rema (Divine Ikubor), Tems (Temilade Openiyi), Asake (Ahmed Ololade), Fireboy DML, Joeboy, Omah Lay, Oxlade, CKay, Ayra Starr, Simi, Adekunle Gold, Tiwa Savage, Yemi Alade, Patoranking, Mr Eazi, Kizz Daniel, Olamide, Phyno, Flavour N'abania, Don Jazzy (producer), P-Square, 2Baba (2Face Idibia), Fela Kuti (Afrobeat pioneer).
+Key songs: Burna Boy — "Last Last" 2022, "Ye", "On The Low", "City Boys"; Wizkid — "Essence" ft Tems 2021, "Come Closer", "Made In Lagos" album 2020; Davido — "Fall" 2017, "FEM", "Timeless" album 2023; Rema — "Calm Down" 2022 (global hit), "Dumebi"; Tems — "Free Mind", "Higher"; Asake — "Palazzo", "Terminator", "Work Of Art" album 2022; CKay — "Love Nwantiti" 2020 (viral global hit).
+Labels: Spaceship Records (Burna), Starboy (Wizkid), DMW/Sony (Davido), Mavin Records (Rema, Ayra Starr), YBNL (Olamide, Asake, Fireboy), Def Jam Africa.
+Awards: Grammy wins — Burna Boy (Best Global Music Album 2021), Wizkid (Grammy 2021). BET Awards, MTV VMAs, Headies Awards.
+
+## NOLLYWOOD
+Top actors: Genevieve Nnaji, Omotola Jalade-Ekeinde, Ramsey Nouah, Jim Iyke, RMD (Richard Mofe-Damijo), Funke Akindele, Toyin Abraham, Mercy Johnson, Pete Edochie, Patience Ozokwo (Mama G), Yul Edochie, John Okafor (Mr Ibu), Desmond Elliot, Ini Edo, Chioma Chukwuka.
+Directors/Producers: Kunle Afolayan, Mo Abudu (EbonyLife Films), Kemi Adetiba, Biodun Stephen.
+Notable movies: Living in Bondage (1992 — first modern Nollywood), King of Boys 1&2 (Kemi Adetiba), The Wedding Party 1&2, Lionheart (Netflix 2018), A Tribe Called Judah (Funke Akindele 2023), Gangs of Lagos (Amazon Prime 2023), Blood Sisters (Netflix), Shanty Town (Netflix).
+Facts: Nollywood = 2nd largest film industry by volume globally. ~2,500 movies/year. Lagos + Asaba hubs. Kannywood = Hausa film industry (Kano).
+
+## NIGERIAN FASHION
+Fabrics: Ankara (wax print), Aso-Oke (hand-woven Yoruba), Agbada (flowing robe — men), George fabric (South-South), Adire (tie-dye Yoruba), Aso-Ebi (matching group fabric — owambe parties), Lace fabric.
+Top designers: Mai Atafo, Lanre DaSilva Abiose, Lisa Folawiyo, Deola Sagoe, Tolu Coker, Orange Culture, Emmy Collins, Ejiro Amos Tafiri.
+Events: Lagos Fashion Week (October), Arise Fashion Week.
+Accessories: Gele (Yoruba headwrap), Ichafu (Igbo headwrap), Coral beads (Benin Kingdom royalty), Okpu Agu (Igbo lion hat).
+African fashion: Kente cloth (Ghana), Kitenge/Chitenge (East/Central Africa), Shweshwe (South Africa), Boubou (West Africa), Dashiki (Pan-African).
+
+## NIGERIA TOURISM
+Lagos: Elegushi Beach, Tarkwa Bay, Lekki Conservation Centre, Nike Art Gallery, Freedom Park (Lagos Island).
+Abuja: Millennium Park, Zuma Rock, Aso Rock, Jabi Lake, National Mosque, National Christian Centre.
+Cross River: Obudu Mountain Resort, Tinapa Resort, Cross River National Park, Kwa Falls.
+Plateau/Jos: Shere Hills, Riyom Rock, Assop Falls, Jos Wildlife Park.
+Oyo/Ibadan: Agodi Gardens, UI Zoo, Mapo Hall, Cocoa House.
+Ogun: Olumo Rock (Abeokuta).
+Edo/Benin: Benin Royal Palace, Oba's Palace, Igun Street (bronze carvers), National Museum.
+Rivers/PH: Port Harcourt Pleasure Park, Isaac Boro Park.
+Kano: Emir's Palace, Kurmi Market (oldest in West Africa), Dala Hill.
+Kebbi: Argungu Fishing Festival (world famous).
+
+## AFRICA TOURISM
+Egypt: Pyramids of Giza, Sphinx, Luxor, Nile cruises, Hurghada (Red Sea).
+Kenya: Maasai Mara (wildebeest migration), Amboseli, Diani Beach, Nairobi National Park.
+Tanzania: Serengeti, Ngorongoro Crater, Mt Kilimanjaro (highest in Africa), Zanzibar.
+South Africa: Table Mountain, Kruger National Park, Robben Island, Soweto, Garden Route.
+Ghana: Cape Coast Castle, Kakum National Park, Mole National Park, Labadi Beach.
+Rwanda: Volcanoes NP (mountain gorillas), Kigali Genocide Memorial, Lake Kivu.
+Morocco: Marrakech Medina, Sahara Desert, Fes, Chefchaouen (blue city).
+Ethiopia: Lalibela rock churches, Simien Mountains, Axum, Omo Valley.
+
+## NIGERIAN INSTITUTIONS
+Universities: UNILAG, UI (oldest), OAU Ile-Ife, UNN Nsukka, UNIBEN, ABU Zaria, Covenant University, LASU, NAU, Babcock.
+Hospitals: LUTH, UCH Ibadan, National Hospital Abuja.
+Government agencies: NNPCL (oil), CBN (Central Bank), NAFDAC (drugs), INEC (elections), EFCC (anti-corruption), NCC (communications).
+Media: Channels TV, TVC, Arise News, NTA, Beat FM, Cool FM, Wazobia FM, Punch, Vanguard, Premium Times.
+Tech: CcHub (Lagos), Andela, Flutterwave, Paystack (Stripe acquisition), Kuda Bank, OPay, PalmPay, Interswitch. Yaba = Silicon Laagos / Yabacon Valley.`;
+
+
 
 const CTX_LAWS = `Nigerian law: 1999 Constitution, Criminal Code, Penal Code, CAMA 2020, Land Use Act, Labour Act, Evidence Act. EFCC/ICPC anti-corruption. Always cite specific sections. Compare with international law where relevant.`;
 
@@ -468,6 +575,9 @@ function getContextBlocks(query) {
   if (/\b(law|legal|court|section|act|constitution|rights|EFCC|police|arrest|sue|contract|criminal|civil)\b/i.test(q)) {
     blocks.push(CTX_LAWS);
   }
+  if (/\b(afrobeats|wizkid|burna|davido|rema|tems|asake|fireboy|joeboy|omah lay|ckay|ayra starr|olamide|phyno|flavour|2baba|2face|fela kuti|nollywood|genevieve|omotola|ramsey nouah|jim iyke|rmd|funke akindele|toyin abraham|mercy johnson|pete edochie|patience ozokwo|mama g|king of boys|living in bondage|ankara|aso-oke|agbada|aso-ebi|gele|lace fabric|lagos fashion week|naija fashion|nigerian music|afropop|afrofusion|elegushi|tarkwa bay|lekki conservation|nike art gallery|olumo rock|obudu|zuma rock|maasai mara|table mountain|pyramids|kilimanjaro|serengeti|zanzibar|kruger|cape coast|nollywood actor|nollywood movie|unilag|university of lagos|ui ibadan|oau|uniben|abu zaria|covenant university|flutterwave|paystack|kuda bank|opay|palmpay|channels tv|cool fm|wazobia|beat fm|punch newspaper|premium times|naija slang|naija|9ja|ajegunle|aj area|southy|mzansi|lasgidi|garden city ph)\b/i.test(q)) {
+    blocks.push(CTX_CULTURE);
+  }
   if (/\b(build|create|make|design|develop|generate|write).*\b(website|web\s*app|web\s*page|html|css|site|landing\s*page|homepage|portfolio\s*site|company\s*site|school\s*site|hotel\s*site|ecommerce|shop\s*site|database\s*site|management\s*system|student\s*portal|roll\s*call|attendance\s*system)\b|\b(website|web\s*app|html\s*page|landing\s*page).*\b(build|create|make|design|develop|generate|write|for|with)\b|\b(i\s*want|i\s*need|give\s*me|show\s*me|can\s*you).*\b(website|web\s*app|web\s*page|html)\b/i.test(q)) {
     blocks.push(CTX_WEBSITE);
   }
@@ -525,6 +635,92 @@ function needsWebSearch(q) {
 }
 
 // ── Main handler ──────────────────────────────────────────────────────────
+// ── World time computation ────────────────────────────────────────────────
+// Maps city/country names to IANA timezone strings
+const TIMEZONE_MAP = {
+  // Nigeria
+  'nigeria': 'Africa/Lagos', 'lagos': 'Africa/Lagos', 'abuja': 'Africa/Lagos',
+  'port harcourt': 'Africa/Lagos', 'ph': 'Africa/Lagos', 'kano': 'Africa/Lagos',
+  'ibadan': 'Africa/Lagos', 'benin city': 'Africa/Lagos', 'warri': 'Africa/Lagos',
+  // Africa
+  'ghana': 'Africa/Accra', 'accra': 'Africa/Accra',
+  'kenya': 'Africa/Nairobi', 'nairobi': 'Africa/Nairobi',
+  'south africa': 'Africa/Johannesburg', 'johannesburg': 'Africa/Johannesburg',
+  'cape town': 'Africa/Johannesburg', 'durban': 'Africa/Johannesburg',
+  'southy': 'Africa/Johannesburg', 'mzansi': 'Africa/Johannesburg',
+  'ethiopia': 'Africa/Addis_Ababa', 'addis ababa': 'Africa/Addis_Ababa',
+  'egypt': 'Africa/Cairo', 'cairo': 'Africa/Cairo',
+  'morocco': 'Africa/Casablanca', 'casablanca': 'Africa/Casablanca', 'marrakech': 'Africa/Casablanca',
+  'tanzania': 'Africa/Dar_es_Salaam', 'dar es salaam': 'Africa/Dar_es_Salaam',
+  'uganda': 'Africa/Kampala', 'kampala': 'Africa/Kampala',
+  'rwanda': 'Africa/Kigali', 'kigali': 'Africa/Kigali',
+  'senegal': 'Africa/Dakar', 'dakar': 'Africa/Dakar',
+  // Europe
+  'uk': 'Europe/London', 'london': 'Europe/London', 'england': 'Europe/London',
+  'jand': 'Europe/London', 'britain': 'Europe/London',
+  'france': 'Europe/Paris', 'paris': 'Europe/Paris',
+  'germany': 'Europe/Berlin', 'berlin': 'Europe/Berlin',
+  'spain': 'Europe/Madrid', 'madrid': 'Europe/Madrid',
+  'italy': 'Europe/Rome', 'rome': 'Europe/Rome',
+  'netherlands': 'Europe/Amsterdam', 'amsterdam': 'Europe/Amsterdam',
+  // Americas
+  'usa': 'America/New_York', 'new york': 'America/New_York', 'yankee': 'America/New_York',
+  'los angeles': 'America/Los_Angeles', 'la': 'America/Los_Angeles', 'california': 'America/Los_Angeles',
+  'chicago': 'America/Chicago', 'houston': 'America/Chicago', 'texas': 'America/Chicago',
+  'canada': 'America/Toronto', 'toronto': 'America/Toronto',
+  'vancouver': 'America/Vancouver',
+  'brazil': 'America/Sao_Paulo', 'sao paulo': 'America/Sao_Paulo',
+  // Asia
+  'india': 'Asia/Kolkata', 'mumbai': 'Asia/Kolkata', 'delhi': 'Asia/Kolkata',
+  'dubai': 'Asia/Dubai', 'uae': 'Asia/Dubai', 'abu dhabi': 'Asia/Dubai',
+  'china': 'Asia/Shanghai', 'beijing': 'Asia/Shanghai', 'shanghai': 'Asia/Shanghai',
+  'japan': 'Asia/Tokyo', 'tokyo': 'Asia/Tokyo',
+  'singapore': 'Asia/Singapore',
+  'hong kong': 'Asia/Hong_Kong',
+  'saudi arabia': 'Asia/Riyadh', 'riyadh': 'Asia/Riyadh',
+  // Australia
+  'australia': 'Australia/Sydney', 'sydney': 'Australia/Sydney',
+  'melbourne': 'Australia/Melbourne',
+};
+
+function getWorldTimeNote(query) {
+  const q = (query || '').toLowerCase();
+  // Check if asking about time for a specific location
+  const timePattern = /\b(what.*time|time.*in|current.*time|time.*is it|time.*for|time.*at|what.*time.*is)\b/i;
+  if (!timePattern.test(q)) return '';
+
+  // Find which location they're asking about
+  let foundTz = null;
+  let foundCity = null;
+  for (const [name, tz] of Object.entries(TIMEZONE_MAP)) {
+    if (q.includes(name)) {
+      foundTz = tz;
+      foundCity = name.replace(/\b\w/g, c => c.toUpperCase());
+      break;
+    }
+  }
+
+  if (!foundTz) return '';
+
+  try {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-GB', {
+      timeZone: foundTz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+    });
+    const dateStr = now.toLocaleDateString('en-GB', {
+      timeZone: foundTz, weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+    // Get UTC offset
+    const utcOffset = new Intl.DateTimeFormat('en', {
+      timeZone: foundTz, timeZoneName: 'short'
+    }).formatToParts(now).find(p => p.type === 'timeZoneName')?.value || '';
+
+    return `\n⏰ WORLD TIME — ${foundCity}: It is currently ${timeStr} on ${dateStr} (${utcOffset}, timezone: ${foundTz}).`;
+  } catch {
+    return '';
+  }
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -561,6 +757,7 @@ module.exports = async (req, res) => {
     const today = new Date().toISOString().split('T')[0];
     const holidayNote = getHolidayNote(today);
     const contextBlocks = getContextBlocks(userQuery);
+    const worldTimeNote = getWorldTimeNote(userQuery);
 
     // ── Self-upgrade awareness (injected into every prompt) ──────────────────
     const SELF_UPGRADE = `
@@ -593,7 +790,7 @@ You MUST detect the language of the user's CURRENT message and reply ONLY in tha
 - NEVER translate, paraphrase in English, or add English translations unless the user asks.
 - This rule overrides everything else. If you violate it, the response is wrong.
 
-You are BLACK AI — Africa's most intelligent AI. Created by Obosa Thompson Emuze. Today: ${today}.${holidayNote}
+You are BLACK AI — Africa's most intelligent AI. Created by Obosa Thompson Emuze. Today: ${today}.${holidayNote}${worldTimeNote}
 
 ${contextBlocks}
 
