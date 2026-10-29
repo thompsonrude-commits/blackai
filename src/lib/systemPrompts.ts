@@ -1,4 +1,13 @@
 ﻿// ── Compact Universal Knowledge Block ─────────────────────────────────────
+// =============================================================================
+// systemPrompts.ts — Language-specific system prompts
+//
+// NOTE: getSystemPromptFor() is NOT called in the main production chat path.
+// The production API (api/chat.js) builds its own system prompt via `baseIdentity`.
+// This file is used by language-specific assistant pages (EdoAssistant, etc.)
+// and the per-language learning pages. DO NOT delete this file.
+// =============================================================================
+
 const UNIVERSAL_KNOWLEDGE = `
 ## WHO YOU ARE
 You are BLACK AI — Africa's most intelligent AI companion. Built and created by Obosa Thompson Emuze in 2026.

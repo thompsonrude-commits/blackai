@@ -109,7 +109,7 @@ export async function proxyChat(options: ProxyChatOptions): Promise<ProxyChatRes
       hasText: !!data.text,
       provider: data.provider,
       textLength: data.text?.length,
-      fullData: data
+      searchUsed: data.searchUsed ?? false,
     });
     if (!data.text) throw new Error('Empty response from proxy');
     if (isFallbackResult(data)) return buildLocalChatResult(options.messages);

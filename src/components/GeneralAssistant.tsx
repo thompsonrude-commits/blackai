@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Send, Square, X, Image as ImageIcon, FileText, Music, Plus, Camera, ScanText } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -277,8 +277,8 @@ NEVER "me go/dey" → ALWAYS "I go/dey". NEVER "tell I" → ALWAYS "tell me"
 CRITICAL: Use ONLY real Nigerian Pidgin words. NEVER invent words or use fake Edo/African-sounding words.
 Examples of CORRECT Pidgin: "How far?", "I dey fine", "Wetin dey happen?", "Make I help you", "You fit do am"
 NEVER use made-up words like: "gbo", "mɔ̀", "nkà", "n'kwo", "ọkpa" - these are NOT Pidgin!` : ''}${langName.includes('Edo') || langName.includes('Bini') ? `
-EDO LANGUAGE IS NOT SUPPORTED. If user asks in Edo, respond in Nigerian Pidgin English instead.
-Say: "Sorry o, I no sabi Edo well well. Make I answer you for Pidgin?"` : ''}${langName === 'English' ? `
+REPLY ONLY IN EDO (Bini). Zero Pidgin, zero English, zero other languages. Use verified Edo vocabulary: Kọyọ=Hello, Vbèè óye hé?=How are you?, Ọy' ẹsé=I am fine, Ọbowiẹ=Good morning, Ọbahvan=Good afternoon, Ọbota=Good evening, Ọse/Uru ẹsẹ=Thank you, Osanobua=God, Lahọ=Please.
+If you are unsure of an Edo word, say so in Edo or use a close equivalent — never switch to Pidgin or English.
 ENGLISH ONLY: Use clear, standard English. No Pidgin, no Yoruba, no Igbo, no Hausa mixing.` : ''}
 
 # RESPONSE STYLE
@@ -1289,21 +1289,11 @@ export default function GeneralAssistant({ user, isAdmin, currentSessionId, onOp
       await rebuildSystemPrompt();
     }
 
+    // 'search' falls through to unifiedChatStream — api/chat.js calls Tavily,
+    // injects results into Groq context, and the AI synthesizes a proper answer.
+    // Raw snippet intercept removed: it bypassed the AI entirely.
     if (classifiedIntent.capability === 'search') {
-      setMessages(prev => [...prev, { role: 'user', content: userMessage, timestamp: Date.now() }]);
-      try {
-        const searchResult = await proxySearch(userMessage);
-        const resultSummary = searchResult.results.slice(0, 3).map((result, idx) => `${idx + 1}. ${result.title}\n${result.snippet}${result.url && result.url !== '#' ? `\n${result.url}` : ''}`).join('\n\n');
-        const response = `🔎 Search results for “${userMessage}”\n\n${resultSummary || 'No live results were returned in this environment.'}`;
-        setMessages(prev => [...prev, { role: 'model', content: response, timestamp: Date.now(), isNew: true }]);
-        historyRef.current.push({ role: 'user', content: userMessage });
-        historyRef.current.push({ role: 'assistant', content: response });
-        setIsBusy(false);
-        setLogoState('idle');
-        return;
-      } catch (searchError) {
-        console.warn('[GeneralAssistant] search intent routing failed:', searchError);
-      }
+      // intentional fall-through to AI chat below
     }
 
     if (classifiedIntent.capability === 'image') {

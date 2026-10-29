@@ -475,7 +475,7 @@ function getContextBlocks(query) {
     blocks.push(CTX_CREATIVE_PROMPTS);
   }
 
-  return blocks.join('\n');
+  return blocks.join('\n').slice(0, 5000); // cap at ~5000 chars to prevent token overflow
 }
 
 // ── Tavily web search ─────────────────────────────────────────────────────
