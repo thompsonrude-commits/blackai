@@ -28,6 +28,7 @@
     { "src": "/api/v1/vision/analyze", "dest": "/api/vision.js" },
     { "src": "/api/v1/ocr", "dest": "/api/vision.js" },
     { "src": "/api/upscale", "dest": "/api/upscale.js" },
+    { "src": "/api/admin-auth", "dest": "/api/admin-auth.js" },
     { "src": "/api/v1/transcribe", "dest": "/api/transcribe.js" },
     { "src": "/api/v1/video", "dest": "/api/video.js" },
     { "src": "/api/v1/visual-orchestrator", "dest": "/api/visual-orchestrator.js" },

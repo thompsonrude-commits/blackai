@@ -2,14 +2,11 @@ import React, { useState } from 'react';
 import { Mail, Lock, Loader, AlertCircle, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import { signInWithEmail, signOut } from '../lib/firebase';
 import RotatingLogo, { RotatingLogoMedium } from './RotatingLogo';
 
 interface AdminLoginProps {
   onLoginSuccess: () => void;
 }
-
-const ADMIN_EMAIL = 'obosathompsons@gmail.com';
 
 export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
   const [email, setEmail] = useState('');
@@ -26,35 +23,40 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
     setIsLoading(true);
 
     try {
-      if (email.trim().toLowerCase() === ADMIN_EMAIL) {
-        // Firestore authorization is the source of truth for privileged writes.
-        // Do not keep or compare an admin password in frontend code.
-        const signedInUser = await signInWithEmail(email.trim(), password);
-        if (signedInUser.email?.toLowerCase() !== ADMIN_EMAIL) {
-          await signOut();
-          throw new Error('This account is not authorized for the admin panel.');
-        }
-        const adminUser = {
-          username: 'admin',
-          email: ADMIN_EMAIL,
-          isAdmin: true,
-          isMasterAdmin: true,
-          loginTime: Date.now()
-        };
-        const storage = rememberLogin ? localStorage : sessionStorage;
-        localStorage.removeItem('lexicon_dev_user');
-        sessionStorage.removeItem('lexicon_dev_user');
-        storage.setItem('lexicon_dev_user', JSON.stringify(adminUser));
-        localStorage.setItem('lexicon_dev_user_remembered', String(rememberLogin));
-        // Reload to pick up the new state
-        window.location.href = '/admin';
-        return;
+      // Call Vercel API — no Firebase needed, works on any network
+      const resp = await fetch('/api/admin-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), password }),
+        signal: AbortSignal.timeout(15000),
+      });
+
+      const data = await resp.json();
+
+      if (!resp.ok || !data.success) {
+        throw new Error(data.error || 'Login failed. Please check your credentials.');
       }
 
-      setError('Admin access requires the configured Firebase admin account. Agent sign-in must be provisioned through Firebase Authentication and server-side roles before it can be enabled.');
-      setIsLoading(false);
+      // Store session
+      const storage = rememberLogin ? localStorage : sessionStorage;
+      localStorage.removeItem('lexicon_dev_user');
+      sessionStorage.removeItem('lexicon_dev_user');
+      storage.setItem('lexicon_dev_user', JSON.stringify({
+        ...data.user,
+        username: 'admin',
+        loginTime: Date.now(),
+      }));
+      localStorage.setItem('lexicon_dev_user_remembered', String(rememberLogin));
+
+      // Navigate to admin panel
+      window.location.href = '/admin';
+
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please try again.');
+      let msg = err.message || 'Login failed. Please try again.';
+      if (err.name === 'TimeoutError' || msg.includes('timeout') || msg.includes('network')) {
+        msg = 'Connection timeout. Please check your internet connection and try again.';
+      }
+      setError(msg);
       setIsLoading(false);
     }
   };
@@ -66,9 +68,8 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
         animate={{ opacity: 1, scale: 1 }}
         className="w-full max-w-md"
       >
-        {/* Card */}
         <div className="bg-[#111111] border border-[#00ff88]/20 rounded-2xl shadow-2xl overflow-hidden">
-          {/* Header — 3D spinning logo */}
+          {/* Header */}
           <div className="bg-[#111111] px-6 py-8 text-center border-b border-white/10">
             <div className="flex flex-col items-center gap-2">
               <RotatingLogoMedium />
@@ -77,64 +78,60 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
             </div>
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-white/60 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={rememberLogin}
-              onChange={(e) => setRememberLogin(e.target.checked)}
-              className="accent-[#00ff88]"
-            />
-            Remember this admin login on this browser
-          </label>
+          {/* Remember me */}
+          <div className="px-6 pt-5">
+            <label className="flex items-center gap-2 text-sm text-white/60 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={rememberLogin}
+                onChange={(e) => setRememberLogin(e.target.checked)}
+                className="accent-[#00ff88]"
+              />
+              Remember this admin login on this browser
+            </label>
+          </div>
 
           {/* Form */}
-          <div className="px-6 py-10">
-            <h2 className="text-3xl font-bold text-white mb-3">
-              Admin & Agent Login
-            </h2>
+          <div className="px-6 py-8">
+            <h2 className="text-3xl font-bold text-white mb-3">Admin & Agent Login</h2>
             <p className="text-white/60 text-base mb-8">
               Enter your credentials to access the training panel
             </p>
 
-            {/* Error Message */}
+            {/* Error */}
             {error && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mb-6 p-4 bg-red-500/10 border border-red-400/30 rounded-lg flex items-center gap-3"
+                className="mb-6 p-4 bg-red-500/10 border border-red-400/30 rounded-lg flex items-start gap-3"
               >
-                <AlertCircle size={24} className="text-red-600 flex-shrink-0" />
-                <p className="text-base text-red-300">{error}</p>
+                <AlertCircle size={22} className="text-red-500 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-red-300 leading-relaxed">{error}</p>
               </motion.div>
             )}
 
-            {/* Admin Login Form */}
             <form onSubmit={handleAdminLogin} className="space-y-5">
               <div>
-                <label className="block text-base font-semibold text-white mb-3">
-                  Email
-                </label>
+                <label className="block text-base font-semibold text-white mb-3">Email</label>
                 <div className="relative">
-                  <Mail size={20} className="absolute left-4 top-4 text-white/40" />
+                  <Mail size={20} className="absolute left-4 top-3.5 text-white/40" />
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your email"
+                    placeholder="Enter your admin email"
                     required
                     disabled={isLoading}
-                    autoComplete="off"
-                    className="w-full pl-12 pr-4 py-3 border border-white/15 rounded-lg text-base text-white bg-black/40 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-[#00ff88] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                    autoComplete="username"
+                    className="w-full pl-12 pr-4 py-3 border border-white/15 rounded-lg text-base text-white bg-black/40 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-[#00ff88] focus:border-transparent disabled:opacity-50"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-base font-semibold text-white mb-3">
-                  Password
-                </label>
+                <label className="block text-base font-semibold text-white mb-3">Password</label>
                 <div className="relative">
-                  <Lock size={20} className="absolute left-4 top-4 text-white/40" />
+                  <Lock size={20} className="absolute left-4 top-3.5 text-white/40" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
@@ -142,12 +139,13 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
                     placeholder="••••••••"
                     required
                     disabled={isLoading}
-                    className="w-full pl-12 pr-12 py-3 border border-white/15 rounded-lg text-base text-white bg-black/40 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-[#00ff88] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                    autoComplete="current-password"
+                    className="w-full pl-12 pr-12 py-3 border border-white/15 rounded-lg text-base text-white bg-black/40 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-[#00ff88] focus:border-transparent disabled:opacity-50"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-4 text-white/40 hover:text-white"
+                    className="absolute right-4 top-3.5 text-white/40 hover:text-white"
                   >
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
@@ -157,11 +155,11 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
               <button
                 type="submit"
                 disabled={!email || !password || isLoading}
-                className="w-full mt-8 px-6 py-4 bg-[#00ff88] text-black rounded-lg text-lg font-bold hover:bg-[#61ffb1] hover:shadow-lg hover:shadow-[#00ff88]/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                className="w-full mt-6 px-6 py-4 bg-[#00ff88] text-black rounded-lg text-lg font-bold hover:bg-[#61ffb1] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
               >
                 {isLoading ? (
                   <>
-                    <Loader size={24} className="animate-spin" />
+                    <Loader size={22} className="animate-spin" />
                     <span>Signing In...</span>
                   </>
                 ) : (
@@ -170,12 +168,9 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
               </button>
             </form>
 
-
-
-            {/* Back Button */}
             <button
               onClick={() => navigate('/')}
-              className="w-full mt-6 px-6 py-3 border border-white/20 text-white/70 rounded-xl text-base font-semibold hover:bg-white/10 hover:text-white transition-all flex items-center justify-center gap-2"
+              className="w-full mt-4 px-6 py-3 border border-white/20 text-white/70 rounded-xl text-base font-semibold hover:bg-white/10 hover:text-white transition-all flex items-center justify-center gap-2"
             >
               <ArrowLeft size={20} />
               Back to Home
@@ -183,11 +178,8 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="text-center mt-8">
-          <p className="text-white/80 text-base">
-            © 2026 BLACK AI. All rights reserved.
-          </p>
+        <div className="text-center mt-6">
+          <p className="text-white/40 text-sm">© 2026 BLACK AI. All rights reserved.</p>
         </div>
       </motion.div>
     </div>
