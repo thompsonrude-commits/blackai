@@ -519,6 +519,8 @@ function needsWebSearch(q) {
   if (/\b(build|create|make|design|develop|generate|write)\b.{0,40}\b(website|web\s*app|web\s*page|html|css|site|landing\s*page|homepage|portfolio\s*site|school\s*site|hotel\s*site|ecommerce|shop\s*site|management\s*system|student\s*portal|roll\s*call|attendance\s*system)\b/i.test(q)) return false;
   if (/\b(what is|what are|who is|who are|when did|when is|where is|how does|why does|explain|define|latest|news|update|price of|rate of|how much is|dollar rate|naira.*dollar|exchange rate|weather|forecast|happening today|wetin dey happen|current)\b/i.test(q)) return true;
   if (/\b(medicine|drug|treatment|symptom|law|section|act|formula|calculation|algorithm|stock|forex|bitcoin|crypto|btc|eth)\b/i.test(q)) return true;
+  // Version/upgrade/deprecation queries — need live info
+  if (/\b(latest version|current version|newest version|deprecated|was deprecated|still supported|end of life|eol|what version|upgrade.*to|migrate.*to|breaking change|changelog|release notes|just released|new in|whats new in)\b/i.test(q)) return true;
   return false;
 }
 
@@ -560,7 +562,17 @@ module.exports = async (req, res) => {
     const holidayNote = getHolidayNote(today);
     const contextBlocks = getContextBlocks(userQuery);
 
-    // Run web search only when genuinely needed
+    // ── Self-upgrade awareness (injected into every prompt) ──────────────────
+    const SELF_UPGRADE = `
+🔄 SELF-UPGRADE RULE: You are NOT static. Always use the most current knowledge available.
+- Code: use LATEST stable versions. Add: // Dependencies current as of ${today} — run 'npm outdated' to check for updates
+- APIs: model names and endpoints change. Always link to official docs for verification.
+- If search results are in context, ALWAYS prefer them over training data for current info.
+- If user corrects you ("that API changed/deprecated"), accept immediately and update answer.
+- If unsure about latest version: answer with what you know + "Verify latest at [official URL]"
+- For AI models (Groq, OpenAI, Gemini etc.): note that model names update frequently.
+- Breaking changes: warn users when major versions introduce them (e.g. React 18→19, Next 13→14).
+- NEVER pretend to know post-training info — be honest and use live search when available.`;
     let searchResults = null;
     if (needsWebSearch(userQuery)) {
       console.log('[Chat] Searching:', userQuery.substring(0, 60));
@@ -596,8 +608,8 @@ ALWAYS WORKS (in the user's language):
 - Currency: 1 USD ≈ ₦1,600 | 1 GBP ≈ ₦2,000 | 1 EUR ≈ ₦1,750 (mid-2026 approx, check live for exact)`;
 
     const systemContent = searchResults
-      ? `${baseIdentity}\n\nLIVE SEARCH RESULTS:\n${searchResults}\n\nUse search results as primary source. Be specific and accurate.`
-      : `${baseIdentity}\n\nAnswer from training data. Be thorough and specific.`;
+      ? `${baseIdentity}\n\n${SELF_UPGRADE}\n\nLIVE SEARCH RESULTS:\n${searchResults}\n\nUse search results as primary source. Prefer them over training data for any current version/API/price info.`
+      : `${baseIdentity}\n\n${SELF_UPGRADE}\n\nAnswer from training data. Be thorough and specific. For version/API questions, note the date and suggest verifying at official docs.`;
 
     const finalMessages = [{ role: 'system', content: systemContent }, ...convMessages];
 
