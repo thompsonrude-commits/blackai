@@ -216,6 +216,33 @@ module.exports = async (req, res) => {
     } catch (_) {}
   }
 
+  // Support video/visual-orchestrator requests routed here
+  // Extract prompt from multiple possible fields
+  const isVisualOrchestrator = (req.url || '').includes('visual-orchestrator');
+  const isVideo = (req.url || '').includes('video');
+  if (isVisualOrchestrator || isVideo) {
+    const vPrompt = bodyObj.prompt ||
+      (bodyObj.messages && bodyObj.messages[bodyObj.messages.length - 1]?.content) ||
+      'cinematic scene, detailed, high quality';
+    const vImageUrl = await tryPollinations(enhancePrompt(vPrompt), null);
+    if (vImageUrl) {
+      const response = isVisualOrchestrator
+        ? { ok: true, visual: { imageUrl: vImageUrl, provider: 'pollinations', model: 'flux', title: vPrompt.slice(0, 60), latencyMs: 0 } }
+        : { outputUrl: vImageUrl, videoUrl: vImageUrl, provider: 'pollinations', model: 'flux', latencyMs: 0 };
+      return res.status(200).json(response);
+    }
+    return res.status(503).json({ error: 'Generation unavailable. Please try again.', ok: false });
+  }
+      const raw = await new Promise((resolve, reject) => {
+        let d = '';
+        req.on('data', c => { d += c.toString(); });
+        req.on('end', () => resolve(d));
+        req.on('error', reject);
+      });
+      if (raw) bodyObj = JSON.parse(raw);
+    } catch (_) {}
+  }
+
   const userPrompt = (bodyObj.prompt || 'beautiful African scenery').trim();
   const prompt = enhancePrompt(userPrompt);
   const startTime = Date.now();
