@@ -1,80 +1,63 @@
 /**
  * BLACK AI PWA Service Worker
- * Network-first strategy - always fetch latest from server
+ * NETWORK-ONLY strategy for all JS/HTML — never cache app code.
+ * Only caches static assets like icons and manifest.
+ * This ensures users always get the latest version immediately.
  */
 
-const CACHE_NAME = 'blackai-v2.2.0'; // Bumped - forces all devices to clear old cache and load new admin-auth bundle
-const OFFLINE_URL = '/';
+const CACHE_NAME = 'blackai-v2.3.0';
 
-// Only cache static assets - never HTML or API
-const CACHE_ASSETS = [
-  '/manifest.json',
-  '/logo.png',
-];
-
-// Install - cache only static assets
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(CACHE_ASSETS);
-    })
-  );
-  // Force immediate activation - don't wait for old SW to die
+  // Skip waiting — activate immediately, don't wait for old SW to unload
   self.skipWaiting();
 });
 
-// Activate - delete ALL old caches immediately
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          // Delete every cache that isn't the current one
-          if (cacheName !== CACHE_NAME) {
-            console.log('[SW] Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
+    // Delete ALL old caches without exception
+    caches.keys().then((cacheNames) =>
+      Promise.all(cacheNames.map((name) => {
+        console.log('[SW] Clearing cache:', name);
+        return caches.delete(name);
+      }))
+    ).then(() => {
+      // Take control of all open tabs immediately
+      return self.clients.claim();
     })
   );
-  // Take control of all open tabs immediately
-  self.clients.claim();
 });
 
-// Fetch - network first for EVERYTHING
 self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests (POST, etc.)
+  const url = event.request.url;
+
+  // Only handle GET requests
   if (event.request.method !== 'GET') return;
 
-  // Skip API calls - always go straight to network, no caching
-  if (event.request.url.includes('/api/')) return;
+  // NEVER intercept API calls — always go to network directly
+  if (url.includes('/api/')) return;
 
-  // Skip cross-origin requests
-  if (!event.request.url.startsWith(self.location.origin)) return;
+  // NEVER cache or intercept JS/CSS app bundles — always go to network
+  if (url.includes('/assets/')) {
+    // Network only — no cache. This ensures new deployments are always loaded.
+    event.respondWith(
+      fetch(event.request, { cache: 'no-store' })
+        .catch(() => new Response('/* offline */', { headers: { 'Content-Type': 'text/javascript' } }))
+    );
+    return;
+  }
 
-  const isHTMLRequest = event.request.headers.get('accept')?.includes('text/html');
-  const isJSRequest = event.request.url.includes('/assets/');
+  // NEVER cache HTML — always network
+  if (event.request.headers.get('accept')?.includes('text/html')) {
+    event.respondWith(
+      fetch(event.request, { cache: 'no-store' })
+        .catch(() => fetch('/'))
+    );
+    return;
+  }
 
+  // For everything else (icons, manifest) — network first, cache fallback
   event.respondWith(
     fetch(event.request)
-      .then((response) => {
-        // Only cache static assets (JS/CSS/images) - NEVER cache HTML
-        if (response.status === 200 && isJSRequest) {
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
-        }
-        return response;
-      })
-      .catch(() => {
-        // Network failed - try cache for static assets
-        return caches.match(event.request).then((cachedResponse) => {
-          if (cachedResponse) return cachedResponse;
-          // For HTML requests with no cache, return root (app shell)
-          if (isHTMLRequest) return caches.match(OFFLINE_URL);
-        });
-      })
+      .catch(() => caches.match(event.request))
   );
 });
