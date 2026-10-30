@@ -3,7 +3,7 @@
  * Network-first strategy - always fetch latest from server
  */
 
-const CACHE_NAME = 'blackai-v2.1.0'; // Bumped - forces all devices to clear old cache
+const CACHE_NAME = 'blackai-v2.2.0'; // Bumped - forces all devices to clear old cache and load new admin-auth bundle
 const OFFLINE_URL = '/';
 
 // Only cache static assets - never HTML or API

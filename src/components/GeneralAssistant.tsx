@@ -903,7 +903,8 @@ export default function GeneralAssistant({ user, isAdmin, currentSessionId, onOp
   const abortRef = useRef<(() => void) | null>(null);
   const stoppedRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const userScrolledUpRef = useRef(false); // tracks if user manually scrolled up
+  const userScrolledUpRef = useRef(false);
+  const [showScrollArrow, setShowScrollArrow] = useState(false); // React state for proper re-render
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const lastAIResponseRef = useRef<string>('');
@@ -1847,6 +1848,7 @@ Use these meanings when the source contains these Edo phrases.`;
 
       {/* ── Messages ──────────────────────────────────────────────────── */}
       <div className="relative flex-1 min-h-0">
+        {/* Scrollable messages area */}
         <div
           ref={scrollRef}
           className="relative z-10 h-full overflow-y-auto overscroll-contain px-4 py-4"
@@ -1855,8 +1857,9 @@ Use these meanings when the source contains these Edo phrases.`;
             if (!scrollRef.current) return;
             const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
             const distFromBottom = scrollHeight - scrollTop - clientHeight;
-            // Mark as manually scrolled up if more than 250px from bottom
-            userScrolledUpRef.current = distFromBottom > 250;
+            const scrolledUp = distFromBottom > 260;
+            userScrolledUpRef.current = scrolledUp;
+            setShowScrollArrow(scrolledUp && (isStreaming || isBusy));
           }}
         >
         {messages.length === 0 && !isStreaming && !isBusy ? (

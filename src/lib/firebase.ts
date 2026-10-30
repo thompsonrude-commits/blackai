@@ -1,19 +1,31 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut as firebaseSignOut, setPersistence, browserLocalPersistence } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { getFirestore, doc, getDocFromServer, initializeFirestore, CACHE_SIZE_UNLIMITED } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+
+// Use long-polling transport to avoid CORS preflight errors on restricted networks
+export const db = (() => {
+  try {
+    return initializeFirestore(app, {
+      experimentalForceLongPolling: true, // avoids CORS issues on corporate/restricted networks
+      cacheSizeBytes: CACHE_SIZE_UNLIMITED,
+    }, firebaseConfig.firestoreDatabaseId);
+  } catch {
+    // Already initialized — get existing instance
+    return getFirestore(app, firebaseConfig.firestoreDatabaseId);
+  }
+})();
+
 export const auth = getAuth();
 export const storage = getStorage(app);
 
-// Keep the Firebase identity across reloads and devices. Firestore remains the
-// source of truth for account data; this only controls the local auth session.
+// Keep the Firebase identity across reloads and devices.
 if (typeof window !== 'undefined') {
-  void setPersistence(auth, browserLocalPersistence).catch((error) => {
-    console.error('Unable to persist Firebase authentication state:', error);
+  void setPersistence(auth, browserLocalPersistence).catch(() => {
+    // Silently ignore — Firebase auth persistence is optional
   });
 }
 
