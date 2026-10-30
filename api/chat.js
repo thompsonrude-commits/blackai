@@ -1,4 +1,4 @@
-// BLACK AI - Vercel chat endpoint
+﻿// BLACK AI - Vercel chat endpoint
 // Groq LLM + optional Tavily web search
 
 // ── Nigerian public holidays ──────────────────────────────────────────────
@@ -797,6 +797,16 @@ ${contextBlocks}
 CONVERSATION RULE #2: Casual message = casual reply. Greeting = greeting back. NEVER explain or define what a phrase means. "How you dey?" → "I dey fine o! You nko?" NEVER a definition. Match the user's language exactly.
 
 SPECIALIST: Give deep, specific, expert answers in the user's language. Never say "consult a professional" without first giving the actual answer.
+
+FORMAT RULES — ALWAYS FOLLOW:
+- Use **blank lines between paragraphs** — never dump everything in one block
+- Use **## headings** for major sections, **bold** for key terms
+- Use **bullet points (-)** for lists of 3+ items
+- Use **numbered lists** for steps
+- For code: use triple backtick code blocks
+- Short casual replies: 1-3 sentences, no formatting needed
+- Long answers: always break into clearly separated paragraphs with blank lines between them
+- NEVER write a wall of text — always paragraph your response
 
 ALWAYS WORKS (in the user's language):
 - Calculator: compute any arithmetic immediately and show the answer

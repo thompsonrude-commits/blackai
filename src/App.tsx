@@ -8,6 +8,7 @@ import SearchLanguage from './components/SearchLanguage';
 import LanguageExplorer from './components/LanguageExplorer';
 import AdminRepository from './components/AdminRepository';
 import AdminTraining from './components/AdminTraining';
+import WordTablePage from './components/WordTablePage';
 import SmartAIPaste from './components/SmartAIPaste';
 import URLExtract from './components/URLExtract';
 import StructuredPaste from './components/StructuredPaste';
@@ -244,6 +245,7 @@ export default function App() {
             <>
               <Route path="/discover" element={<div className="flex-1 overflow-y-auto"><SearchLanguage onLanguageFound={(langName) => { let id = langName.toLowerCase().replace(/\s+/g, '-'); for (const [k, v] of Object.entries(LANGUAGE_ID_TO_NAME)) { if (v.toLowerCase() === langName.toLowerCase()) { id = k; break; } } navigate(`/language/${id}`); }} /></div>} />
               <Route path="/admin/repository" element={<AdminSubpage><AdminRepository onSelectLanguage={(langName) => { let id = langName.toLowerCase().replace(/\s+/g, '-'); for (const [k, v] of Object.entries(LANGUAGE_ID_TO_NAME)) { if (v.toLowerCase() === langName.toLowerCase()) { id = k; break; } } navigate(`/language/${id}`); }} /></AdminSubpage>} />
+              <Route path="/admin/word-table" element={<AdminSubpage><WordTablePage /></AdminSubpage>} />
               <Route path="/admin/training" element={<AdminSubpage><AdminTraining /></AdminSubpage>} />
               <Route path="/admin/smart-paste" element={<AdminSubpage><SmartAIPaste /></AdminSubpage>} />
               <Route path="/admin/url-extract" element={<AdminSubpage><URLExtract /></AdminSubpage>} />

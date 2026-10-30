@@ -66,6 +66,27 @@ export default function AdminPage() {
 
             {/* Quick Access Cards */}
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+
+              {/* ── WORD TABLE — PRIMARY TRAINING TOOL ── */}
+              <button
+                onClick={() => navigate('/admin/word-table')}
+                className="group p-5 rounded-2xl border border-[#00ff88]/40 bg-black/40 hover:bg-[#00ff88]/10 hover:border-[#00ff88]/60 transition-all text-left sm:col-span-2 lg:col-span-3"
+              >
+                <div className="flex items-center gap-4 mb-3">
+                  <div className="w-12 h-12 rounded-xl bg-[#00ff88]/20 flex items-center justify-center text-2xl group-hover:bg-[#00ff88]/30 transition-colors">
+                    📊
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-base font-bold text-white">Word Training Table</h3>
+                    <p className="text-xs text-[#00ff88] uppercase tracking-wider">Excel-style — Main Language Training Tool</p>
+                  </div>
+                  <div className="text-[#00ff88] font-bold text-sm">OPEN →</div>
+                </div>
+                <p className="text-sm text-white/70 text-xs leading-relaxed">
+                  Add words for each language with: local word, English meaning, phonetics, singular, plural, antonym (opposite), synonym, part of speech, category, example sentences in local language + English, proverbs, cultural notes. Saves directly to the AI training database.
+                </p>
+              </button>
+
               <button
                 onClick={() => navigate('/admin/smart-paste')}
                 className="group p-5 rounded-2xl border border-purple-500/30 bg-black/40 hover:bg-purple-500/10 hover:border-purple-500/50 transition-all text-left"

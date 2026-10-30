@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Send, Square, X, Image as ImageIcon, FileText, Music, Plus, Camera, ScanText } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -512,9 +514,22 @@ function TypewriterBubble({ content, isNew, scrollRef }: { content: string; isNe
   });
   const text = isNew ? displayed : safeContent;
   return (
-    <div className="max-w-[85%] bg-[#1a1a1a] border border-[#00ff88]/30 px-4 py-3 rounded-2xl rounded-tl-sm text-gray-100 text-base leading-[1.6] whitespace-pre-wrap shadow-[0_0_20px_rgba(0,255,136,0.1)] break-words overflow-visible">
+    <div className="max-w-[85%] bg-[#1a1a1a] border border-[#00ff88]/30 px-4 py-3 rounded-2xl rounded-tl-sm shadow-[0_0_20px_rgba(0,255,136,0.1)] break-words overflow-visible">
       {isNew && displayed.length < safeContent.length && <TypingIndicator className="text-[#00ff88]" />}
-      {text}
+      <div className="prose prose-invert prose-sm max-w-none text-gray-100 leading-[1.75]
+        prose-p:mb-3 prose-p:mt-0 prose-p:text-gray-100
+        prose-headings:text-[#00ff88] prose-headings:font-bold prose-headings:mt-4 prose-headings:mb-2
+        prose-strong:text-white prose-strong:font-semibold
+        prose-em:text-gray-300
+        prose-ul:my-2 prose-ul:pl-5 prose-li:my-1 prose-li:text-gray-100
+        prose-ol:my-2 prose-ol:pl-5
+        prose-code:text-[#00ff88] prose-code:bg-[#0a0a0a] prose-code:px-1 prose-code:rounded prose-code:text-sm
+        prose-pre:bg-[#0a0a0a] prose-pre:border prose-pre:border-[#00ff88]/20 prose-pre:rounded-xl prose-pre:p-3 prose-pre:overflow-x-auto
+        prose-a:text-[#00ff88] prose-a:underline
+        prose-blockquote:border-l-[#00ff88] prose-blockquote:text-gray-400
+        prose-hr:border-[#333]">
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+      </div>
     </div>
   );
 }
@@ -537,9 +552,19 @@ function StreamingBubble({
   });
 
   return (
-    <div className="max-w-[85%] bg-[#1a1a1a] border border-[#00ff88]/30 px-4 py-3 rounded-2xl rounded-tl-sm text-gray-100 text-base leading-[1.6] whitespace-pre-wrap shadow-[0_0_20px_rgba(0,255,136,0.1)] break-words overflow-visible">
+    <div className="max-w-[85%] bg-[#1a1a1a] border border-[#00ff88]/30 px-4 py-3 rounded-2xl rounded-tl-sm shadow-[0_0_20px_rgba(0,255,136,0.1)] break-words overflow-visible">
       {(isGenerating || !isComplete) && <TypingIndicator className="text-[#00ff88]" />}
-      {displayedText}
+      <div className="prose prose-invert prose-sm max-w-none text-gray-100 leading-[1.75]
+        prose-p:mb-3 prose-p:mt-0 prose-p:text-gray-100
+        prose-headings:text-[#00ff88] prose-headings:font-bold prose-headings:mt-4 prose-headings:mb-2
+        prose-strong:text-white prose-strong:font-semibold
+        prose-ul:my-2 prose-ul:pl-5 prose-li:my-1 prose-li:text-gray-100
+        prose-ol:my-2 prose-ol:pl-5
+        prose-code:text-[#00ff88] prose-code:bg-[#0a0a0a] prose-code:px-1 prose-code:rounded prose-code:text-sm
+        prose-pre:bg-[#0a0a0a] prose-pre:border prose-pre:border-[#00ff88]/20 prose-pre:rounded-xl prose-pre:p-3 prose-pre:overflow-x-auto
+        prose-a:text-[#00ff88] prose-a:underline">
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{displayedText}</ReactMarkdown>
+      </div>
     </div>
   );
 }
