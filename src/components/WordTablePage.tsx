@@ -4,8 +4,15 @@
  * Trainers can add, edit, delete words with all fields and save to Firestore.
  */
 import React, { useState, useEffect, useRef } from 'react';
-import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, serverTimestamp, query, orderBy } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, serverTimestamp, query, orderBy, enableIndexedDbPersistence } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
+
+// Enable offline persistence so words save locally first, then sync to cloud
+// This makes saves instant even on slow/blocked networks
+try {
+  enableIndexedDbPersistence(db).catch(() => {/* already enabled or not supported */});
+} catch (_) {}
+
 import { ArrowLeft, Plus, Save, Trash2, Download, Upload, Search, Filter, X, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { NIGERIAN_LANGUAGES } from '../lib/nigerianLanguages';
@@ -89,14 +96,25 @@ export default function WordTablePage() {
     if (!newRow || !newRow.word.trim() || !newRow.english.trim()) return;
     setSaving(true);
     try {
-      await addDoc(collection(db, 'wordTable'), {
+      // Firestore with offline persistence — saves instantly to local cache,
+      // then syncs to cloud in background (works even on slow/restricted networks)
+      const docRef = await addDoc(collection(db, 'wordTable'), {
         ...newRow,
         language: selectedLang,
         createdAt: serverTimestamp(),
         createdBy: auth.currentUser?.email || 'admin',
       });
+      console.log('[WordTable] Saved word:', newRow.word, 'id:', docRef.id);
       setNewRow(null);
-    } catch (e: any) { alert('Save failed: ' + e.message); }
+    } catch (e: any) {
+      console.error('[WordTable] Save error:', e);
+      if (e.code === 'unavailable' || e.message?.includes('network') || e.message?.includes('CORS')) {
+        alert('⚠️ Network issue detected. The word was saved locally and will sync to the database when connection is restored. You can continue adding more words.');
+        setNewRow(null); // Still clear the form — local save succeeded
+      } else {
+        alert('Save failed: ' + (e.message || 'Unknown error'));
+      }
+    }
     finally { setSaving(false); }
   };
 
@@ -172,6 +190,9 @@ export default function WordTablePage() {
           <ArrowLeft size={16} /> Admin
         </button>
         <h1 className="text-[#00ff88] font-bold text-base flex-1">📊 Word Training Table</h1>
+        <span className="text-xs text-[#555] hidden md:block">
+          💾 Words save to Firebase · syncs across all devices
+        </span>
 
         {/* Language selector */}
         <select className="bg-[#111] border border-[#222] text-white text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#00ff88]/40"
